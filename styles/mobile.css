@@ -675,13 +675,12 @@ body.is-mobile-ui #inventory-ui {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(97vw, 372px);
-  max-height: calc(100dvh - 10px);
+  width: min(97vw, 358px);
+  max-height: calc(100dvh - 8px);
   overflow-y: auto;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding: 8px 8px;
-  gap: 6px;
+  padding: 6px 7px;
+  gap: 5px;
   border-width: 1.5px;
   border-radius: 10px;
   z-index: 1000;
@@ -689,24 +688,24 @@ body.is-mobile-ui #inventory-ui {
 }
 
 body.is-mobile-ui .inv-title-bar {
-  padding-bottom: 5px;
-  gap: 6px;
+  padding-bottom: 4px;
+  gap: 5px;
 }
 
 body.is-mobile-ui #invTitleText {
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
-body.is-mobile-ui .inv-title-mode-badge {
-  font-size: 9px;
-  padding: 1px 5px;
+body.is-mobile-ui .inv-title-mode-badge,
+body.is-mobile-ui .inv-section-meta {
+  display: none;
 }
 
 body.is-mobile-ui .recipe-book-toggle-btn,
 body.is-mobile-ui .inv-close-btn {
-  height: 26px;
+  height: 24px;
   padding: 0 7px;
-  font-size: 10.5px;
+  font-size: 10px;
 }
 
 body.is-mobile-ui .recipe-book-toggle-btn .btn-kbd,
@@ -715,29 +714,78 @@ body.is-mobile-ui .inv-close-btn .btn-kbd {
 }
 
 body.is-mobile-ui #wand-socket-modal {
-  width: min(95vw, 356px);
-  padding: 9px 10px;
-  gap: 7px;
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
+  width: min(96vw, 344px);
+  max-height: calc(100dvh - 10px);
+  overflow: visible;
+  padding: 7px 9px;
+  gap: 6px;
+  touch-action: none;
 }
 
-body.is-mobile-ui .wand-altar-panel {
-  padding: 8px 8px 7px;
+body.is-mobile-ui .wand-modal-header {
+  padding-bottom: 5px;
+}
+
+body.is-mobile-ui .wand-modal-title {
+  font-size: 12px;
+}
+
+body.is-mobile-ui .wand-modal-body {
   gap: 6px;
 }
 
-body.is-mobile-ui #wand-socket-modal .wand-socket-slot {
-  width: 50px;
-  height: 50px;
+body.is-mobile-ui .wand-altar-column {
+  gap: 5px;
 }
 
-body.is-mobile-ui .wand-control-hint {
-  display: none;
+body.is-mobile-ui .wand-two-parts {
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+body.is-mobile-ui .wand-altar-panel {
+  padding: 6px 6px 5px;
+  gap: 5px;
+}
+
+body.is-mobile-ui .wand-part-head {
+  padding-bottom: 3px;
+  gap: 4px;
+}
+
+body.is-mobile-ui .wand-part-title {
+  font-size: 9.5px;
+}
+
+body.is-mobile-ui .wand-part-badge {
+  font-size: 9px;
+  padding: 0 4px;
+}
+
+body.is-mobile-ui .wand-socket-grid {
+  gap: 4px;
+}
+
+body.is-mobile-ui #wand-socket-modal .wand-socket-slot,
+body.is-mobile-ui #wand-socket-modal .wand-gem-slot,
+body.is-mobile-ui #wand-socket-modal .wand-gem-socket-slot {
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+}
+
+body.is-mobile-ui .wand-socket-label {
+  font-size: 8px;
+}
+
+body.is-mobile-ui .wand-gem-stats-strip,
+body.is-mobile-ui .wand-resonance-banner {
+  font-size: 9.5px;
+  padding: 3px 6px;
 }
 
 body.is-mobile-ui .wand-bag-panel {
-  padding: 6px 6px 7px;
+  padding: 5px 6px;
   gap: 4px;
 }
 
@@ -758,7 +806,7 @@ body.is-mobile-ui #wand-socket-modal .wand-hotbar-grid .slot {
 }
 
 body.is-mobile-ui #wand-socket-modal .slot .item-count {
-  font-size: 11px;
+  font-size: 10.5px;
   bottom: 1px;
   right: 2px;
 }
@@ -879,52 +927,56 @@ body.is-mobile-ui #inventory-ui .pocket-crafting-grid .slot {
 /* Portrait Workstation: 2 thẻ xếp dòng gọn gàng, căn đều mép 100% */
 body.is-mobile-ui .workstation-container {
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 body.is-mobile-ui .workstation-crafting-panel,
 body.is-mobile-ui .workstation-forge-panel {
   flex: none;
   width: 100%;
-  padding: 6px 10px;
-  gap: 5px;
+  padding: 5px 8px;
+  gap: 4px;
 }
 
 body.is-mobile-ui .workstation-grid {
-  grid-template-columns: repeat(3, 30px);
-  grid-template-rows: repeat(3, 30px);
-  gap: 3px;
+  grid-template-columns: repeat(3, 28px);
+  grid-template-rows: repeat(3, 28px);
+  gap: 2.5px;
 }
 
 body.is-mobile-ui #inventory-ui .workstation-grid .slot {
+  width: 28px;
+  height: 28px;
+}
+
+body.is-mobile-ui #inventory-ui .forge-slots-row .slot {
   width: 30px;
   height: 30px;
 }
 
-body.is-mobile-ui #inventory-ui .forge-slots-row .slot {
-  width: 34px;
-  height: 34px;
-}
-
 body.is-mobile-ui .forge-execute-btn {
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 3px 7px;
+  font-size: 10.5px;
 }
 
 /* Túi đồ 27 ô & Hotbar 9 ô đồng bộ mép */
 body.is-mobile-ui .inv-bag-column {
-  gap: 6px;
+  gap: 5px;
+}
+
+body.is-mobile-ui .inv-section-header {
+  margin-bottom: 1px;
 }
 
 body.is-mobile-ui .storage-section-wrapper,
 body.is-mobile-ui .hotbar-inv-wrapper {
-  padding: 6px 6px 7px;
-  gap: 4px;
+  padding: 5px 6px;
+  gap: 3px;
 }
 
 body.is-mobile-ui .storage-section-label,
 body.is-mobile-ui .hotbar-inv-label {
-  font-size: 10px;
+  font-size: 9.5px;
 }
 
 body.is-mobile-ui .storage-grid-container,
@@ -944,15 +996,15 @@ body.is-mobile-ui #inventory-ui .slot {
 }
 
 body.is-mobile-ui #inventory-ui .slot .item-count {
-  font-size: 11px;
+  font-size: 10.5px;
   bottom: 1px;
   right: 2px;
 }
 
 body.is-mobile-ui .craft-result-slot,
 body.is-mobile-ui .forge-result-slot {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
 }
 
 /* Màn hình điện thoại dọc siêu nhỏ (<= 375px) */
@@ -982,6 +1034,13 @@ body.is-mobile-ui .forge-result-slot {
 
   body.is-mobile-ui .wand-storage-grid {
     grid-template-rows: repeat(3, 30px);
+  }
+
+  body.is-mobile-ui #wand-socket-modal .wand-socket-slot,
+  body.is-mobile-ui #wand-socket-modal .wand-gem-slot,
+  body.is-mobile-ui #wand-socket-modal .wand-gem-socket-slot {
+    width: 33px;
+    height: 33px;
   }
 }
 
@@ -1183,58 +1242,235 @@ body.is-mobile-ui .forge-result-slot {
     display: none;
   }
 
-  /* Landscape Wand Modal: Altar on Left, 36-Slot Bag on Right */
+  /* Landscape Co-Open: Chest on Left, Inventory on Right (Zero Scroll) */
+  body.is-mobile-ui.chest-and-inv-open #chest-ui {
+    top: 50%;
+    left: max(8px, env(safe-area-inset-left));
+    transform: translateY(-50%);
+    width: calc(50vw - 12px);
+    max-width: 306px;
+    padding: 7px 8px;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #chest-ui .chest-header {
+    margin-bottom: 5px;
+    padding-bottom: 4px;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #chest-ui .chest-title {
+    font-size: 11.5px;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open .chest-grid-container {
+    grid-template-columns: repeat(9, clamp(24px, 3.6vw, 29px));
+    grid-template-rows: repeat(3, clamp(24px, 3.6vw, 29px));
+    gap: 2.5px;
+    padding: 4px;
+    justify-content: center;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #chest-ui .slot {
+    width: clamp(24px, 3.6vw, 29px);
+    height: clamp(24px, 3.6vw, 29px);
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui {
+    left: auto;
+    right: max(8px, env(safe-area-inset-right));
+    top: 50%;
+    transform: translateY(-50%);
+    width: calc(50vw - 12px);
+    max-width: 306px;
+    padding: 7px 8px;
+    gap: 5px;
+    overflow: visible;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .inv-content-column {
+    flex-direction: column;
+    width: 100%;
+    gap: 0;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .storage-section-wrapper,
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .hotbar-inv-wrapper {
+    padding: 4px;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .storage-grid-container,
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .hotbar-inv-grid {
+    grid-template-columns: repeat(9, clamp(24px, 3.6vw, 29px));
+    gap: 2.5px;
+    justify-content: center;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .storage-grid-container {
+    grid-template-rows: repeat(3, clamp(24px, 3.6vw, 29px));
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .slot {
+    width: clamp(24px, 3.6vw, 29px);
+    height: clamp(24px, 3.6vw, 29px);
+  }
+
+  /* Landscape Wand Modal: Part 1 + Part 2 on Left, 36-Slot Bag on Right (Zero Scroll) */
   body.is-mobile-ui #wand-socket-modal {
-    width: min(96vw, 628px);
-    padding: 8px 11px;
-    gap: 6px;
+    width: min(96vw, 592px);
+    padding: 7px 9px;
+    gap: 5px;
+    overflow: visible;
   }
 
   body.is-mobile-ui .wand-modal-body {
     flex-direction: row;
     align-items: stretch;
-    gap: 8px;
+    gap: 7px;
+  }
+
+  body.is-mobile-ui .wand-altar-column {
+    width: 214px;
+    flex-shrink: 0;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  body.is-mobile-ui .wand-two-parts {
+    grid-template-columns: 1fr;
+    gap: 5px;
   }
 
   body.is-mobile-ui .wand-altar-panel {
-    width: 238px;
-    flex-shrink: 0;
-    justify-content: space-between;
-    padding: 8px;
+    padding: 5px 7px;
+    gap: 4px;
   }
 
-  body.is-mobile-ui #wand-socket-modal .wand-socket-slot {
-    width: 48px;
-    height: 48px;
+  body.is-mobile-ui #wand-socket-modal .wand-socket-slot,
+  body.is-mobile-ui #wand-socket-modal .wand-gem-slot,
+  body.is-mobile-ui #wand-socket-modal .wand-gem-socket-slot {
+    width: 36px;
+    height: 36px;
   }
 
   body.is-mobile-ui .wand-bag-panel {
     flex: 1 1 auto;
     min-width: 0;
     justify-content: center;
-    padding: 6px 8px;
+    padding: 5px 7px;
   }
 
   body.is-mobile-ui .wand-storage-grid,
   body.is-mobile-ui .wand-hotbar-grid {
-    grid-template-columns: repeat(9, 30px);
+    grid-template-columns: repeat(9, 29px);
     gap: 3px;
   }
 
   body.is-mobile-ui .wand-storage-grid {
-    grid-template-rows: repeat(3, 30px);
+    grid-template-rows: repeat(3, 29px);
   }
 
   body.is-mobile-ui #wand-socket-modal .wand-storage-grid .slot,
   body.is-mobile-ui #wand-socket-modal .wand-hotbar-grid .slot {
-    width: 30px;
-    height: 30px;
+    width: 29px;
+    height: 29px;
   }
 }
 
 /* ============================================================
-   MOBILE CAMPFIRE PORTRAIT & STANDALONE COMPACT RULES
+   MOBILE CAMPFIRE & CHEST PORTRAIT COMPACT RULES (ZERO SCROLL)
    ============================================================ */
+body.is-mobile-ui #chest-ui {
+  width: min(96vw, 340px);
+  padding: 7px 8px;
+  touch-action: none;
+}
+
+body.is-mobile-ui #chest-ui .chest-header {
+  margin-bottom: 5px;
+  padding-bottom: 4px;
+}
+
+body.is-mobile-ui #chest-ui .chest-title {
+  font-size: 12px;
+}
+
+body.is-mobile-ui .chest-grid-container {
+  grid-template-columns: repeat(9, 31px);
+  grid-template-rows: repeat(3, 31px);
+  gap: 3px;
+  padding: 5px;
+  justify-content: center;
+}
+
+body.is-mobile-ui #chest-ui .slot {
+  width: 31px;
+  height: 31px;
+}
+
+body.is-mobile-ui #chest-ui .slot .item-count {
+  font-size: 10.5px;
+  bottom: 1px;
+  right: 2px;
+}
+
+@media not all and ((max-height: 540px) and (min-width: 560px)) {
+  body.is-mobile-ui.chest-and-inv-open #chest-ui {
+    top: calc(50% - 104px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui {
+    top: calc(50% + 92px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(96vw, 340px);
+    padding: 7px 8px;
+    gap: 5px;
+    overflow: visible;
+    touch-action: none;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .storage-section-wrapper,
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .hotbar-inv-wrapper {
+    padding: 5px;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .storage-grid-container,
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .hotbar-inv-grid {
+    grid-template-columns: repeat(9, 31px);
+    gap: 3px;
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .storage-grid-container {
+    grid-template-rows: repeat(3, 31px);
+  }
+
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .slot {
+    width: 31px;
+    height: 31px;
+  }
+}
+
+@media (max-width: 360px) {
+  body.is-mobile-ui .chest-grid-container,
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .storage-grid-container,
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .hotbar-inv-grid {
+    grid-template-columns: repeat(9, 29px);
+    gap: 2.5px;
+  }
+
+  body.is-mobile-ui .chest-grid-container,
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .storage-grid-container {
+    grid-template-rows: repeat(3, 29px);
+  }
+
+  body.is-mobile-ui #chest-ui .slot,
+  body.is-mobile-ui.chest-and-inv-open #inventory-ui .slot {
+    width: 29px;
+    height: 29px;
+  }
+}
+
 body.is-mobile-ui #campfire-ui {
   top: max(8px, env(safe-area-inset-top));
   width: min(94vw, 306px);

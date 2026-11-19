@@ -2315,12 +2315,6 @@
       const chestOpen = isChestOpen();
       const invOpen = Boolean(inventoryUI && inventoryUI.style.display !== "none" && inventoryUI.style.display !== "");
       document.body.classList.toggle("chest-and-inv-open", chestOpen && invOpen);
-
-      const bagBtn = document.getElementById("btnChestToggleBag");
-      if (bagBtn) {
-        bagBtn.classList.toggle("active", invOpen);
-        bagBtn.textContent = invOpen ? "🎒 Đóng Túi" : "🎒 Mở Túi";
-      }
     }
 
     function initChestUIDOM() {
@@ -2345,15 +2339,6 @@
 
           grid.appendChild(slotEl);
         }
-      }
-
-      const bagBtn = document.getElementById("btnChestToggleBag");
-      if (bagBtn && !bagBtn.dataset.bound) {
-        bagBtn.dataset.bound = "1";
-        bagBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          toggleInventory(null, "pocket");
-        });
       }
 
       const closeBtn = document.getElementById("btnCloseChestUI");
@@ -2419,6 +2404,9 @@
         if (isWandModalOpen()) {
           openWandCustomizer(false);
         }
+        if (isRecipeBookOpen) {
+          setRecipeBookOpen(false);
+        }
 
         activeOpenChest = target;
         keys.up = false; keys.down = false; keys.left = false; keys.right = false;
@@ -2441,6 +2429,8 @@
         if (!isInventoryOpen()) {
           toggleInventory(true, "pocket");
         } else {
+          if (pocketCraftingSection) pocketCraftingSection.style.display = "none";
+          if (workstationContainer) workstationContainer.style.display = "none";
           isPaused = true;
           needsCanvasRedraw = true;
         }
@@ -2612,11 +2602,6 @@
       return true;
     }
 
-    function createSpellIconSvgDataUri(bg1, bg2, border, pathMarkup) {
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${bg1}"/><stop offset="100%" stop-color="${bg2}"/></linearGradient></defs><rect x="2" y="2" width="28" height="28" rx="6" fill="url(#g)" stroke="${border}" stroke-width="2"/><rect x="4.5" y="4.5" width="23" height="23" rx="4" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>${pathMarkup}</svg>`;
-      return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
-    }
-
     function createGemIconSvgDataUri(outerCol, midCol, innerCol, strokeCol, facetMarkup = "") {
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="2.5" y="2.5" width="27" height="27" rx="7" fill="rgba(15,23,42,0.88)" stroke="${strokeCol}" stroke-width="1.5" stroke-opacity="0.6"/><polygon points="16,3.5 26.5,10.5 26.5,21.5 16,28.5 5.5,21.5 5.5,10.5" fill="${outerCol}" stroke="${strokeCol}" stroke-width="1.8" stroke-linejoin="round"/><polygon points="16,7 22.5,12 22.5,20 16,25 9.5,20 9.5,12" fill="${midCol}"/><polygon points="16,9.5 20,13 20,19 16,22.5 12,19 12,13" fill="${innerCol}"/><polygon points="16,7 16,9.5 12,13 9.5,12" fill="rgba(255,255,255,0.45)"/><circle cx="13.5" cy="12" r="1.5" fill="#ffffff" opacity="0.9"/>${facetMarkup}</svg>`;
       return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
@@ -2634,10 +2619,7 @@
         damage: 8,
         hasSettings: true,
         desc: "5 bước: Vòng báo tím → Cột sáng đổ xuống → Đè bẹp/Tờ giấy → Đất lún nứt → Dừng 3 frame & lắc mạnh",
-        icon: createSpellIconSvgDataUri(
-          "#2e1065", "#581c87", "#c084fc",
-          `<circle cx="16" cy="21" r="7.5" fill="none" stroke="#e9d5ff" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M16 6v12M11.5 14.5L16 19l4.5-4.5" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`
-        )
+        icon: "assets/items/skills/spell_gravity.png"
       }
     };
 
@@ -2773,7 +2755,7 @@
         category: "spell",
         spellId: "spell_gravity",
         rarity: "legendary",
-        maxStack: 16,
+        maxStack: 1,
         value: 140,
         damage: 8,
         perks: [
@@ -3565,7 +3547,7 @@
     playerInventory[16] = { id: 'iron_chest', name: 'Giáp Sắt', quantity: 1, durability: 240, maxDurability: 240 };
     playerInventory[17] = { id: 'iron_legs', name: 'Quần Sắt', quantity: 1, durability: 200, maxDurability: 200 };
     playerInventory[18] = { id: 'iron_boots', name: 'Giày Sắt', quantity: 1, durability: 180, maxDurability: 180 };
-    playerInventory[19] = { id: 'leather_chest', name: 'Giáp Da', quantity: 1, durability: 120, maxDurability: 120 };
+    playerInventory[19] = { id: 'spell_gravity', name: SPELLS_DATABASE.spell_gravity.name, quantity: 1 };
     playerInventory[20] = { id: 'diamond_helmet', name: 'Nón Kim Cương', quantity: 1, durability: 350, maxDurability: 350 };
     playerInventory[21] = { id: 'diamond_chest', name: 'Giáp Kim Cương', quantity: 1, durability: 500, maxDurability: 500 };
     playerInventory[22] = { id: 'diamond_legs', name: 'Quần Kim Cương', quantity: 1, durability: 420, maxDurability: 420 };
@@ -3577,7 +3559,7 @@
     playerInventory[28] = { id: 'apple', name: 'Táo Rừng', quantity: 4 };
     playerInventory[29] = { id: 'wood_log', name: 'Khúc Gỗ', quantity: 32 };
     playerInventory[30] = { id: 'plant_fiber', name: 'Sợi Dây Gai', quantity: 16 };
-    playerInventory[31] = { id: 'spell_gravity', name: SPELLS_DATABASE.spell_gravity.name, quantity: 2 };
+    playerInventory[31] = { id: 'spell_gravity', name: SPELLS_DATABASE.spell_gravity.name, quantity: 1 };
     playerInventory[32] = { id: 'gem_damage', name: 'Ngọc Sức Mạnh', quantity: 3 };
     playerInventory[33] = { id: 'gem_fire', name: 'Ngọc Viêm Hỏa', quantity: 3 };
     playerInventory[34] = { id: 'gem_frost', name: 'Ngọc Băng Sương', quantity: 3 };
@@ -4171,7 +4153,7 @@
       const itemId = newItem.id || (newItem.name ? newItem.name.toLowerCase() : "");
       const dbData = getItemData(itemId) || getItemData(newItem.name) || {};
       const itemName = newItem.name || dbData.name || "Vật phẩm";
-      const maxStack = dbData.maxStack || MAX_STACK;
+      const maxStack = getItemMaxStack({ ...newItem, id: itemId, name: itemName });
 
       let remaining = newItem.quantity;
 
@@ -4275,7 +4257,7 @@
       if (!item || !item.id) return false;
       const dbData = getItemData(item.id) || getItemData(item.name) || {};
       const itemName = item.name || dbData.name || "";
-      const maxStack = dbData.maxStack || MAX_STACK;
+      const maxStack = getItemMaxStack(item);
       let needed = item.quantity || 1;
       for (let i = 0; i < 36; i++) {
         const slotItem = playerInventory[i];
@@ -4443,7 +4425,11 @@
         updateCursorUI();
         renderInventory();
         return true;
-      } else if (currentItem.name === cursorItem.name && currentItem.quantity < MAX_STACK) {
+      } else if (
+        currentItem.id === cursorItem.id &&
+        currentItem.name === cursorItem.name &&
+        currentItem.quantity < Math.min(getItemMaxStack(currentItem), getItemMaxStack(cursorItem))
+      ) {
         currentItem.quantity += 1;
         cursorItem.quantity -= 1;
         if (cursorItem.quantity <= 0) cursorItem = null;
@@ -4519,9 +4505,10 @@
         setSlotItem(type, slotIndex, { ...cursorItem });
         cursorItem = null;
       } else if (cursorItem && currentItem) {
-        if (cursorItem.name === currentItem.name) {
-          // 4. CÙNG LOẠI -> Gộp số lượng chuẩn toán học Minecraft
-          const spaceLeft = MAX_STACK - currentItem.quantity;
+        const stackCap = Math.min(getItemMaxStack(currentItem), getItemMaxStack(cursorItem));
+        if (cursorItem.id === currentItem.id && cursorItem.name === currentItem.name && stackCap > 1 && currentItem.quantity < stackCap) {
+          // 4. CÙNG LOẠI & XẾP CHỒNG ĐƯỢC -> Gộp số lượng theo maxStack từng vật phẩm
+          const spaceLeft = stackCap - currentItem.quantity;
           const amountToAdd = Math.min(spaceLeft, cursorItem.quantity);
           currentItem.quantity += amountToAdd;
           cursorItem.quantity -= amountToAdd;
@@ -4529,7 +4516,7 @@
             cursorItem = null;
           }
         } else {
-          // 3. KHÁC LOẠI -> Tráo đổi (Swap) vị trí
+          // 3. KHÁC LOẠI HOẶC ĐÃ ĐẦY / KHÔNG XẾP CHỒNG (VD: Chiêu thức maxStack=1) -> Tráo đổi vị trí
           const temp = { ...currentItem };
           setSlotItem(type, slotIndex, { ...cursorItem });
           cursorItem = temp;
@@ -4570,8 +4557,7 @@
           }
           if (type === "inv" && cur) {
             if (!Array.isArray(activeOpenChest.items)) activeOpenChest.items = new Array(27).fill(null);
-            const curDb = getItemData(cur) || cur;
-            const maxStk = curDb.maxStack || MAX_STACK;
+            const maxStk = getItemMaxStack(cur);
             let rem = cur.quantity || 1;
             for (let ci = 0; ci < 27 && rem > 0; ci++) {
               const cIt = activeOpenChest.items[ci];
@@ -4791,7 +4777,11 @@
             if (cursorItem.quantity <= 0) {
               cursorItem = null;
             }
-          } else if (currentItem.name === cursorItem.name && currentItem.quantity < MAX_STACK) {
+          } else if (
+            currentItem.id === cursorItem.id &&
+            currentItem.name === cursorItem.name &&
+            currentItem.quantity < Math.min(getItemMaxStack(currentItem), getItemMaxStack(cursorItem))
+          ) {
             // 3. Con trỏ có đồ + Slot CÙNG LOẠI -> Thả lẻ đúng 1 cái vào slot
             currentItem.quantity += 1;
             cursorItem.quantity -= 1;
@@ -4995,59 +4985,63 @@
         return;
       }
 
-      // TH1: Chuẩn Minecraft - Nếu đang cầm vật phẩm trên con trỏ chuột, nháy đúp sẽ gom tất cả item giống nhau dưới túi, rương & bàn chế tạo lên tay cho đầy 64
+      // TH1: Chuẩn Minecraft - Nếu đang cầm vật phẩm trên con trỏ chuột, nháy đúp sẽ gom item giống nhau lên tay theo maxStack của vật phẩm
       if (cursorItem) {
-        // Quét kho đồ & hotbar
-        for (let i = 0; i < 36; i++) {
-          if (cursorItem.quantity >= MAX_STACK) break;
-          const it = playerInventory[i];
-          if (it && it.name === cursorItem.name) {
-            const needed = MAX_STACK - cursorItem.quantity;
-            const take = Math.min(needed, it.quantity);
-            cursorItem.quantity += take;
-            it.quantity -= take;
-            if (it.quantity <= 0) playerInventory[i] = null;
-          }
-        }
-        // Quét Rương Đồ nếu đang mở
-        if (isChestOpen() && activeOpenChest && Array.isArray(activeOpenChest.items)) {
-          for (let ci = 0; ci < 27; ci++) {
-            if (cursorItem.quantity >= MAX_STACK) break;
-            const cIt = activeOpenChest.items[ci];
-            if (cIt && cIt.name === cursorItem.name) {
-              const needed = MAX_STACK - cursorItem.quantity;
-              const take = Math.min(needed, cIt.quantity);
+        const cursorCap = getItemMaxStack(cursorItem);
+        if (cursorCap > 1) {
+          // Quét kho đồ & hotbar
+          for (let i = 0; i < 36; i++) {
+            if (cursorItem.quantity >= cursorCap) break;
+            const it = playerInventory[i];
+            if (it && it.id === cursorItem.id && it.name === cursorItem.name) {
+              const needed = cursorCap - cursorItem.quantity;
+              const take = Math.min(needed, it.quantity);
               cursorItem.quantity += take;
-              cIt.quantity -= take;
-              if (cIt.quantity <= 0) activeOpenChest.items[ci] = null;
+              it.quantity -= take;
+              if (it.quantity <= 0) playerInventory[i] = null;
+            }
+          }
+          // Quét Rương Đồ nếu đang mở
+          if (isChestOpen() && activeOpenChest && Array.isArray(activeOpenChest.items)) {
+            for (let ci = 0; ci < 27; ci++) {
+              if (cursorItem.quantity >= cursorCap) break;
+              const cIt = activeOpenChest.items[ci];
+              if (cIt && cIt.id === cursorItem.id && cIt.name === cursorItem.name) {
+                const needed = cursorCap - cursorItem.quantity;
+                const take = Math.min(needed, cIt.quantity);
+                cursorItem.quantity += take;
+                cIt.quantity -= take;
+                if (cIt.quantity <= 0) activeOpenChest.items[ci] = null;
+              }
+            }
+          }
+          // Quét thêm cả lưới chế tạo
+          const activeCraftInv = currentUIMode === 'workstation' ? workstationCraftingInventory : pocketCraftingInventory;
+          const craftLen = activeCraftInv.length;
+          for (let c = 0; c < craftLen; c++) {
+            if (cursorItem.quantity >= cursorCap) break;
+            const cit = activeCraftInv[c];
+            if (cit && cit.id === cursorItem.id && cit.name === cursorItem.name) {
+              const needed = cursorCap - cursorItem.quantity;
+              const take = Math.min(needed, cit.quantity);
+              cursorItem.quantity += take;
+              cit.quantity -= take;
+              if (cit.quantity <= 0) activeCraftInv[c] = null;
             }
           }
         }
-        // Quét thêm cả lưới chế tạo
-        const activeCraftInv = currentUIMode === 'workstation' ? workstationCraftingInventory : pocketCraftingInventory;
-        const craftLen = activeCraftInv.length;
-        for (let c = 0; c < craftLen; c++) {
-          if (cursorItem.quantity >= MAX_STACK) break;
-          const cit = activeCraftInv[c];
-          if (cit && cit.name === cursorItem.name) {
-            const needed = MAX_STACK - cursorItem.quantity;
-            const take = Math.min(needed, cit.quantity);
-            cursorItem.quantity += take;
-            cit.quantity -= take;
-            if (cit.quantity <= 0) activeCraftInv[c] = null;
-          }
-        }
       } 
-      // TH2: Nếu tay trống, nháy đúp vào 1 ô đồ -> hút toàn bộ item cùng loại từ các ô khác vào ô này (tối đa 64)
+      // TH2: Nếu tay trống, nháy đúp vào 1 ô đồ -> hút toàn bộ item cùng loại từ các ô khác vào ô này (theo maxStack)
       else {
         const targetItem = getSlotItem(type, slotIndex);
-        if (targetItem) {
+        const targetCap = getItemMaxStack(targetItem);
+        if (targetItem && targetCap > 1) {
           for (let i = 0; i < 36; i++) {
             if (type === "inv" && i === slotIndex) continue;
-            if (targetItem.quantity >= MAX_STACK) break;
+            if (targetItem.quantity >= targetCap) break;
             const otherItem = playerInventory[i];
-            if (otherItem && otherItem.name === targetItem.name) {
-              const needed = MAX_STACK - targetItem.quantity;
+            if (otherItem && otherItem.id === targetItem.id && otherItem.name === targetItem.name) {
+              const needed = targetCap - targetItem.quantity;
               const take = Math.min(needed, otherItem.quantity);
               targetItem.quantity += take;
               otherItem.quantity -= take;
@@ -5057,10 +5051,10 @@
           if (isChestOpen() && activeOpenChest && Array.isArray(activeOpenChest.items)) {
             for (let ci = 0; ci < 27; ci++) {
               if (type === "chest" && ci === slotIndex) continue;
-              if (targetItem.quantity >= MAX_STACK) break;
+              if (targetItem.quantity >= targetCap) break;
               const cOther = activeOpenChest.items[ci];
-              if (cOther && cOther.name === targetItem.name) {
-                const needed = MAX_STACK - targetItem.quantity;
+              if (cOther && cOther.id === targetItem.id && cOther.name === targetItem.name) {
+                const needed = targetCap - targetItem.quantity;
                 const take = Math.min(needed, cOther.quantity);
                 targetItem.quantity += take;
                 cOther.quantity -= take;
@@ -5072,10 +5066,10 @@
           const craftLen2 = activeCraftInv2.length;
           for (let c = 0; c < craftLen2; c++) {
             if ((type === "craft" || type === "pocket" || type === "workstation") && c === slotIndex) continue;
-            if (targetItem.quantity >= MAX_STACK) break;
+            if (targetItem.quantity >= targetCap) break;
             const cItem = activeCraftInv2[c];
-            if (cItem && cItem.name === targetItem.name) {
-              const needed = MAX_STACK - targetItem.quantity;
+            if (cItem && cItem.id === targetItem.id && cItem.name === targetItem.name) {
+              const needed = targetCap - targetItem.quantity;
               const take = Math.min(needed, cItem.quantity);
               targetItem.quantity += take;
               cItem.quantity -= take;
@@ -6040,9 +6034,10 @@
     function collectPocketCraftResult(clientX, clientY, isTouch = false) {
       if (!pocketCraftResultItem) return;
 
+      const maxS = getItemMaxStack(pocketCraftResultItem);
       if (!cursorItem) {
         cursorItem = { ...pocketCraftResultItem };
-      } else if (cursorItem.name === pocketCraftResultItem.name && cursorItem.quantity + pocketCraftResultItem.quantity <= MAX_STACK) {
+      } else if (cursorItem.id === pocketCraftResultItem.id && cursorItem.name === pocketCraftResultItem.name && cursorItem.quantity + pocketCraftResultItem.quantity <= maxS) {
         cursorItem.quantity += pocketCraftResultItem.quantity;
       } else {
         return;
@@ -6072,9 +6067,10 @@
     function collectWorkstationCraftResult(clientX, clientY, isTouch = false) {
       if (!workstationCraftResultItem) return;
 
+      const maxS = getItemMaxStack(workstationCraftResultItem);
       if (!cursorItem) {
         cursorItem = { ...workstationCraftResultItem };
-      } else if (cursorItem.name === workstationCraftResultItem.name && cursorItem.quantity + workstationCraftResultItem.quantity <= MAX_STACK) {
+      } else if (cursorItem.id === workstationCraftResultItem.id && cursorItem.name === workstationCraftResultItem.name && cursorItem.quantity + workstationCraftResultItem.quantity <= maxS) {
         cursorItem.quantity += workstationCraftResultItem.quantity;
       } else {
         return;
@@ -6203,12 +6199,10 @@
     // =============================================================
     const wandSocketModal = document.getElementById("wand-socket-modal");
     const btnCloseWandModal = document.getElementById("btnCloseWandModal");
-    const wandModalSubtitle = document.getElementById("wandModalSubtitle");
     const wandResonanceBanner = document.getElementById("wandResonanceBanner");
     const wandSocketGrid = document.getElementById("wandSocketGrid");
     const wandStorageGrid = document.getElementById("wandStorageGrid");
     const wandHotbarGrid = document.getElementById("wandHotbarGrid");
-    const wandOwnedCountBadge = document.getElementById("wandOwnedCountBadge");
 
     let customizerTargetWand = null;
 
@@ -6415,30 +6409,11 @@
       const wandGemCountBadge = document.getElementById("wandGemCountBadge");
       const wandGemStatsStrip = document.getElementById("wandGemStatsStrip");
 
-      const subText = `${equippedCount}/3 Chiêu • ${gemEquippedCount}/3 Ngọc`;
-      if (wandModalSubtitle && wandModalSubtitle.textContent !== subText) {
-        wandModalSubtitle.textContent = subText;
-      }
       if (wandSpellCountBadge && wandSpellCountBadge.textContent !== `${equippedCount}/3`) {
         wandSpellCountBadge.textContent = `${equippedCount}/3`;
       }
       if (wandGemCountBadge && wandGemCountBadge.textContent !== `${gemEquippedCount}/3`) {
         wandGemCountBadge.textContent = `${gemEquippedCount}/3`;
-      }
-
-      // Đếm tổng ấn chiêu và ngọc trong túi
-      let totalRunesInBag = 0;
-      let totalGemsInBag = 0;
-      for (let i = 0; i < 36; i++) {
-        const it = playerInventory[i];
-        if (it) {
-          if (canItemGoInSpellSlot(it)) totalRunesInBag += (it.quantity || 1);
-          if (canItemGoInGemSlot(it)) totalGemsInBag += (it.quantity || 1);
-        }
-      }
-      const badgeText = `${totalRunesInBag} chiêu • ${totalGemsInBag} ngọc`;
-      if (wandOwnedCountBadge && wandOwnedCountBadge.textContent !== badgeText) {
-        wandOwnedCountBadge.textContent = badgeText;
       }
 
       const applyBagSlotVisualState = (slotEl, item, isHotbarSlot, slotIdx) => {
@@ -6490,17 +6465,18 @@
           }
         }
         if (wandGemStatsStrip) {
-          let stripText = "Chưa khảm ngọc • Gắn ngọc để tăng chỉ số & hiệu ứng (không phải chiêu thức)";
+          let stripText = "";
           if (gemBonuses && gemBonuses.allSameGemId === "gem_fire") {
-            stripText = `🔥 Cộng Hưởng 3 Ngọc Viêm Hỏa: Đòn đánh gây Cháy Lan AoE! • ${gemBonuses.summaryParts.join(" • ")}`;
+            stripText = `🔥 Cộng Hưởng 3× Viêm Hỏa (Cháy Lan AoE) • ${gemBonuses.summaryParts.join(" • ")}`;
           } else if (gemBonuses && gemBonuses.allSameGemId === "gem_frost") {
-            stripText = `❄️ Cộng Hưởng 3 Ngọc Băng Sương: Sóng Băng Làm Chậm Lan! • ${gemBonuses.summaryParts.join(" • ")}`;
+            stripText = `❄️ Cộng Hưởng 3× Băng Sương (Đóng Băng Lan) • ${gemBonuses.summaryParts.join(" • ")}`;
           } else if (gemBonuses && gemBonuses.allSameGemId) {
-            stripText = `✦ Cộng Hưởng 3 Ngọc Cùng Loại! • ${gemBonuses.summaryParts.join(" • ")}`;
+            stripText = `✦ Cộng Hưởng 3× Ngọc • ${gemBonuses.summaryParts.join(" • ")}`;
           } else if (gemBonuses && gemBonuses.summaryParts.length > 0) {
-            stripText = `Chỉ số đang cộng: ${gemBonuses.summaryParts.join(" • ")}`;
+            stripText = `Ngọc: ${gemBonuses.summaryParts.join(" • ")}`;
           }
-          if (wandGemStatsStrip.textContent !== stripText) {
+          wandGemStatsStrip.style.display = stripText ? "block" : "none";
+          if (stripText && wandGemStatsStrip.textContent !== stripText) {
             wandGemStatsStrip.textContent = stripText;
           }
         }
@@ -6520,32 +6496,36 @@
             counts[sid] = (counts[sid] || 0) + 1;
             if (counts[sid] === 2) nearSpell = SPELLS_DATABASE[sid];
           }
-          bannerKey = nearSpell ? `near:${nearSpell.id}` : "default";
+          bannerKey = nearSpell ? `near:${nearSpell.id}` : "none";
           if (bannerKey !== lastWandResBannerKey) {
             lastWandResBannerKey = bannerKey;
             wandResonanceBanner.style.removeProperty("--res-color");
             wandResonanceBanner.style.removeProperty("--res-glow");
             if (nearSpell) {
+              wandResonanceBanner.style.display = "flex";
               wandResonanceBanner.className = "wand-resonance-banner is-near";
-              wandResonanceBanner.textContent = `✦ 2/3 ${nearSpell.badge} ${nearSpell.shortName} — thêm 1 viên cùng loại để Cộng Hưởng!`;
+              wandResonanceBanner.textContent = `✦ 2/3 ${nearSpell.shortName} — thêm 1 viên để Cộng Hưởng`;
             } else {
+              wandResonanceBanner.style.display = "none";
               wandResonanceBanner.className = "wand-resonance-banner";
-              wandResonanceBanner.textContent = "Đánh thường: Cầu Năng Lượng Tím • Khảm 3 Ngọc Trọng Lực để Cộng Hưởng!";
+              wandResonanceBanner.textContent = "";
             }
           }
         }
         if (!wand && bannerKey !== lastWandResBannerKey) {
           lastWandResBannerKey = bannerKey;
+          wandResonanceBanner.style.display = "flex";
           wandResonanceBanner.style.removeProperty("--res-color");
           wandResonanceBanner.style.removeProperty("--res-glow");
           wandResonanceBanner.className = "wand-resonance-banner";
-          wandResonanceBanner.textContent = "Chưa có Đũa Phép trong túi — hãy chế tạo ở Bàn 3x3!";
+          wandResonanceBanner.textContent = "Chưa có Đũa Phép trong túi";
         } else if (resonance && bannerKey !== lastWandResBannerKey) {
           lastWandResBannerKey = bannerKey;
+          wandResonanceBanner.style.display = "flex";
           wandResonanceBanner.className = "wand-resonance-banner is-active";
           wandResonanceBanner.style.setProperty("--res-color", resonance.color);
           wandResonanceBanner.style.setProperty("--res-glow", resonance.glow);
-          wandResonanceBanner.innerHTML = `<span class="wand-res-title">${resonance.label}</span><span class="wand-res-desc">${resonance.desc}</span>`;
+          wandResonanceBanner.textContent = resonance.label;
         }
       }
 
@@ -7881,6 +7861,7 @@
     function getItemMaxStack(item) {
       if (!item) return MAX_STACK;
       const dbData = getItemData(item.id || item.name) || {};
+      if (dbData.category === "spell") return 1;
       if (item.durability !== undefined || dbData.durability !== undefined) return 1;
       return dbData.maxStack || MAX_STACK;
     }
@@ -8076,7 +8057,8 @@
           if (!ingId) continue;
           const existing = targetGrid[r * gridSide + c];
           const curQty = (existing && existing.quantity > 0) ? existing.quantity : 0;
-          maxSetsBySlotCap = Math.min(maxSetsBySlotCap, Math.max(0, MAX_STACK - curQty));
+          const ingMax = getItemMaxStack({ id: ingId });
+          maxSetsBySlotCap = Math.min(maxSetsBySlotCap, Math.max(0, ingMax - curQty));
         }
       }
 
@@ -11445,7 +11427,7 @@
             const itemId = gItem.item.id || (gItem.item.name ? gItem.item.name.toLowerCase() : "");
             const dbData = getItemData(itemId) || getItemData(gItem.item.name) || {};
             const itemName = gItem.item.name || dbData.name || "Vật phẩm";
-            const maxStack = dbData.maxStack || MAX_STACK;
+            const maxStack = getItemMaxStack({ ...gItem.item, id: itemId, name: itemName });
 
             // Quét cộng dồn ô có sẵn
             for (let i = 0; i < 36; i++) {
