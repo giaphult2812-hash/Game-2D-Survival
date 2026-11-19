@@ -582,28 +582,46 @@
     <div class="cf-hint">Đặt Thịt / Cá sống cùng Gỗ hoặc Than để nướng chín (ăn hồi HP).</div>
   </div>
 
-  <!-- BẢNG KHẢM CHIÊU ĐŨA PHÉP (KÉO THẢ ĐỒNG BỘ TÚI ĐỒ) -->
-  <div id="wand-socket-modal" style="display:none;" aria-label="Khảm chiêu thức đũa phép">
+  <!-- BẢNG TÙY BIẾN ĐŨA PHÉP: 2 PHẦN RÕ RÀNG (CHIÊU THỨC & NGỌC KHẢM) -->
+  <div id="wand-socket-modal" style="display:none;" aria-label="Tùy biến chiêu thức và ngọc khảm đũa phép">
     <div class="wand-modal-header">
       <div class="wand-modal-title-wrap">
         <img src="assets/items/tools_weapons/đũa phép.png" alt="Đũa Phép" class="wand-modal-icon" />
-        <span class="wand-modal-title">BÀN KHẢM ĐŨA PHÉP</span>
-        <span id="wandModalSubtitle" class="wand-modal-count">0/3</span>
+        <span class="wand-modal-title">TÙY BIẾN ĐŨA PHÉP</span>
+        <span id="wandModalSubtitle" class="wand-modal-count">0/3 Chiêu • 0/3 Ngọc</span>
       </div>
-      <button type="button" id="btnCloseWandModal" class="wand-modal-close" aria-label="Đóng bảng khảm đũa phép">✕</button>
+      <button type="button" id="btnCloseWandModal" class="wand-modal-close" aria-label="Đóng bảng tùy biến đũa phép">✕</button>
     </div>
 
     <div class="wand-modal-body">
-      <div class="wand-altar-panel">
-        <div id="wandSocketGrid" class="wand-socket-grid"></div>
-        <div id="wandResonanceBanner" class="wand-resonance-banner"></div>
-        <div class="wand-control-hint">Kéo thả hoặc Shift+Click ngọc • Chuột phải thả 1 viên</div>
+      <div class="wand-two-parts">
+        <!-- PHẦN 1: CHIÊU THỨC CHỦ ĐỘNG (Z / X / C) -->
+        <div class="wand-altar-panel wand-section-spells">
+          <div class="wand-part-head">
+            <span class="wand-part-title is-spell">📜 PHẦN 1: CHIÊU THỨC (Z / X / C)</span>
+            <span id="wandSpellCountBadge" class="wand-part-badge">0/3</span>
+          </div>
+          <div id="wandSocketGrid" class="wand-socket-grid"></div>
+        </div>
+
+        <!-- PHẦN 2: NGỌC KHẢM CƯỜNG HÓA (CHỈ SỐ & CỘNG HƯỞNG) -->
+        <div class="wand-altar-panel wand-section-gems">
+          <div class="wand-part-head">
+            <span class="wand-part-title is-gem">💎 PHẦN 2: NGỌC KHẢM CƯỜNG HÓA</span>
+            <span id="wandGemCountBadge" class="wand-part-badge is-gem">0/3</span>
+          </div>
+          <div id="wandGemGrid" class="wand-socket-grid"></div>
+          <div id="wandGemStatsStrip" class="wand-gem-stats-strip">Chưa khảm ngọc • Gắn ngọc để tăng chỉ số &amp; hiệu ứng</div>
+          <div id="wandResonanceBanner" class="wand-resonance-banner"></div>
+        </div>
       </div>
+
+      <div class="wand-control-hint">Kéo thả hoặc Shift+Click Ấn / Ngọc từ túi • Chuột phải thả 1 viên</div>
 
       <div class="wand-bag-panel">
         <div class="wand-bag-header">
-          <span class="wand-section-label">TÚI ĐỒ &amp; NGỌC PHÉP</span>
-          <span id="wandOwnedCountBadge" class="wand-owned-count">0 ngọc</span>
+          <span class="wand-section-label">TÚI ĐỒ (📜 ẤN CHIÊU • 💎 NGỌC KHẢM)</span>
+          <span id="wandOwnedCountBadge" class="wand-owned-count">0 ấn • 0 ngọc</span>
         </div>
         <div id="wandStorageGrid" class="wand-storage-grid"></div>
         <div class="wand-hotbar-divider"></div>

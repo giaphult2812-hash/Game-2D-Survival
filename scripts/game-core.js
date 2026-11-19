@@ -4101,6 +4101,10 @@
       return Boolean(data && data.category === "gem");
     }
 
+    function canItemGoInWandSocket(item) {
+      return canItemGoInSpellSlot(item);
+    }
+
     function canFitItemInBagOnly(item) {
       if (!item || !item.id) return false;
       const dbData = getItemData(item.id) || getItemData(item.name) || {};
@@ -4233,6 +4237,19 @@
         renderInventory();
         return true;
       }
+      if (type === "gem_socket") {
+        if (!canItemGoInGemSlot(cursorItem)) {
+          addFloatingText("❌ Chỉ khảm được Ngọc Cường Hóa!", player.x - 24, player.y - 16, "#ef4444");
+          return false;
+        }
+        if (getSlotItem("gem_socket", slotIndex)) return false;
+        setSlotItem("gem_socket", slotIndex, { ...cursorItem, quantity: 1 });
+        cursorItem.quantity -= 1;
+        if (cursorItem.quantity <= 0) cursorItem = null;
+        updateCursorUI();
+        renderInventory();
+        return true;
+      }
       const currentItem = getSlotItem(type, slotIndex);
       if (!currentItem) {
         setSlotItem(type, slotIndex, { ...cursorItem, quantity: 1 });
@@ -4271,28 +4288,30 @@
       }
       const currentItem = getSlotItem(type, slotIndex);
 
-      if (type === "wand_socket") {
+      if (type === "wand_socket" || type === "gem_socket") {
+        const canGo = type === "wand_socket" ? canItemGoInWandSocket : canItemGoInGemSlot;
+        const errText = type === "wand_socket" ? "❌ Chỉ khảm được Ngọc Chiêu Thức!" : "❌ Chỉ khảm được Ngọc Cường Hóa!";
         if (!cursorItem && currentItem) {
           cursorItem = { ...currentItem, quantity: 1 };
-          setSlotItem("wand_socket", slotIndex, null);
+          setSlotItem(type, slotIndex, null);
         } else if (cursorItem) {
-          if (!canItemGoInWandSocket(cursorItem)) {
-            addFloatingText("❌ Chỉ khảm được Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
+          if (!canGo(cursorItem)) {
+            addFloatingText(errText, player.x - 24, player.y - 16, "#ef4444");
             return;
           }
           if (!currentItem) {
-            setSlotItem("wand_socket", slotIndex, { ...cursorItem, quantity: 1 });
+            setSlotItem(type, slotIndex, { ...cursorItem, quantity: 1 });
             cursorItem.quantity -= 1;
             if (cursorItem.quantity <= 0) cursorItem = null;
           } else if (cursorItem.id === currentItem.id) {
             return;
           } else if (cursorItem.quantity <= 1) {
             const temp = { ...currentItem, quantity: 1 };
-            setSlotItem("wand_socket", slotIndex, { ...cursorItem, quantity: 1 });
+            setSlotItem(type, slotIndex, { ...cursorItem, quantity: 1 });
             cursorItem = temp;
           } else {
             if (tryReturnItemToBagOnly({ ...currentItem, quantity: 1 })) {
-              setSlotItem("wand_socket", slotIndex, { ...cursorItem, quantity: 1 });
+              setSlotItem(type, slotIndex, { ...cursorItem, quantity: 1 });
               cursorItem.quantity -= 1;
               if (cursorItem.quantity <= 0) cursorItem = null;
             } else {
@@ -5922,6 +5941,49 @@
         }
       }
 
+      const wandGemGrid = document.getElementById("wandGemGrid");
+      if (wandGemGrid && wandGemGrid.children.length === 0) {
+        for (let s = 0; s < 2; s++) {
+          const col = document.createElement("div");
+          col.className = "wand-socket-col";
+
+          const slotEl = document.createElement("div");
+          slotEl.className = "slot wand-gem-slot";
+          slotEl.dataset.type = "gem_socket";
+          slotEl.dataset.index = s;
+
+          const keyEl = document.createElement("span");
+          keyEl.className = "wand-socket-key";
+          keyEl.textContent = `G${s + 1}`;
+
+          const wm = document.createElement("span");
+          wm.className = "slot-watermark";
+          wm.textContent = "💎";
+
+          slotEl.appendChild(keyEl);
+          slotEl.appendChild(wm);
+
+          slotEl.addEventListener("contextmenu", (e) => e.preventDefault());
+          slotEl.addEventListener("mousedown", (e) => handleSlotMouseDown("gem_socket", s, e));
+          bindMouseHoverTooltip(slotEl, () => getSlotItem("gem_socket", s), (e) => handleSlotMouseEnter("gem_socket", s, e));
+          slotEl.addEventListener("dblclick", (e) => {
+            if (isRecentTouchInteraction()) return;
+            e.preventDefault();
+            e.stopPropagation();
+            executeDoubleClickCollect("gem_socket", s);
+          });
+          bindSlotTouchEvents(slotEl, "gem_socket", s);
+
+          const labelEl = document.createElement("div");
+          labelEl.className = "wand-gem-label wand-socket-label";
+          labelEl.textContent = `Ngọc ${s + 1}`;
+
+          col.appendChild(slotEl);
+          col.appendChild(labelEl);
+          wandGemGrid.appendChild(col);
+        }
+      }
+
       if (wandStorageGrid && wandStorageGrid.children.length === 0) {
         for (let i = 9; i < 36; i++) {
           const slotEl = document.createElement("div");
@@ -5986,21 +6048,34 @@
       const wd = wand ? ensureWandData(wand) : null;
       const resonance = wand ? getWandResonance(wand) : null;
       const equippedCount = wd ? wd.slots.filter(Boolean).length : 0;
+      const gemEquippedCount = wd ? wd.gemSlots.filter(Boolean).length : 0;
 
-      const subText = `${equippedCount}/3`;
+      const wandSpellCountBadge = document.getElementById("wandSpellCountBadge");
+      const wandGemCountBadge = document.getElementById("wandGemCountBadge");
+      const wandGemStatsStrip = document.getElementById("wandGemStatsStrip");
+
+      const subText = `${equippedCount}/3 Chiêu • ${gemEquippedCount}/2 Ngọc`;
       if (wandModalSubtitle && wandModalSubtitle.textContent !== subText) {
         wandModalSubtitle.textContent = subText;
       }
+      if (wandSpellCountBadge && wandSpellCountBadge.textContent !== `${equippedCount}/3`) {
+        wandSpellCountBadge.textContent = `${equippedCount}/3`;
+      }
+      if (wandGemCountBadge && wandGemCountBadge.textContent !== `${gemEquippedCount}/2`) {
+        wandGemCountBadge.textContent = `${gemEquippedCount}/2`;
+      }
 
-      // Đếm tổng ngọc hiện có trong túi và đồng bộ 36 ô túi đồ
+      // Đếm tổng ấn chiêu và ngọc trong túi
       let totalRunesInBag = 0;
+      let totalGemsInBag = 0;
       for (let i = 0; i < 36; i++) {
         const it = playerInventory[i];
-        if (it && canItemGoInWandSocket(it)) {
-          totalRunesInBag += (it.quantity || 1);
+        if (it) {
+          if (canItemGoInSpellSlot(it)) totalRunesInBag += (it.quantity || 1);
+          if (canItemGoInGemSlot(it)) totalGemsInBag += (it.quantity || 1);
         }
       }
-      const badgeText = `${totalRunesInBag} ngọc`;
+      const badgeText = `${totalRunesInBag} ấn • ${totalGemsInBag} ngọc`;
       if (wandOwnedCountBadge && wandOwnedCountBadge.textContent !== badgeText) {
         wandOwnedCountBadge.textContent = badgeText;
       }
@@ -6008,11 +6083,13 @@
       const applyBagSlotVisualState = (slotEl, item, isHotbarSlot, slotIdx) => {
         if (!slotEl) return;
         updateSlotDOM(slotEl, item, slotIdx, false);
-        const isRune = Boolean(item && canItemGoInWandSocket(item));
+        const isRune = Boolean(item && canItemGoInSpellSlot(item));
+        const isGem = Boolean(item && canItemGoInGemSlot(item));
         const isTargetWand = Boolean(item && wand && (item === wand || (wand.wandData && item.wandData === wand.wandData)));
         slotEl.classList.toggle("is-spell-rune", isRune);
+        slotEl.classList.toggle("is-gem-rune", isGem);
         slotEl.classList.toggle("is-active-wand", isTargetWand);
-        slotEl.classList.toggle("is-non-spell", Boolean(item && !isRune && !isTargetWand));
+        slotEl.classList.toggle("is-non-spell", Boolean(item && !isRune && !isGem && !isTargetWand));
         if (isHotbarSlot) {
           slotEl.classList.toggle("active-hotbar", slotIdx === activeHotbarIndex);
         }
@@ -6026,6 +6103,35 @@
       if (wandHotbarGrid) {
         for (let i = 0; i < 9; i++) {
           applyBagSlotVisualState(wandHotbarGrid.children[i], playerInventory[i], true, i);
+        }
+      }
+
+      const wandGemGrid = document.getElementById("wandGemGrid");
+      if (wandGemGrid) {
+        const gemNames = [];
+        for (let idx = 0; idx < 2; idx++) {
+          const col = wandGemGrid.children[idx];
+          if (!col) continue;
+          const slotEl = col.querySelector(".slot");
+          const labelEl = col.querySelector(".wand-gem-label") || col.querySelector(".wand-socket-label");
+          const gemId = wd ? wd.gemSlots[idx] : null;
+          const gemData = gemId ? ITEMS_DATABASE[gemId] : null;
+          const gemItem = gemData ? { id: gemData.id, name: gemData.name, quantity: 1, icon: gemData.icon } : null;
+
+          if (slotEl) {
+            updateSlotDOM(slotEl, gemItem, idx, false);
+          }
+          col.classList.toggle("is-filled", Boolean(gemData));
+          const nextLabel = gemData ? gemData.name : `Ngọc ${idx + 1}`;
+          if (labelEl && labelEl.textContent !== nextLabel) {
+            labelEl.textContent = nextLabel;
+          }
+          if (gemData) {
+            gemNames.push(gemData.name);
+          }
+        }
+        if (wandGemStatsStrip) {
+          wandGemStatsStrip.textContent = gemNames.length > 0 ? `Đang khảm: ${gemNames.join(" + ")}` : "Chưa khảm ngọc • Gắn ngọc để tăng chỉ số & hiệu ứng";
         }
       }
 
