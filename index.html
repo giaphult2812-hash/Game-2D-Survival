@@ -582,7 +582,26 @@
     <div class="cf-hint">Đặt Thịt / Cá sống cùng Gỗ hoặc Than để nướng chín (ăn hồi HP).</div>
   </div>
 
-  <!-- BẢNG TÙY BIẾN ĐŨA PHÉP: 2 PHẦN RÕ RÀNG (CHIÊU THỨC & NGỌC KHẢM) -->
+  <!-- GIAO DIỆN RƯƠNG ĐỒ (CHEST 27 Ô) -->
+  <div id="chest-ui" style="display:none;" aria-label="Rương đồ lưu trữ 27 ô">
+    <div class="chest-header">
+      <span class="chest-title">
+        <img src="assets/items/placeables/chest.svg" alt="Rương Đồ" class="chest-header-icon" />
+        <span>RƯƠNG ĐỒ</span>
+        <span id="chestCountBadge" class="chest-count-badge">0/27</span>
+      </span>
+      <div class="chest-header-actions">
+        <button type="button" id="btnChestToggleBag" class="cf-bag-btn" title="Mở / Đóng Túi Đồ để chuyển vật phẩm">🎒 Đóng Túi</button>
+        <button type="button" id="btnCloseChestUI" class="cf-close-btn" title="Đóng Rương Đồ">✕</button>
+      </div>
+    </div>
+
+    <div class="chest-grid-container" id="chestStorageGrid"></div>
+
+    <div class="chest-hint">Kéo thả hoặc Shift+Click để cất / lấy nhanh đồ giữa Túi và Rương.</div>
+  </div>
+
+  <!-- BẢNG TÙY BIẾN ĐŨA PHÉP: 2 PHẦN RÕ RÀNG (CHIÊU THỨC TRỌNG LỰC & NGỌC KHẢM CƯỜNG HÓA) -->
   <div id="wand-socket-modal" style="display:none;" aria-label="Tùy biến chiêu thức và ngọc khảm đũa phép">
     <div class="wand-modal-header">
       <div class="wand-modal-title-wrap">
@@ -595,7 +614,7 @@
 
     <div class="wand-modal-body">
       <div class="wand-two-parts">
-        <!-- PHẦN 1: CHIÊU THỨC CHỦ ĐỘNG (Z / X / C) -->
+        <!-- PHẦN 1: CHIÊU THỨC CHỦ ĐỘNG (Z / X / C) - CHỈ NHẬN NGỌC TRỌNG LỰC -->
         <div class="wand-altar-panel wand-section-spells">
           <div class="wand-part-head">
             <span class="wand-part-title is-spell">📜 PHẦN 1: CHIÊU THỨC (Z / X / C)</span>
@@ -604,10 +623,10 @@
           <div id="wandSocketGrid" class="wand-socket-grid"></div>
         </div>
 
-        <!-- PHẦN 2: NGỌC KHẢM CƯỜNG HÓA (CHỈ SỐ & CỘNG HƯỞNG) -->
+        <!-- PHẦN 2: NGỌC KHẢM CƯỜNG HÓA (CHỈ SỐ & HIỆU ỨNG BỔ TRỢ) -->
         <div class="wand-altar-panel wand-section-gems">
           <div class="wand-part-head">
-            <span class="wand-part-title is-gem">💎 PHẦN 2: NGỌC KHẢM CƯỜNG HÓA</span>
+            <span class="wand-part-title is-gem">💎 PHẦN 2: NGỌC KHẢM (CHỈ SỐ)</span>
             <span id="wandGemCountBadge" class="wand-part-badge is-gem">0/3</span>
           </div>
           <div id="wandGemGrid" class="wand-socket-grid"></div>
@@ -616,12 +635,12 @@
         </div>
       </div>
 
-      <div class="wand-control-hint">Kéo thả hoặc Shift+Click Ấn / Ngọc từ túi • Chuột phải thả 1 viên</div>
+      <div class="wand-control-hint">Kéo thả hoặc Shift+Click: 📜 Trọng Lực → Phần 1 • 💎 Ngọc Khảm → Phần 2 • Chuột phải thả 1 viên</div>
 
       <div class="wand-bag-panel">
         <div class="wand-bag-header">
-          <span class="wand-section-label">TÚI ĐỒ (📜 ẤN CHIÊU • 💎 NGỌC KHẢM)</span>
-          <span id="wandOwnedCountBadge" class="wand-owned-count">0 ấn • 0 ngọc</span>
+          <span class="wand-section-label">TÚI ĐỒ (📜 TRỌNG LỰC • 💎 NGỌC KHẢM)</span>
+          <span id="wandOwnedCountBadge" class="wand-owned-count">0 chiêu • 0 ngọc</span>
         </div>
         <div id="wandStorageGrid" class="wand-storage-grid"></div>
         <div class="wand-hotbar-divider"></div>

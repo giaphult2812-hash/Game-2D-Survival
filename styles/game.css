@@ -773,16 +773,71 @@ html, body {
   gap: 9px;
 }
 
+.wand-two-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .wand-altar-panel {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 10px 8px;
+  padding: 9px 10px 8px;
   border-radius: 9px;
-  background:
-    radial-gradient(circle at 50% 35%, rgba(139, 92, 246, 0.14) 0%, rgba(11, 15, 23, 0.86) 75%);
+  background: rgba(11, 15, 23, 0.88);
   border: 1px solid rgba(168, 85, 247, 0.34);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.wand-section-spells {
+  border-color: rgba(192, 132, 252, 0.44);
+  background: linear-gradient(180deg, rgba(46, 16, 101, 0.24) 0%, rgba(11, 15, 23, 0.88) 100%);
+}
+
+.wand-section-gems {
+  border-color: rgba(56, 189, 248, 0.44);
+  background: linear-gradient(180deg, rgba(12, 74, 110, 0.22) 0%, rgba(11, 15, 23, 0.88) 100%);
+}
+
+.wand-part-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.wand-part-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.35px;
+}
+
+.wand-part-title.is-spell {
+  color: #e9d5ff;
+}
+
+.wand-part-title.is-gem {
+  color: #7dd3fc;
+}
+
+.wand-part-badge {
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(168, 85, 247, 0.18);
+  border: 1px solid rgba(192, 132, 252, 0.45);
+  color: #f3e8ff;
+}
+
+.wand-part-badge.is-gem {
+  background: rgba(14, 165, 233, 0.18);
+  border-color: rgba(56, 189, 248, 0.48);
+  color: #bae6fd;
 }
 
 .wand-socket-grid {
@@ -800,36 +855,34 @@ html, body {
 }
 
 #wand-socket-modal .wand-socket-slot {
-  width: 56px;
-  height: 56px;
-  background: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.65) 0%, #0b101b 90%);
-  border: 1.5px dashed rgba(192, 132, 252, 0.48);
+  width: 54px;
+  height: 54px;
+  background: #0b101b;
+  border: 1.5px dashed rgba(192, 132, 252, 0.52);
   border-radius: 9px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.72);
-  transition: border-color 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease, transform 0.12s ease;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
+  transition: border-color 0.1s ease, background-color 0.1s ease;
   -webkit-touch-callout: none;
 }
 
 #wand-socket-modal .wand-socket-slot[data-has-item="true"] {
   border-style: solid;
   border-color: var(--spell-color, #c084fc);
-  background: radial-gradient(circle at 50% 45%, rgba(88, 28, 135, 0.32) 0%, #0d1322 86%);
-  box-shadow: 0 0 12px rgba(168, 85, 247, 0.28), inset 0 0 8px rgba(255, 255, 255, 0.06);
+  background: #17102a;
 }
 
 #wand-socket-modal .wand-socket-slot.is-resonant {
-  border-color: var(--res-color, #f97316);
-  box-shadow: 0 0 14px var(--res-color, rgba(249, 115, 22, 0.42)), inset 0 0 10px rgba(255, 255, 255, 0.12);
+  border-color: var(--res-color, #a855f7);
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.35), inset 0 0 6px rgba(255, 255, 255, 0.08);
 }
 
 #wand-socket-modal .wand-socket-slot:hover {
   border-color: #fde68a;
-  transform: translateY(-1px);
 }
 
 .wand-socket-key {
@@ -852,7 +905,7 @@ html, body {
 }
 
 .wand-socket-label {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--ui-text-muted);
   text-align: center;
@@ -877,32 +930,46 @@ html, body {
   gap: 5px;
 }
 
+#wand-socket-modal .wand-gem-slot,
 #wand-socket-modal .wand-gem-socket-slot {
-  width: 56px;
-  height: 56px;
-  background: radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.75) 0%, #0b101b 90%);
-  border: 1.5px dashed rgba(56, 189, 248, 0.48);
+  width: 54px;
+  height: 54px;
+  background: #0b101b;
+  border: 1.5px dashed rgba(56, 189, 248, 0.52);
   border-radius: 9px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.72);
-  transition: border-color 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease, transform 0.12s ease;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
+  transition: border-color 0.1s ease, background-color 0.1s ease;
   -webkit-touch-callout: none;
 }
 
+#wand-socket-modal .wand-gem-slot[data-has-item="true"],
 #wand-socket-modal .wand-gem-socket-slot[data-has-item="true"] {
   border-style: solid;
-  border-color: #38bdf8;
-  background: radial-gradient(circle at 50% 45%, rgba(14, 116, 144, 0.32) 0%, #0d1322 86%);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.28), inset 0 0 8px rgba(255, 255, 255, 0.06);
+  border-color: var(--gem-color, #38bdf8);
+  background: #0f1b2e;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.24), inset 0 0 6px rgba(255, 255, 255, 0.06);
 }
 
+#wand-socket-modal .wand-gem-slot:hover,
 #wand-socket-modal .wand-gem-socket-slot:hover {
   border-color: #fde68a;
-  transform: translateY(-1px);
+}
+
+.wand-gem-stats-strip {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #bae6fd;
+  background: rgba(8, 15, 28, 0.8);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 6px;
+  padding: 5px 8px;
+  text-align: center;
+  line-height: 1.35;
 }
 
 .wand-resonance-banner {
@@ -1027,22 +1094,24 @@ html, body {
 }
 
 #wand-socket-modal .slot.is-spell-rune {
-  border-color: rgba(192, 132, 252, 0.72);
-  background: radial-gradient(circle at 50% 45%, rgba(168, 85, 247, 0.2) 0%, #101727 88%);
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.24), inset 0 1px 4px rgba(0, 0, 0, 0.6);
+  border-color: rgba(192, 132, 252, 0.78);
+  background: rgba(88, 28, 135, 0.24);
+}
+
+#wand-socket-modal .slot.is-gem-rune {
+  border-color: rgba(56, 189, 248, 0.78);
+  background: rgba(12, 74, 110, 0.24);
 }
 
 #wand-socket-modal .slot.is-active-wand {
   border-color: #fbbf24;
-  background: radial-gradient(circle at 50% 45%, rgba(245, 158, 11, 0.24) 0%, #161d2e 88%);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.36);
+  background: rgba(146, 64, 14, 0.28);
 }
 
 #wand-socket-modal .slot.is-non-spell img,
 #wand-socket-modal .slot.is-non-spell .item-count,
 #wand-socket-modal .slot.is-non-spell .slot-durability-bar {
-  opacity: 0.32;
-  filter: grayscale(0.45);
+  opacity: 0.34;
 }
 
 #wand-socket-modal .slot .hotbar-sub-num {
@@ -1231,10 +1300,11 @@ html, body {
   font-weight: 800;
 }
 
-/* Shared slot icon & counter rules (Hotbar, Inventory, Campfire, Wand Modal) */
+/* Shared slot icon & counter rules (Hotbar, Inventory, Campfire, Chest, Wand Modal) */
 #hotbar-ui .slot img,
 #inventory-ui .slot img,
 #campfire-ui .slot img,
+#chest-ui .slot img,
 #wand-socket-modal .slot img {
   width: 82%;
   height: 82%;
@@ -1250,6 +1320,7 @@ html, body {
 #hotbar-ui .slot .item-count,
 #inventory-ui .slot .item-count,
 #campfire-ui .slot .item-count,
+#chest-ui .slot .item-count,
 #wand-socket-modal .slot .item-count {
   z-index: 4;
   position: absolute;
@@ -2183,12 +2254,15 @@ html, body {
 /* Touch interactions inside slots */
 #inventory-ui .slot[data-has-item="true"],
 #campfire-ui .slot[data-has-item="true"],
+#chest-ui .slot[data-has-item="true"],
 #wand-socket-modal .slot[data-has-item="true"],
 body.inv-holding-item #inventory-ui .slot,
 body.inv-holding-item #campfire-ui .slot,
+body.inv-holding-item #chest-ui .slot,
 body.inv-holding-item #wand-socket-modal .slot,
 body.inv-holding-item #inventory-ui,
 body.inv-holding-item #campfire-ui,
+body.inv-holding-item #chest-ui,
 body.inv-holding-item #wand-socket-modal {
   touch-action: none;
 }
@@ -2965,5 +3039,148 @@ body.inv-holding-item #wand-socket-modal {
     left: 50%;
     transform: translateX(-50%);
     max-height: calc(100dvh - 230px);
+  }
+}
+
+/* ============================================================
+   STORAGE CHEST OVERLAY (#chest-ui) & DOCKING
+   ============================================================ */
+#chest-ui {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(24, 19, 16, 0.98) 0%, rgba(12, 15, 23, 0.99) 100%);
+  border: 1.5px solid #b45309;
+  border-radius: 11px;
+  box-shadow:
+    0 24px 56px rgba(0, 0, 0, 0.88),
+    inset 0 1px 0 rgba(251, 191, 36, 0.24);
+  color: var(--ui-text-main);
+  font-family: var(--ui-font);
+  z-index: 2100;
+  user-select: none;
+  max-width: 96vw;
+  transition: left 0.18s ease, top 0.18s ease;
+}
+
+.chest-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid rgba(217, 119, 6, 0.28);
+}
+
+.chest-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fde68a;
+  letter-spacing: 0.35px;
+}
+
+.chest-header-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.chest-count-badge {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(217, 119, 6, 0.18);
+  border: 1px solid rgba(251, 191, 36, 0.42);
+  color: #fde68a;
+}
+
+.chest-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chest-grid-container {
+  display: grid;
+  grid-template-columns: repeat(9, 42px);
+  grid-template-rows: repeat(3, 42px);
+  gap: 5px;
+  padding: 7px;
+  background: rgba(11, 15, 23, 0.72);
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  border-radius: 8px;
+}
+
+#chest-ui .slot {
+  width: 42px;
+  height: 42px;
+  background: var(--ui-bg-slot);
+  border: 1.5px solid var(--ui-slot-border);
+  border-radius: 6px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: none;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.65);
+  transition: border-color 0.1s ease, background-color 0.1s ease;
+}
+
+#chest-ui .slot:hover {
+  border-color: #fbbf24;
+  background: var(--ui-bg-slot-hover);
+}
+
+.chest-hint {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--ui-text-muted);
+  text-align: center;
+  line-height: 1.35;
+}
+
+@media (min-width: 1120px) {
+  body.chest-and-inv-open:not(.is-mobile-ui) #inventory-ui {
+    left: calc(50% - 234px);
+  }
+
+  body.chest-and-inv-open:not(.is-mobile-ui) #chest-ui {
+    top: 50%;
+    left: calc(50% + 266px);
+    transform: translate(-50%, -50%);
+  }
+
+  body.chest-and-inv-open:not(.is-mobile-ui) #inventory-ui.recipe-book-open {
+    left: calc(50% - 220px);
+  }
+
+  body.chest-and-inv-open:not(.is-mobile-ui) #inventory-ui.recipe-book-open ~ #chest-ui {
+    left: calc(50% + 412px);
+  }
+}
+
+@media (max-width: 1119px) {
+  body.chest-and-inv-open:not(.is-mobile-ui) #chest-ui {
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  body.chest-and-inv-open:not(.is-mobile-ui) #inventory-ui {
+    top: auto;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-height: calc(100dvh - 240px);
   }
 }

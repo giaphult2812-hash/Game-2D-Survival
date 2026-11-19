@@ -294,6 +294,13 @@
       return;
     }
 
+    if (typeof window.checkNearChest === "function" && window.checkNearChest()) {
+      if (typeof window.openNearestChest === "function") {
+        window.openNearestChest();
+      }
+      return;
+    }
+
     if (typeof checkNearCraftingTable === "function" && checkNearCraftingTable()) {
       if (typeof toggleInventory === "function") {
         toggleInventory(true, "workstation");
@@ -302,6 +309,12 @@
     }
 
     const equipped = typeof playerInventory !== "undefined" ? playerInventory[activeHotbarIndex] : null;
+    if (equipped && equipped.id === "chest") {
+      if (typeof window.tryPlaceChest === "function") {
+        window.tryPlaceChest(activeHotbarIndex);
+      }
+      return;
+    }
     if (equipped && (equipped.id === "crafting_table" || (equipped.name && equipped.name.includes("Bàn Chế Tạo")))) {
       if (typeof tryPlaceCraftingTable === "function") {
         tryPlaceCraftingTable(activeHotbarIndex);
@@ -504,7 +517,7 @@
       } else if (itemData && itemData.toolType === "pickaxe") {
         btnActionIcon.innerHTML = SVG_PICKAXE;
         btnActionCap.textContent = "Đào";
-      } else if (equipped.id === "crafting_table" || (equipped.name && equipped.name.includes("Bàn Chế Tạo"))) {
+      } else if (equipped.id === "chest" || equipped.id === "crafting_table" || (equipped.name && equipped.name.includes("Bàn Chế Tạo"))) {
         btnActionIcon.innerHTML = SVG_HAND;
         btnActionCap.textContent = "Đặt";
       } else {
@@ -570,16 +583,24 @@
 
     if (btnInteract && btnInteractCap) {
       const nearAltar = typeof window.checkNearWandAltar === "function" && window.checkNearWandAltar();
+      const nearChest = typeof window.checkNearChest === "function" && window.checkNearChest();
       const nearTable = typeof checkNearCraftingTable === "function" && checkNearCraftingTable();
       const canEat = Boolean(itemData && itemData.category === "consumable" && itemData.healAmount);
+      const isChestItem = Boolean(equipped && equipped.id === "chest");
       const isTable = Boolean(equipped && (equipped.id === "crafting_table" || (equipped.name && equipped.name.includes("Bàn Chế Tạo"))));
 
       if (nearAltar) {
         btnInteract.classList.add("ready");
         btnInteractCap.textContent = "Khảm";
+      } else if (nearChest) {
+        btnInteract.classList.add("ready");
+        btnInteractCap.textContent = "Mở Rương";
       } else if (nearTable) {
         btnInteract.classList.add("ready");
         btnInteractCap.textContent = "Chế tạo";
+      } else if (isChestItem) {
+        btnInteract.classList.add("ready");
+        btnInteractCap.textContent = "Đặt rương";
       } else if (isTable) {
         btnInteract.classList.add("ready");
         btnInteractCap.textContent = "Đặt bàn";

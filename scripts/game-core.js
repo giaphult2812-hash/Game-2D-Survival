@@ -79,6 +79,7 @@
       chicken: "assets/Chicken.png",
       arrow: "Tiny Swords (Free Pack)/Units/Black Units/Archer/Arrow.png",
       crafting_table: "assets/items/placeables/crafting_table.svg",
+      chest: "assets/items/placeables/chest.svg",
       diamond: "assets/items/resources/diamond.png",
       magic_wand: "assets/items/tools_weapons/đũa phép.png",
       fishing_rod: "assets/items/tools_weapons/fishing_rod.svg",
@@ -107,6 +108,18 @@
       legs_diamond: "assets/items/armor_equipment/quần kim cương.png",
       boots_diamond: "assets/items/armor_equipment/giày kim cương.png"
     };
+
+    const iconImageCache = new Map();
+    function getCachedIconImage(src) {
+      if (!src) return null;
+      let img = iconImageCache.get(src);
+      if (!img) {
+        img = new Image();
+        img.src = src;
+        iconImageCache.set(src, img);
+      }
+      return img;
+    }
 
     // Dữ liệu bản đồ LDtk (lớp Ground, Water, Rock, Fences, Jungles...)
     let homeMapData = null;
@@ -998,54 +1011,11 @@
 
     function playSpellCastSound(spellId) {
       if (!combatFxConfig.impactSound) return;
-      if (spellId === "spell_gravity") { playGravityCastSound(); return; }
-      try {
-        const ctxAudio = getAudioContext();
-        if (!ctxAudio) return;
-        const now = ctxAudio.currentTime;
-        const vol = (combatFxConfig.soundVolume || 0.8) * 0.24;
-
-        if (spellId === "spell_fireball") {
-          const osc = ctxAudio.createOscillator();
-          const gain = ctxAudio.createGain();
-          osc.type = "sawtooth";
-          osc.frequency.setValueAtTime(260, now);
-          osc.frequency.exponentialRampToValueAtTime(95, now + 0.22);
-          gain.gain.setValueAtTime(vol, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
-          osc.connect(gain);
-          gain.connect(ctxAudio.destination);
-          osc.start(now);
-          osc.stop(now + 0.24);
-        } else if (spellId === "spell_frost") {
-          const osc = ctxAudio.createOscillator();
-          const gain = ctxAudio.createGain();
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(940, now);
-          osc.frequency.exponentialRampToValueAtTime(1420, now + 0.08);
-          osc.frequency.exponentialRampToValueAtTime(620, now + 0.20);
-          gain.gain.setValueAtTime(vol * 0.85, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-          osc.connect(gain);
-          gain.connect(ctxAudio.destination);
-          osc.start(now);
-          osc.stop(now + 0.22);
-        } else if (spellId === "spell_lightning") {
-          const osc = ctxAudio.createOscillator();
-          const gain = ctxAudio.createGain();
-          osc.type = "square";
-          osc.frequency.setValueAtTime(760, now);
-          osc.frequency.exponentialRampToValueAtTime(110, now + 0.16);
-          gain.gain.setValueAtTime(vol * 0.9, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-          osc.connect(gain);
-          gain.connect(ctxAudio.destination);
-          osc.start(now);
-          osc.stop(now + 0.18);
-        } else {
-          playMagicCastSound();
-        }
-      } catch (e) {}
+      if (spellId === "spell_gravity") {
+        playGravityCastSound();
+        return;
+      }
+      playMagicCastSound();
     }
 
     // Âm thanh câu cá (quăng cần, phao rơi xuống nước, cá cắn câu, kéo lên)
@@ -1397,12 +1367,16 @@
       const y = eff.y;
       const radius = Math.max(14, gravityFxConfig.warnRadius || 22);
       const isOvercrush = gravityFxConfig.force >= gravityFxConfig.overcrushThreshold;
+      const gb = eff.gemBonuses || null;
 
       // Bước 3: Đè bẹp mục tiêu trong phạm vi vòng tròn (nếu bật)
       let hitCount = 0;
+      let totalDealtDmg = 0;
       if (gravityFxConfig.step3Enabled) {
         const squashDur = Math.max(0.15, gravityFxConfig.squashDuration || 0.45);
-        const dmg = Math.max(1, Math.round(gravityFxConfig.damage || 8));
+        const baseDmg = Math.max(1, Math.round((gravityFxConfig.damage || 8) + (gb ? gb.damageBonus : 0)));
+        const isCrit = Boolean(gb && gb.critChance > 0 && Math.random() < gb.critChance);
+        const dmg = isCrit ? Math.round(baseDmg * 1.75) : baseDmg;
         const targetSY = isOvercrush ? 0.14 : Math.max(0.18, Math.min(0.85, (gravityFxConfig.squashScaleY || 55) / 100));
         const targetSX = isOvercrush ? 1.95 : Math.max(1.1, gravityFxConfig.squashSpreadX || 1.45);
 
@@ -1413,6 +1387,7 @@
           const dist = Math.hypot(mobFeetX - x, mobFeetY - y);
           if (mob === eff.targetMob || dist <= radius + 8) {
             hitCount++;
+            totalDealtDmg += dmg;
             mob.hp -= dmg;
             if (combatFxConfig.hitFlash) {
               mob.hurtFlashTimer = combatFxConfig.hitFlashDuration || 0.08;
@@ -1424,14 +1399,20 @@
               targetScaleX: targetSX,
               isOvercrush: isOvercrush
             };
-            mob.slowTimer = Math.max(mob.slowTimer || 0, squashDur + 0.6);
+            mob.slowTimer = Math.max(mob.slowTimer || 0, squashDur + 0.6 + (gb && gb.frostStacks > 0 ? 1.8 : 0));
+            if (gb && gb.burnStacks > 0) {
+              mob.burnTimer = Math.max(mob.burnTimer || 0, 2.8 + gb.burnStacks * 0.6);
+              mob.burnTickTimer = Math.min(mob.burnTickTimer || 0.45, 0.45);
+              mob.burnSpread = Boolean(gb.burnSpread);
+            }
 
+            const critTag = isCrit ? " 💥" : "";
             addFloatingText(
-              isOvercrush ? `-${dmg} HP 📄 BẸP TỜ GIẤY!` : `-${dmg} HP ⬇`,
+              isOvercrush ? `-${dmg} HP${critTag} 📄 BẸP TỜ GIẤY!` : `-${dmg} HP${critTag} ⬇`,
               mob.x - (isOvercrush ? 18 : 4),
               mob.y - 12,
-              isOvercrush ? "#f0abfc" : "#c084fc",
-              isOvercrush
+              isCrit ? "#fde047" : (isOvercrush ? "#f0abfc" : "#c084fc"),
+              isOvercrush || isCrit
             );
 
             if (mob.hp <= 0) {
@@ -1440,6 +1421,14 @@
             }
           }
         }
+      }
+
+      if (gb && gb.vampirePct > 0 && totalDealtDmg > 0 && player.hp < player.maxHp && player.action !== "die") {
+        const healAmt = Math.max(1, Math.round(totalDealtDmg * gb.vampirePct));
+        player.hp = Math.min(player.maxHp, player.hp + healAmt);
+        if (player.hp > player.displayHp) player.displayHp = player.hp;
+        if (valPlayerHP) valPlayerHP.textContent = `${Math.round(player.hp)} / ${player.maxHp}`;
+        addFloatingText(`+${healAmt} HP 🩸`, player.x - 4, player.y - 14, "#f472b6", false);
       }
 
       // Bước 4: Đất lún thành hố, vết nứt hình tia & đá vụn văng ra
@@ -1485,7 +1474,7 @@
       }
     }
 
-    function castGravitySpell(aimAngle, clickWorldPos = null) {
+    function castGravitySpell(aimAngle, clickWorldPos = null, gemBonuses = null) {
       const pCx = player.x + player.width / 2;
       const pCy = player.y + player.height / 2;
 
@@ -1546,6 +1535,7 @@
         x: tx,
         y: ty,
         targetMob: targetMob,
+        gemBonuses: gemBonuses,
         phase: startPhase,
         timer: 0,
         rotation: 0,
@@ -2036,15 +2026,16 @@
       const r = Math.random();
       if (inLake) {
         if (r < 0.04) return { id: "spell_gravity", name: SPELLS_DATABASE.spell_gravity.name, quantity: 1, tag: "⬇✨", rare: true };
-        if (r < 0.10) return { id: "spell_frost", name: SPELLS_DATABASE.spell_frost.name, quantity: 1, tag: "❄️✨", rare: true };
-        if (r < 0.44) return { id: "raw_fish", name: "Cá Tươi", quantity: Math.random() < 0.25 ? 2 : 1, tag: "🐟" };
+        if (r < 0.10) return { id: "gem_frost", name: "Ngọc Băng Sương", quantity: 1, tag: "❄️💎", rare: true };
+        if (r < 0.14) return { id: "gem_haste", name: "Ngọc Tốc Độ", quantity: 1, tag: "💨💎", rare: true };
+        if (r < 0.45) return { id: "raw_fish", name: "Cá Tươi", quantity: Math.random() < 0.25 ? 2 : 1, tag: "🐟" };
         if (r < 0.64) return { id: "golden_fish", name: "Cá Vàng Quý", quantity: 1, tag: "✨🐟", rare: true };
         if (r < 0.77) return { id: "gold_nugget", name: "Mảnh Vàng", quantity: 1, tag: "🪙", rare: true };
         if (r < 0.87) return { id: "iron_ore", name: "Quặng Sắt", quantity: Math.random() < 0.35 ? 2 : 1, tag: "⛏️" };
         if (r < 0.94) return { id: "coal", name: "Than Đá", quantity: 2, tag: "🪨" };
         return { id: "diamond", name: "Kim Cương", quantity: 1, tag: "💎", rare: true };
       } else {
-        if (r < 0.06) return { id: "spell_frost", name: SPELLS_DATABASE.spell_frost.name, quantity: 1, tag: "❄️✨", rare: true };
+        if (r < 0.06) return { id: "gem_frost", name: "Ngọc Băng Sương", quantity: 1, tag: "❄️💎", rare: true };
         if (r < 0.50) return { id: "raw_fish", name: "Cá Tươi", quantity: 1, tag: "🐟" };
         if (r < 0.63) return { id: "golden_fish", name: "Cá Vàng Quý", quantity: 1, tag: "✨🐟", rare: true };
         if (r < 0.75) return { id: "plant_fiber", name: "Sợi Dây Gai", quantity: 2, tag: "🌿" };
@@ -2285,6 +2276,7 @@
       if (!ui) return;
       const isClosed = ui.style.display === "none" || ui.style.display === "";
       const willOpen = forceOpen !== null ? forceOpen : isClosed;
+      if (willOpen && isChestOpen()) toggleChestUI(false);
       ui.style.display = willOpen ? "block" : "none";
       if (willOpen) {
         initCampfireUIEvents();
@@ -2292,6 +2284,197 @@
       }
       syncCampfireAndInventoryState();
     }
+
+    // -------------------------------------------------------------
+    // HỆ THỐNG RƯƠNG ĐỒ (STORAGE CHEST - 27 Ô)
+    // -------------------------------------------------------------
+    let activeOpenChest = null;
+
+    function isChestOpen() {
+      const el = document.getElementById("chest-ui");
+      return Boolean(activeOpenChest && el && el.style.display !== "none" && el.style.display !== "");
+    }
+
+    function checkNearChest() {
+      let nearest = null;
+      let minDist = INTERACTION_RADIUS + 22;
+      for (const obj of currentObjects) {
+        if (obj.type === "chest") {
+          const d = Math.hypot((player.x + 8) - (obj.x + 8), (player.y + 8) - (obj.y + 8));
+          if (d <= minDist) {
+            minDist = d;
+            nearest = obj;
+          }
+        }
+      }
+      return nearest;
+    }
+    window.checkNearChest = checkNearChest;
+
+    function syncChestAndInventoryState() {
+      const chestOpen = isChestOpen();
+      const invOpen = Boolean(inventoryUI && inventoryUI.style.display !== "none" && inventoryUI.style.display !== "");
+      document.body.classList.toggle("chest-and-inv-open", chestOpen && invOpen);
+
+      const bagBtn = document.getElementById("btnChestToggleBag");
+      if (bagBtn) {
+        bagBtn.classList.toggle("active", invOpen);
+        bagBtn.textContent = invOpen ? "🎒 Đóng Túi" : "🎒 Mở Túi";
+      }
+    }
+
+    function initChestUIDOM() {
+      const grid = document.getElementById("chestStorageGrid");
+      if (grid && grid.children.length === 0) {
+        for (let i = 0; i < 27; i++) {
+          const slotEl = document.createElement("div");
+          slotEl.className = "slot";
+          slotEl.dataset.type = "chest";
+          slotEl.dataset.index = i;
+
+          slotEl.addEventListener("contextmenu", (e) => e.preventDefault());
+          slotEl.addEventListener("mousedown", (e) => handleSlotMouseDown("chest", i, e));
+          bindMouseHoverTooltip(slotEl, () => getSlotItem("chest", i), (e) => handleSlotMouseEnter("chest", i, e));
+          slotEl.addEventListener("dblclick", (e) => {
+            if (isRecentTouchInteraction()) return;
+            e.preventDefault();
+            e.stopPropagation();
+            executeDoubleClickCollect("chest", i);
+          });
+          bindSlotTouchEvents(slotEl, "chest", i);
+
+          grid.appendChild(slotEl);
+        }
+      }
+
+      const bagBtn = document.getElementById("btnChestToggleBag");
+      if (bagBtn && !bagBtn.dataset.bound) {
+        bagBtn.dataset.bound = "1";
+        bagBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleInventory(null, "pocket");
+        });
+      }
+
+      const closeBtn = document.getElementById("btnCloseChestUI");
+      if (closeBtn && !closeBtn.dataset.bound) {
+        closeBtn.dataset.bound = "1";
+        closeBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleChestUI(false);
+        });
+      }
+
+      const chestEl = document.getElementById("chest-ui");
+      if (chestEl && !chestEl.dataset.eventsBound) {
+        chestEl.dataset.eventsBound = "1";
+        chestEl.addEventListener("keydown", (e) => {
+          const k = (e.key || "").toLowerCase();
+          if (k === "e" || e.key === "Escape" || e.code === "Escape") return;
+          e.stopPropagation();
+        });
+        chestEl.addEventListener("keyup", (e) => e.stopPropagation());
+        chestEl.addEventListener("contextmenu", (e) => e.preventDefault());
+      }
+    }
+
+    function renderChestUI() {
+      if (!isChestOpen() || !activeOpenChest) return;
+      initChestUIDOM();
+      if (!Array.isArray(activeOpenChest.items)) {
+        activeOpenChest.items = new Array(27).fill(null);
+      }
+      const grid = document.getElementById("chestStorageGrid");
+      const badge = document.getElementById("chestCountBadge");
+      let usedCount = 0;
+      for (let i = 0; i < 27; i++) {
+        const it = activeOpenChest.items[i];
+        if (it && it.quantity > 0) usedCount++;
+        if (grid && grid.children[i]) {
+          updateSlotDOM(grid.children[i], it, i, false);
+        }
+      }
+      if (badge) {
+        const nextText = `${usedCount}/27`;
+        if (badge.textContent !== nextText) badge.textContent = nextText;
+      }
+    }
+
+    function toggleChestUI(forceOpen = null, chestObj = null) {
+      const ui = document.getElementById("chest-ui");
+      if (!ui) return;
+      const isClosed = ui.style.display === "none" || ui.style.display === "";
+      const willOpen = forceOpen !== null ? forceOpen : isClosed;
+
+      if (willOpen) {
+        const target = chestObj || activeOpenChest || checkNearChest();
+        if (!target) return;
+        if (!Array.isArray(target.items)) {
+          target.items = new Array(27).fill(null);
+        }
+        const cfUI = document.getElementById("campfire-ui");
+        if (cfUI && cfUI.style.display !== "none" && cfUI.style.display !== "") {
+          toggleCampfireUI(false);
+        }
+        if (isWandModalOpen()) {
+          openWandCustomizer(false);
+        }
+
+        activeOpenChest = target;
+        keys.up = false; keys.down = false; keys.left = false; keys.right = false;
+        isKeyActionHeld = false;
+        isMouseActionHeld = false;
+        isMobileActionHeld = false;
+        isActionKeyHeld = false;
+        pendingQuickBowShot = false;
+        isBowCharging = false;
+        bowChargeTimer = 0;
+        resetFishingState();
+        if (window.resetMobileJoystick) window.resetMobileJoystick();
+        if (player.action !== 'die' && player.action !== 'attack') {
+          player.action = 'idle';
+        }
+
+        ui.style.display = "block";
+        initChestUIDOM();
+        renderChestUI();
+        if (!isInventoryOpen()) {
+          toggleInventory(true, "pocket");
+        } else {
+          isPaused = true;
+          needsCanvasRedraw = true;
+        }
+        syncChestAndInventoryState();
+        playImpactSound(false);
+      } else {
+        cancelActiveTouchInvState(true);
+        ui.style.display = "none";
+        activeOpenChest = null;
+        hideItemTooltip();
+        if (isInventoryOpen()) {
+          inventoryUI.style.display = "none";
+        }
+        if (!isWandModalOpen()) {
+          if (cursorItem && cursorItem.quantity > 0) {
+            pickupItem(cursorItem);
+            cursorItem = null;
+            updateCursorUI();
+          }
+          isPaused = false;
+          needsCanvasRedraw = true;
+        }
+        syncChestAndInventoryState();
+      }
+      if (window.onMobileHudSync) window.onMobileHudSync();
+    }
+    window.openNearestChest = function () {
+      const ch = checkNearChest();
+      if (ch) {
+        toggleChestUI(true, ch);
+        return true;
+      }
+      return false;
+    };
 
     function renderCampfireUI() {
       const inEl = document.getElementById("campfireInputSlot");
@@ -2434,22 +2617,12 @@
       return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
     }
 
+    function createGemIconSvgDataUri(outerCol, midCol, innerCol, strokeCol, facetMarkup = "") {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="2.5" y="2.5" width="27" height="27" rx="7" fill="rgba(15,23,42,0.88)" stroke="${strokeCol}" stroke-width="1.5" stroke-opacity="0.6"/><polygon points="16,3.5 26.5,10.5 26.5,21.5 16,28.5 5.5,21.5 5.5,10.5" fill="${outerCol}" stroke="${strokeCol}" stroke-width="1.8" stroke-linejoin="round"/><polygon points="16,7 22.5,12 22.5,20 16,25 9.5,20 9.5,12" fill="${midCol}"/><polygon points="16,9.5 20,13 20,19 16,22.5 12,19 12,13" fill="${innerCol}"/><polygon points="16,7 16,9.5 12,13 9.5,12" fill="rgba(255,255,255,0.45)"/><circle cx="13.5" cy="12" r="1.5" fill="#ffffff" opacity="0.9"/>${facetMarkup}</svg>`;
+      return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+    }
+
     const SPELLS_DATABASE = {
-      spell_arcane_orb: {
-        id: "spell_arcane_orb",
-        name: "Ngọc Cầu Ma Pháp",
-        shortName: "Cầu Phép",
-        badge: "✨",
-        color: "#c084fc",
-        glow: "#e879f9",
-        cooldown: 0.42,
-        damage: 4,
-        desc: "Bắn cầu năng lượng tím xoáy 8 hướng xuyên mục tiêu gần (4 DMG)",
-        icon: createSpellIconSvgDataUri(
-          "#3b0764", "#7e22ce", "#d8b4fe",
-          `<circle cx="16" cy="16" r="7" fill="#e879f9" opacity="0.35"/><circle cx="16" cy="16" r="4.5" fill="#f5d0fe"/><circle cx="16" cy="16" r="2" fill="#ffffff"/>`
-        )
-      },
       spell_gravity: {
         id: "spell_gravity",
         name: "Ngọc Trọng Lực",
@@ -2465,85 +2638,10 @@
           "#2e1065", "#581c87", "#c084fc",
           `<circle cx="16" cy="21" r="7.5" fill="none" stroke="#e9d5ff" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M16 6v12M11.5 14.5L16 19l4.5-4.5" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`
         )
-      },
-      spell_fireball: {
-        id: "spell_fireball",
-        name: "Ngọc Hỏa Cầu",
-        shortName: "Hỏa Cầu",
-        badge: "🔥",
-        color: "#f97316",
-        glow: "#fdba74",
-        cooldown: 0.56,
-        damage: 7,
-        desc: "Phóng cầu lửa bùng nổ diện rộng 26px gây cháy nổ (7 AoE DMG)",
-        icon: createSpellIconSvgDataUri(
-          "#7c2d12", "#ea580c", "#fdba74",
-          `<path d="M16 6c2 4 6 6.2 6 11a6 6 0 1 1-12 0c0-2.6 1.2-4.8 3-6.5-.2 2 .9 3.1 2 3.4-.6-2.5-.2-5.4 1-7.9z" fill="#fde047"/><circle cx="16" cy="18" r="2.6" fill="#ffffff"/>`
-        )
-      },
-      spell_frost: {
-        id: "spell_frost",
-        name: "Ngọc Băng Tiễn",
-        shortName: "Băng Tiễn",
-        badge: "❄️",
-        color: "#38bdf8",
-        glow: "#bae6fd",
-        cooldown: 0.48,
-        damage: 3,
-        desc: "Bắn 3 mảnh băng hình quạt làm chậm quái 50% trong 2.5s (3 DMG × 3)",
-        icon: createSpellIconSvgDataUri(
-          "#0c4a6e", "#0284c7", "#7dd3fc",
-          `<path d="M16 6v20M7.5 11l17 10M24.5 11l-17 10" stroke="#e0f2fe" stroke-width="2.2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.8" fill="#ffffff"/>`
-        )
-      },
-      spell_lightning: {
-        id: "spell_lightning",
-        name: "Ngọc Lôi Kích",
-        shortName: "Lôi Kích",
-        badge: "⚡",
-        color: "#facc15",
-        glow: "#fef08a",
-        cooldown: 0.68,
-        damage: 9,
-        desc: "Gọi tia sét từ trời giáng thẳng xuống mục tiêu gây sát thương AoE (9 DMG)",
-        icon: createSpellIconSvgDataUri(
-          "#422006", "#ca8a04", "#fde047",
-          `<path d="M18 5l-8 11h6l-2 11 9-13h-6z" fill="#fef08a" stroke="#ffffff" stroke-width="1" stroke-linejoin="round"/>`
-        )
       }
     };
 
     const WAND_RESONANCE_DATABASE = {
-      spell_fireball: {
-        spellId: "spell_fireball",
-        label: "🔥 Cộng Hưởng: Hỏa Ngục Cháy Lan",
-        shortCap: "Đánh 🔥",
-        badge: "🔥",
-        color: "#f97316",
-        glow: "#fde047",
-        basicDesc: "Cầu Lửa Cộng Hưởng (Nổ AoE + Cháy Lan)",
-        desc: "Đánh thường phóng Cầu Lửa nổ diện rộng 34px, thiêu đốt và cháy lan sang quái lân cận!"
-      },
-      spell_frost: {
-        spellId: "spell_frost",
-        label: "❄️ Cộng Hưởng: Bão Tuyết Đóng Băng",
-        shortCap: "Đánh ❄️",
-        badge: "❄️",
-        color: "#38bdf8",
-        glow: "#bae6fd",
-        basicDesc: "3 Tia Băng Cầu (Làm Chậm Diện Rộng)",
-        desc: "Đánh thường bắn 3 cầu băng hình quạt gây nổ băng AoE và làm chậm 50% trong 3.2s!"
-      },
-      spell_lightning: {
-        spellId: "spell_lightning",
-        label: "⚡ Cộng Hưởng: Lôi Đình Giật Chuỗi",
-        shortCap: "Đánh ⚡",
-        badge: "⚡",
-        color: "#facc15",
-        glow: "#fef08a",
-        basicDesc: "Cầu Sét Giật Chuỗi (Lan 3 Mục Tiêu)",
-        desc: "Đánh thường phóng Cầu Sét giật dây chuyền sang tối đa 2 quái vật gần đó (52px)!"
-      },
       spell_gravity: {
         spellId: "spell_gravity",
         label: "🌌 Cộng Hưởng: Hố Đen Trọng Trường",
@@ -2552,17 +2650,7 @@
         color: "#c084fc",
         glow: "#f0abfc",
         basicDesc: "Cầu Hố Đen (Hút Gom & Đè Diện Rộng)",
-        desc: "Đánh thường tạo hố trọng lực mini 36px kéo tụ quái vào tâm, gây AoE & làm choáng nhẹ!"
-      },
-      spell_arcane_orb: {
-        spellId: "spell_arcane_orb",
-        label: "✨ Cộng Hưởng: Song Cầu Ma Pháp",
-        shortCap: "Đánh ✨",
-        badge: "✨",
-        color: "#e879f9",
-        glow: "#f5d0fe",
-        basicDesc: "Song Cầu Ma Pháp (Nhanh & Xuyên Mục Tiêu)",
-        desc: "Đánh thường bắn 2 cầu ma pháp song song siêu tốc (+25% tốc bay, xuyên 1 mục tiêu)!"
+        desc: "Khảm 3 Ngọc Trọng Lực: Đánh thường tạo hố trọng lực mini 36px kéo tụ quái, gây AoE & làm choáng nhẹ!"
       }
     };
 
@@ -2577,20 +2665,17 @@
 
     function normalizeWandSlots(rawSlots) {
       if (!Array.isArray(rawSlots)) return [null, null, null];
-      let arr = rawSlots.slice();
-      if (arr.length === 4 && arr[0] === "spell_arcane_orb") {
-        arr = arr.slice(1, 4);
-      } else {
-        arr = arr.slice(0, 3);
-      }
+      const sliced = rawSlots.slice(0, 3);
+      const arr = sliced.map((sid) => (sid === "spell_gravity" ? "spell_gravity" : null));
       while (arr.length < 3) arr.push(null);
       return arr;
     }
 
     function normalizeGemSlots(rawGemSlots) {
-      if (!Array.isArray(rawGemSlots)) return [null, null];
-      let arr = rawGemSlots.slice(0, 2);
-      while (arr.length < 2) arr.push(null);
+      if (!Array.isArray(rawGemSlots)) return [null, null, null];
+      const sliced = rawGemSlots.slice(0, 3);
+      const arr = sliced.map((gid) => (gid && ITEMS_DATABASE[gid] && ITEMS_DATABASE[gid].category === "gem" ? gid : null));
+      while (arr.length < 3) arr.push(null);
       return arr;
     }
 
@@ -2607,13 +2692,60 @@
       if (!wandItem.wandData || !Array.isArray(wandItem.wandData.slots)) {
         wandItem.wandData = {
           slots: [null, null, null],
-          gemSlots: [null, null]
+          gemSlots: [null, null, null]
         };
       } else {
         wandItem.wandData.slots = normalizeWandSlots(wandItem.wandData.slots);
         wandItem.wandData.gemSlots = normalizeGemSlots(wandItem.wandData.gemSlots);
       }
       return wandItem.wandData;
+    }
+
+    function getWandGemBonuses(wandItem) {
+      const res = {
+        damageBonus: 0,
+        burnStacks: 0,
+        frostStacks: 0,
+        vampirePct: 0,
+        hasteStacks: 0,
+        critStacks: 0,
+        critChance: 0,
+        cooldownMult: 1,
+        burnSpread: false,
+        frostSpread: false,
+        allSameGemId: null,
+        summaryParts: []
+      };
+      if (!wandItem || wandItem.id !== "magic_wand") return res;
+      const wd = ensureWandData(wandItem);
+      const counts = {};
+      for (const gid of wd.gemSlots) {
+        if (!gid || !ITEMS_DATABASE[gid]) continue;
+        counts[gid] = (counts[gid] || 0) + 1;
+        if (gid === "gem_damage") res.damageBonus += 3;
+        else if (gid === "gem_fire") res.burnStacks += 1;
+        else if (gid === "gem_frost") res.frostStacks += 1;
+        else if (gid === "gem_vampire") res.vampirePct += 0.15;
+        else if (gid === "gem_haste") res.hasteStacks += 1;
+        else if (gid === "gem_crit") res.critStacks += 1;
+      }
+      if (wd.gemSlots[0] && wd.gemSlots[0] === wd.gemSlots[1] && wd.gemSlots[1] === wd.gemSlots[2]) {
+        res.allSameGemId = wd.gemSlots[0];
+        if (res.allSameGemId === "gem_fire") res.burnSpread = true;
+        if (res.allSameGemId === "gem_frost") res.frostSpread = true;
+        if (res.allSameGemId === "gem_damage") res.damageBonus += 3;
+        if (res.allSameGemId === "gem_vampire") res.vampirePct += 0.10;
+      }
+      res.critChance = Math.min(0.60, res.critStacks * 0.18);
+      res.cooldownMult = Math.max(0.55, 1 - Math.min(0.45, res.hasteStacks * 0.14));
+
+      if (res.damageBonus > 0) res.summaryParts.push(`+${res.damageBonus} DMG`);
+      if (res.burnStacks > 0) res.summaryParts.push(res.burnSpread ? "🔥 Cháy Lan AoE" : "🔥 Thiêu Đốt");
+      if (res.frostStacks > 0) res.summaryParts.push(res.frostSpread ? "❄️ Đóng Băng Lan" : "❄️ Làm Chậm");
+      if (res.vampirePct > 0) res.summaryParts.push(`🩸 +${Math.round(res.vampirePct * 100)}% Hút Máu`);
+      if (res.hasteStacks > 0) res.summaryParts.push(`💨 -${Math.round((1 - res.cooldownMult) * 100)}% Hồi Chiêu`);
+      if (res.critChance > 0) res.summaryParts.push(`💥 +${Math.round(res.critChance * 100)}% Chí Mạng`);
+      return res;
     }
 
     const ITEMS_DATABASE = {
@@ -2628,25 +2760,12 @@
         durability: 200,
         maxDurability: 200,
         perks: [
-          "✦ Đánh thường: Ngọc Cầu Ma Pháp (Chuột trái / Nút Đánh Lớn)",
-          "✦ 3 Ô Chiêu Thức [Z / X / C] (hoặc 3 nút xung quanh trên Mobile)",
-          "✦ Chạm Vòng Khảm ở Nhà, chuột phải Đũa hoặc nhấn [G] để gắn chiêu"
+          "✦ Đánh thường: Cầu Năng Lượng Tím (Chuột trái / Nút Đánh Lớn)",
+          "✦ Phần 1 (Chiêu Thức [Z / X / C]): Khảm Ngọc Trọng Lực",
+          "✦ Phần 2 (Ngọc Khảm 3 ô): Tăng DMG, Thiêu Đốt, Làm Chậm, Hút Máu, Hồi Chiêu, Chí Mạng"
         ],
-        description: "Đũa phép đánh thường Ngọc Cầu Ma Pháp + 3 ô khảm chiêu độc nhất",
+        description: "Đũa phép tùy biến tách biệt Phần Chiêu Thức và Phần Ngọc Khảm chỉ số",
         icon: "assets/items/tools_weapons/đũa phép.png"
-      },
-      "spell_arcane_orb": {
-        id: "spell_arcane_orb",
-        name: SPELLS_DATABASE.spell_arcane_orb.name,
-        category: "spell",
-        spellId: "spell_arcane_orb",
-        rarity: "uncommon",
-        maxStack: 16,
-        value: 35,
-        damage: 4,
-        perks: ["✦ Khảm vào Đũa Phép (Phím G)", "✦ Bắn cầu năng lượng xoáy 8 hướng"],
-        description: SPELLS_DATABASE.spell_arcane_orb.desc,
-        icon: SPELLS_DATABASE.spell_arcane_orb.icon
       },
       "spell_gravity": {
         id: "spell_gravity",
@@ -2657,48 +2776,12 @@
         maxStack: 16,
         value: 140,
         damage: 8,
-        perks: ["✦ Khảm vào Đũa Phép (Phím G)", "✦ Đè bẹp mục tiêu với hiệu ứng 5 bước + Đè tờ giấy"],
+        perks: [
+          "✦ Lắp vào Phần 1 (Chiêu Thức Z / X / C) của Đũa Phép",
+          "✦ Đè bẹp mục tiêu với hiệu ứng 5 bước + Đè tờ giấy"
+        ],
         description: SPELLS_DATABASE.spell_gravity.desc,
         icon: SPELLS_DATABASE.spell_gravity.icon
-      },
-      "spell_fireball": {
-        id: "spell_fireball",
-        name: SPELLS_DATABASE.spell_fireball.name,
-        category: "spell",
-        spellId: "spell_fireball",
-        rarity: "rare",
-        maxStack: 16,
-        value: 65,
-        damage: 7,
-        perks: ["✦ Khảm vào Đũa Phép (Phím G)", "✦ Nổ lửa diện rộng gây 7 AoE DMG"],
-        description: SPELLS_DATABASE.spell_fireball.desc,
-        icon: SPELLS_DATABASE.spell_fireball.icon
-      },
-      "spell_frost": {
-        id: "spell_frost",
-        name: SPELLS_DATABASE.spell_frost.name,
-        category: "spell",
-        spellId: "spell_frost",
-        rarity: "rare",
-        maxStack: 16,
-        value: 60,
-        damage: 3,
-        perks: ["✦ Khảm vào Đũa Phép (Phím G)", "✦ Bắn 3 tia băng làm chậm mục tiêu 50%"],
-        description: SPELLS_DATABASE.spell_frost.desc,
-        icon: SPELLS_DATABASE.spell_frost.icon
-      },
-      "spell_lightning": {
-        id: "spell_lightning",
-        name: SPELLS_DATABASE.spell_lightning.name,
-        category: "spell",
-        spellId: "spell_lightning",
-        rarity: "epic",
-        maxStack: 16,
-        value: 95,
-        damage: 9,
-        perks: ["✦ Khảm vào Đũa Phép (Phím G)", "✦ Triệu hồi sét đánh tức thì từ bầu trời (9 DMG)"],
-        description: SPELLS_DATABASE.spell_lightning.desc,
-        icon: SPELLS_DATABASE.spell_lightning.icon
       },
       "gem_damage": {
         id: "gem_damage",
@@ -2709,9 +2792,12 @@
         maxStack: 16,
         value: 45,
         damageBonus: 3,
-        perks: ["✦ Khảm vào Ô Ngọc Nội Tại Đũa Phép", "✦ Tăng +3 Sức mạnh tấn công vật lý & phép"],
-        description: "Ngọc khảm nội tại cường hóa sát thương đòn đánh",
-        icon: createSpellIconSvgDataUri("#1e293b", "#334155", "#64748b", `<path d="M16 6l8 12H8z" fill="#f87171"/>`)
+        perks: [
+          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
+          "✦ Cộng +3 Sát thương cho đòn đánh & chiêu Trọng Lực (3 viên: +12 DMG)"
+        ],
+        description: "Ngọc nội tại cường hóa sát thương, không phải chiêu thức",
+        icon: createGemIconSvgDataUri("#991b1b", "#ef4444", "#fca5a5", "#fecaca")
       },
       "gem_fire": {
         id: "gem_fire",
@@ -2722,9 +2808,13 @@
         maxStack: 16,
         value: 80,
         effectType: "burn",
-        perks: ["✦ Khảm vào Ô Ngọc Nội Tại Đũa Phép", "✦ Đòn đánh gây hiệu ứng Thiêu Đốt (Burn)"],
-        description: "Ngọc khảm nội tại truyền nguyên tố hỏa vào vũ khí",
-        icon: createSpellIconSvgDataUri("#7c2d12", "#ea580c", "#fdba74", `<path d="M16 7c2 3 5 4.5 5 8a5 5 0 1 1-10 0c0-3.5 3-5 5-8z" fill="#fde047"/>`)
+        perks: [
+          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
+          "✦ Đòn đánh gây Thiêu Đốt theo thời gian",
+          "✦ Khảm đủ 3 viên: Cháy Lan Diện Rộng sang quái xung quanh!"
+        ],
+        description: "Ngọc nội tại truyền lửa thiêu đốt vào đòn đánh",
+        icon: createGemIconSvgDataUri("#9a3412", "#f97316", "#fde047", "#fed7aa")
       },
       "gem_frost": {
         id: "gem_frost",
@@ -2735,9 +2825,13 @@
         maxStack: 16,
         value: 75,
         effectType: "slow",
-        perks: ["✦ Khảm vào Ô Ngọc Nội Tại Đũa Phép", "✦ Đòn đánh làm chậm di chuyển mục tiêu 40% trong 2.5s"],
-        description: "Ngọc khảm nội tại đóng băng và làm chậm mục tiêu",
-        icon: createSpellIconSvgDataUri("#0c4a6e", "#0284c7", "#7dd3fc", `<path d="M16 6v20M7.5 11l17 10M24.5 11l-17 10" stroke="#e0f2fe" stroke-width="2" stroke-linecap="round"/>`)
+        perks: [
+          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
+          "✦ Đòn đánh làm chậm tốc độ chạy quái 50%",
+          "✦ Khảm đủ 3 viên: Sóng Băng làm chậm trên diện rộng!"
+        ],
+        description: "Ngọc nội tại làm chậm mục tiêu bằng băng giá",
+        icon: createGemIconSvgDataUri("#075985", "#0ea5e9", "#bae6fd", "#e0f2fe")
       },
       "gem_vampire": {
         id: "gem_vampire",
@@ -2748,9 +2842,44 @@
         maxStack: 16,
         value: 120,
         effectType: "vampire",
-        perks: ["✦ Khảm vào Ô Ngọc Nội Tại Đũa Phép", "✦ Hồi phục 15% sát thương gây ra thành Máu (HP)"],
-        description: "Ngọc khảm nội tại ma pháp hút sinh lực kẻ địch",
-        icon: createSpellIconSvgDataUri("#4a044e", "#86198f", "#e879f9", `<path d="M16 26S6 18 6 11a6 6 0 0 1 10-4 6 6 0 0 1 10 4c0 7-10 15-10 15z" fill="#f472b6"/>`)
+        perks: [
+          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
+          "✦ Hồi phục 15% sát thương gây ra thành Máu (3 viên: 55%)"
+        ],
+        description: "Ngọc nội tại hấp thụ sinh lực khi gây sát thương",
+        icon: createGemIconSvgDataUri("#701a75", "#c026d3", "#f5d0fe", "#fbcfe8")
+      },
+      "gem_haste": {
+        id: "gem_haste",
+        name: "Ngọc Tốc Độ",
+        category: "gem",
+        gemType: "haste",
+        rarity: "rare",
+        maxStack: 16,
+        value: 85,
+        cooldownReduction: 14,
+        perks: [
+          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
+          "✦ Giảm 14% thời gian hồi chiêu & bắn đũa nhanh hơn mỗi viên"
+        ],
+        description: "Ngọc nội tại rút ngắn thời gian hồi chiêu và tăng tốc xuất chiêu",
+        icon: createGemIconSvgDataUri("#115e59", "#14b8a6", "#99f6e4", "#ccfbf1")
+      },
+      "gem_crit": {
+        id: "gem_crit",
+        name: "Ngọc Chí Mạng",
+        category: "gem",
+        gemType: "crit",
+        rarity: "epic",
+        maxStack: 16,
+        value: 110,
+        critChanceBonus: 18,
+        perks: [
+          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
+          "✦ Tăng +18% tỉ lệ Chí Mạng (x1.75 sát thương) mỗi viên"
+        ],
+        description: "Ngọc nội tại gia tăng xác suất tung đòn chí mạng nổ vàng",
+        icon: createGemIconSvgDataUri("#854d0e", "#eab308", "#fef08a", "#fef9c3")
       },
       "fishing_rod": {
         id: "fishing_rod",
@@ -3368,6 +3497,20 @@
         value: 12,
         perks: ["✦ Mở chế tạo 3×3 & Lò Rèn nâng cấp"],
         icon: "assets/items/placeables/crafting_table.svg"
+      },
+      "chest": {
+        id: "chest",
+        name: "Rương Đồ",
+        category: "placeable",
+        rarity: "uncommon",
+        maxStack: 16,
+        value: 16,
+        perks: [
+          "✦ Kho chứa 27 ô đồ rộng rãi trên bản đồ",
+          "✦ Đứng gần bấm [E] hoặc [Chuột Phải] để mở rương"
+        ],
+        description: "Rương gỗ khóa đồng chắc chắn giúp cất giữ đồ đạc gọn gàng",
+        icon: "assets/items/placeables/chest.svg"
       }
     };
 
@@ -3398,7 +3541,8 @@
       durability: 200,
       maxDurability: 200,
       wandData: {
-        slots: ['spell_gravity', 'spell_fireball', null]
+        slots: ['spell_gravity', null, null],
+        gemSlots: [null, null, null]
       }
     };
     playerInventory[1] = { id: 'stone_rock', name: 'Đá Cuội', quantity: 32 };
@@ -3414,14 +3558,14 @@
     playerInventory[10] = { id: 'gold_ore', name: 'Quặng Vàng', quantity: 10 };
     playerInventory[11] = { id: 'diamond', name: 'Kim Cương', quantity: 8 };
     playerInventory[12] = { id: 'wooden_stick', name: 'Cành Cây', quantity: 32 };
-    // Trang bị sẵn các món giáp trong kho đồ (ô 13 -> 23) để người chơi test ngay
-    playerInventory[13] = { id: 'leather_helmet', name: 'Nón Da', quantity: 1, durability: 80, maxDurability: 80 };
-    playerInventory[14] = { id: 'leather_chest', name: 'Giáp Da', quantity: 1, durability: 120, maxDurability: 120 };
-    playerInventory[15] = { id: 'leather_legs', name: 'Quần Da', quantity: 1, durability: 100, maxDurability: 100 };
+    // Trang bị sẵn các món giáp & rương đồ trong kho đồ
+    playerInventory[13] = { id: 'gem_haste', name: 'Ngọc Tốc Độ', quantity: 2 };
+    playerInventory[14] = { id: 'gem_crit', name: 'Ngọc Chí Mạng', quantity: 2 };
+    playerInventory[15] = { id: 'chest', name: 'Rương Đồ', quantity: 1 };
     playerInventory[16] = { id: 'iron_chest', name: 'Giáp Sắt', quantity: 1, durability: 240, maxDurability: 240 };
     playerInventory[17] = { id: 'iron_legs', name: 'Quần Sắt', quantity: 1, durability: 200, maxDurability: 200 };
     playerInventory[18] = { id: 'iron_boots', name: 'Giày Sắt', quantity: 1, durability: 180, maxDurability: 180 };
-    playerInventory[19] = { id: 'gold_boots', name: 'Giày Vàng', quantity: 1, durability: 150, maxDurability: 150 };
+    playerInventory[19] = { id: 'leather_chest', name: 'Giáp Da', quantity: 1, durability: 120, maxDurability: 120 };
     playerInventory[20] = { id: 'diamond_helmet', name: 'Nón Kim Cương', quantity: 1, durability: 350, maxDurability: 350 };
     playerInventory[21] = { id: 'diamond_chest', name: 'Giáp Kim Cương', quantity: 1, durability: 500, maxDurability: 500 };
     playerInventory[22] = { id: 'diamond_legs', name: 'Quần Kim Cương', quantity: 1, durability: 420, maxDurability: 420 };
@@ -3433,11 +3577,11 @@
     playerInventory[28] = { id: 'apple', name: 'Táo Rừng', quantity: 4 };
     playerInventory[29] = { id: 'wood_log', name: 'Khúc Gỗ', quantity: 32 };
     playerInventory[30] = { id: 'plant_fiber', name: 'Sợi Dây Gai', quantity: 16 };
-    playerInventory[31] = { id: 'spell_fireball', name: SPELLS_DATABASE.spell_fireball.name, quantity: 3 };
-    playerInventory[32] = { id: 'spell_frost', name: SPELLS_DATABASE.spell_frost.name, quantity: 3 };
-    playerInventory[33] = { id: 'spell_lightning', name: SPELLS_DATABASE.spell_lightning.name, quantity: 3 };
-    playerInventory[34] = { id: 'gem_damage', name: 'Ngọc Sức Mạnh', quantity: 3 };
-    playerInventory[35] = { id: 'gem_fire', name: 'Ngọc Viêm Hỏa', quantity: 3 };
+    playerInventory[31] = { id: 'spell_gravity', name: SPELLS_DATABASE.spell_gravity.name, quantity: 2 };
+    playerInventory[32] = { id: 'gem_damage', name: 'Ngọc Sức Mạnh', quantity: 3 };
+    playerInventory[33] = { id: 'gem_fire', name: 'Ngọc Viêm Hỏa', quantity: 3 };
+    playerInventory[34] = { id: 'gem_frost', name: 'Ngọc Băng Sương', quantity: 3 };
+    playerInventory[35] = { id: 'gem_vampire', name: 'Ngọc Hút Máu', quantity: 2 };
 
     // Tự động đồng bộ số lượng tài nguyên thực tế với các slot đầu nếu chưa có
     function syncRealResourcesToPlayerInventory() {
@@ -3640,14 +3784,14 @@
     function getInvSlotElementFromPoint(clientX, clientY) {
       const el = document.elementFromPoint(clientX, clientY);
       if (!el) return null;
-      const slotEl = el.closest("#inventory-ui .slot, #campfire-ui .slot, #wand-socket-modal .slot");
+      const slotEl = el.closest("#inventory-ui .slot, #campfire-ui .slot, #chest-ui .slot, #wand-socket-modal .slot");
       if (!slotEl || !slotEl.dataset || !slotEl.dataset.type || slotEl.dataset.index === undefined) return null;
       return slotEl;
     }
 
     function isPointInsideOpenPanels(clientX, clientY, targetEl = null) {
       if (targetEl && targetEl.closest) {
-        if (targetEl.closest("#inventory-ui") || targetEl.closest("#campfire-ui") || targetEl.closest("#wand-socket-modal")) return true;
+        if (targetEl.closest("#inventory-ui") || targetEl.closest("#campfire-ui") || targetEl.closest("#chest-ui") || targetEl.closest("#wand-socket-modal")) return true;
       }
       if (inventoryUI && inventoryUI.style.display !== "none") {
         const r = inventoryUI.getBoundingClientRect();
@@ -3656,6 +3800,11 @@
       const cfUI = document.getElementById("campfire-ui");
       if (cfUI && cfUI.style.display !== "none" && cfUI.style.display !== "") {
         const r = cfUI.getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) return true;
+      }
+      const chUI = document.getElementById("chest-ui");
+      if (chUI && chUI.style.display !== "none" && chUI.style.display !== "") {
+        const r = chUI.getBoundingClientRect();
         if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) return true;
       }
       if (isWandModalOpen()) {
@@ -3673,7 +3822,7 @@
         touchInvState.hoverSlotEl.classList.remove("slot-touch-hover");
         touchInvState.hoverSlotEl = null;
       }
-      document.querySelectorAll("#inventory-ui .slot.slot-touch-hover, #campfire-ui .slot.slot-touch-hover, #wand-socket-modal .slot.slot-touch-hover").forEach((s) => s.classList.remove("slot-touch-hover"));
+      document.querySelectorAll("#inventory-ui .slot.slot-touch-hover, #campfire-ui .slot.slot-touch-hover, #chest-ui .slot.slot-touch-hover, #wand-socket-modal .slot.slot-touch-hover").forEach((s) => s.classList.remove("slot-touch-hover"));
     }
 
     function cancelActiveTouchInvState(restoreOnCancel = false) {
@@ -3720,7 +3869,7 @@
       if (e.button === 0) {
         // Nếu nhả chuột mà KHÔNG di chuyển kéo lướt (click đơn thuần), thực thi logic click chuột trái bình thường
         // Nếu đang cầm vật phẩm trên con trỏ chuột mà click ra ngoài bảng túi đồ & lửa trại -> ném xuống đất!
-        const anyPanelOpen = Boolean((inventoryUI && inventoryUI.style.display !== "none") || isWandModalOpen());
+        const anyPanelOpen = Boolean((inventoryUI && inventoryUI.style.display !== "none") || isWandModalOpen() || isChestOpen());
         if (cursorItem && cursorItem.quantity > 0 && anyPanelOpen) {
           if (!isPointInsideOpenPanels(e.clientX, e.clientY, e.target)) {
             spawnGroundItem(cursorItem, player.x + 4, player.y + 4);
@@ -3729,6 +3878,7 @@
             cursorItem = null;
             updateCursorUI();
             if (isWandModalOpen()) renderWandCustomizerModal();
+            if (isChestOpen()) renderChestUI();
           }
         }
 
@@ -3823,8 +3973,8 @@
 
     window.addEventListener("touchend", (e) => {
       if (!touchInvState) {
-        // Nếu đang cầm vật phẩm và chạm ra ngoài bảng túi đồ / bàn khảm -> ném vật phẩm xuống đất
-        const anyPanelOpenTouch = Boolean((inventoryUI && inventoryUI.style.display !== "none") || isWandModalOpen());
+        // Nếu đang cầm vật phẩm và chạm ra ngoài bảng túi đồ / bàn khảm / rương -> ném vật phẩm xuống đất
+        const anyPanelOpenTouch = Boolean((inventoryUI && inventoryUI.style.display !== "none") || isWandModalOpen() || isChestOpen());
         if (
           cursorItem &&
           cursorItem.quantity > 0 &&
@@ -3841,6 +3991,7 @@
             cursorItem = null;
             updateCursorUI();
             if (isWandModalOpen()) renderWandCustomizerModal();
+            if (isChestOpen()) renderChestUI();
             hideItemTooltip();
           }
         }
@@ -3896,7 +4047,13 @@
           return;
         }
         if (state.startType === "wand_socket" && cursorItem && !canItemGoInWandSocket(cursorItem)) {
-          addFloatingText("❌ Chỉ khảm được Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
+          addFloatingText("❌ Phần 1 chỉ nhận Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
+          positionCursorEl(endX, endY, true);
+          draggedSlotKeys.clear();
+          return;
+        }
+        if (state.startType === "gem_socket" && cursorItem && !canItemGoInGemSlot(cursorItem)) {
+          addFloatingText("❌ Phần 2 chỉ nhận Ngọc Khảm Chỉ Số!", player.x - 24, player.y - 16, "#ef4444");
           positionCursorEl(endX, endY, true);
           draggedSlotKeys.clear();
           return;
@@ -3921,7 +4078,15 @@
               renderInventory();
             }
           } else if (dropType === "wand_socket" && cursorItem && !canItemGoInWandSocket(cursorItem)) {
-            addFloatingText("❌ Chỉ khảm được Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
+            addFloatingText("❌ Phần 1 chỉ nhận Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
+            if (!getSlotItem(state.startType, state.startIndex)) {
+              setSlotItem(state.startType, state.startIndex, { ...cursorItem });
+              cursorItem = null;
+              updateCursorUI();
+              renderInventory();
+            }
+          } else if (dropType === "gem_socket" && cursorItem && !canItemGoInGemSlot(cursorItem)) {
+            addFloatingText("❌ Phần 2 chỉ nhận Ngọc Khảm Chỉ Số!", player.x - 24, player.y - 16, "#ef4444");
             if (!getSlotItem(state.startType, state.startIndex)) {
               setSlotItem(state.startType, state.startIndex, { ...cursorItem });
               cursorItem = null;
@@ -3933,7 +4098,7 @@
             pulseSlotClass(dropEl, "slot-touch-drop1", 260);
             triggerHaptic(8);
           }
-        } else if (((inventoryUI && inventoryUI.style.display !== "none") || isWandModalOpen()) && cursorItem && cursorItem.quantity > 0) {
+        } else if (((inventoryUI && inventoryUI.style.display !== "none") || isWandModalOpen() || isChestOpen()) && cursorItem && cursorItem.quantity > 0) {
           if (!isPointInsideOpenPanels(endX, endY)) {
             spawnGroundItem(cursorItem, player.x + 4, player.y + 4);
             playImpactSound(false);
@@ -3941,6 +4106,7 @@
             cursorItem = null;
             updateCursorUI();
             if (isWandModalOpen()) renderWandCustomizerModal();
+            if (isChestOpen()) renderChestUI();
           }
         }
         if (cursorItem && cursorItem.quantity > 0) {
@@ -4034,7 +4200,7 @@
               durability: newItem.durability !== undefined ? newItem.durability : dbData.durability,
               maxDurability: newItem.maxDurability || dbData.maxDurability,
               icon: dbData.icon || newItem.icon || newItem.iconUrl || "",
-              ...(newItem.wandData ? { wandData: cloneWandData(newItem.wandData) } : (itemId === "magic_wand" ? { wandData: { slots: [null, null, null] } } : {}))
+              ...(newItem.wandData ? { wandData: cloneWandData(newItem.wandData) } : (itemId === "magic_wand" ? { wandData: { slots: [null, null, null], gemSlots: [null, null, null] } } : {}))
             };
             remaining -= amountToAdd;
           }
@@ -4093,7 +4259,7 @@
     }
 
     function canItemGoInSpellSlot(item) {
-      return Boolean(item && item.id && SPELLS_DATABASE[item.id]);
+      return Boolean(item && item.id === "spell_gravity" && SPELLS_DATABASE[item.id]);
     }
 
     function canItemGoInGemSlot(item) {
@@ -4129,7 +4295,7 @@
       return pickupItem({ ...item, quantity: item.quantity || 1 });
     }
 
-    // Hàm lấy tham chiếu tới đối tượng dữ liệu của ô (Túi đồ 'inv', Trang bị 'equip', Chế tạo, Lò Rèn, Lửa Trại, Khảm Đũa 'wand_socket')
+    // Hàm lấy tham chiếu tới đối tượng dữ liệu của ô (Túi đồ 'inv', Trang bị 'equip', Chế tạo, Lò Rèn, Lửa Trại, Rương 'chest', Khảm Đũa 'wand_socket' / 'gem_socket')
     function getSlotItem(type, index) {
       if (type === "inv") return playerInventory[index];
       if (type === "equip") return playerEquipment[index];
@@ -4139,6 +4305,10 @@
       if (type === "campfire_in") return HOME_CAMPFIRE.inputItem;
       if (type === "campfire_fuel") return HOME_CAMPFIRE.fuelItem;
       if (type === "campfire_out") return HOME_CAMPFIRE.resultItem;
+      if (type === "chest") {
+        if (!activeOpenChest || !Array.isArray(activeOpenChest.items) || index < 0 || index >= 27) return null;
+        return activeOpenChest.items[index];
+      }
       if (type === "wand_socket") {
         const wand = getCustomizerWandTarget();
         if (!wand || index < 0 || index >= 3) return null;
@@ -4150,7 +4320,7 @@
       }
       if (type === "gem_socket") {
         const wand = getCustomizerWandTarget();
-        if (!wand || index < 0 || index >= 2) return null;
+        if (!wand || index < 0 || index >= 3) return null;
         const wd = ensureWandData(wand);
         const gemId = wd.gemSlots[index];
         const gemData = gemId ? ITEMS_DATABASE[gemId] : null;
@@ -4186,12 +4356,17 @@
       } else if (type === "campfire_out") {
         HOME_CAMPFIRE.resultItem = item;
         renderCampfireUI();
+      } else if (type === "chest") {
+        if (!activeOpenChest || index < 0 || index >= 27) return;
+        if (!Array.isArray(activeOpenChest.items)) activeOpenChest.items = new Array(27).fill(null);
+        activeOpenChest.items[index] = item;
+        renderChestUI();
       } else if (type === "wand_socket") {
         const wand = getCustomizerWandTarget();
         if (!wand || index < 0 || index >= 3) return;
         const wd = ensureWandData(wand);
         const prevSpellId = wd.slots[index];
-        const nextSpellId = (item && item.id && SPELLS_DATABASE[item.id]) ? item.id : null;
+        const nextSpellId = (item && item.id === "spell_gravity" && SPELLS_DATABASE[item.id]) ? item.id : null;
         const hadResBefore = Boolean(getWandResonance(wand));
         wd.slots[index] = nextSpellId;
         wandSkillCooldowns[index] = 0;
@@ -4207,10 +4382,20 @@
         if (window.onMobileHudSync) window.onMobileHudSync();
       } else if (type === "gem_socket") {
         const wand = getCustomizerWandTarget();
-        if (!wand || index < 0 || index >= 2) return;
+        if (!wand || index < 0 || index >= 3) return;
         const wd = ensureWandData(wand);
+        const prevGemId = wd.gemSlots[index];
         const nextGemId = (item && item.id && ITEMS_DATABASE[item.id] && ITEMS_DATABASE[item.id].category === "gem") ? item.id : null;
         wd.gemSlots[index] = nextGemId;
+        if (nextGemId && nextGemId !== prevGemId) {
+          playMagicCastSound();
+          if (wd.gemSlots[0] && wd.gemSlots[0] === wd.gemSlots[1] && wd.gemSlots[1] === wd.gemSlots[2]) {
+            const gemDb = ITEMS_DATABASE[wd.gemSlots[0]];
+            if (gemDb) {
+              addFloatingText(`💎 CỘNG HƯỞNG 3× ${gemDb.name.toUpperCase()}!`, player.x - 44, player.y - 22, "#fde047", true);
+            }
+          }
+        }
         renderHotbar();
         if (window.onMobileHudSync) window.onMobileHudSync();
       }
@@ -4370,42 +4555,108 @@
       const isLeftClick = (event.button === 0);
       const slotKey = `${type}_${slotIndex}`;
 
-      // Shift + Click trái: chuyển nhanh ngọc giữa túi đồ & 3 ô đũa phép khi đang mở Bàn Khảm
-      if (isLeftClick && event.shiftKey && !cursorItem && isWandModalOpen()) {
-        const cur = getSlotItem(type, slotIndex);
-        if (type === "wand_socket") {
-          if (cur) {
-            if (tryReturnItemToBagOnly({ ...cur, quantity: 1 })) {
-              setSlotItem("wand_socket", slotIndex, null);
+      // Shift + Click trái: chuyển nhanh giữa Túi <-> Rương Đồ hoặc Túi <-> Khảm Chiêu/Ngọc
+      if (isLeftClick && event.shiftKey && !cursorItem) {
+        if (isChestOpen() && activeOpenChest) {
+          const cur = getSlotItem(type, slotIndex);
+          if (type === "chest" && cur) {
+            if (tryReturnItemToBagOnly({ ...cur })) {
+              setSlotItem("chest", slotIndex, null);
               renderInventory();
             } else {
               addFloatingText("🎒 Túi đồ đã đầy!", player.x - 18, player.y - 16, "#ef4444");
             }
+            return;
           }
-          return;
+          if (type === "inv" && cur) {
+            if (!Array.isArray(activeOpenChest.items)) activeOpenChest.items = new Array(27).fill(null);
+            const curDb = getItemData(cur) || cur;
+            const maxStk = curDb.maxStack || MAX_STACK;
+            let rem = cur.quantity || 1;
+            for (let ci = 0; ci < 27 && rem > 0; ci++) {
+              const cIt = activeOpenChest.items[ci];
+              if (cIt && cIt.id === cur.id && cIt.name === cur.name && cIt.quantity < maxStk) {
+                const addAmt = Math.min(maxStk - cIt.quantity, rem);
+                cIt.quantity += addAmt;
+                rem -= addAmt;
+              }
+            }
+            for (let ci = 0; ci < 27 && rem > 0; ci++) {
+              if (!activeOpenChest.items[ci]) {
+                const putAmt = Math.min(maxStk, rem);
+                activeOpenChest.items[ci] = {
+                  ...cur,
+                  quantity: putAmt,
+                  ...(cur.wandData ? { wandData: cloneWandData(cur.wandData) } : {})
+                };
+                rem -= putAmt;
+              }
+            }
+            if (rem < (cur.quantity || 1)) {
+              if (rem <= 0) playerInventory[slotIndex] = null;
+              else cur.quantity = rem;
+              renderChestUI();
+              renderInventory();
+            } else {
+              addFloatingText("📦 Rương đã đầy!", player.x - 18, player.y - 16, "#fbbf24");
+            }
+            return;
+          }
         }
-        if (type === "inv" && cur) {
-          if (canItemGoInWandSocket(cur)) {
-            const wand = getCustomizerWandTarget();
-            if (wand) {
-              const wd = ensureWandData(wand);
-              const emptyIdx = wd.slots.indexOf(null);
-              if (emptyIdx >= 0) {
-                const oneRune = { ...cur, quantity: 1 };
-                cur.quantity -= 1;
-                if (cur.quantity <= 0) playerInventory[slotIndex] = null;
-                setSlotItem("wand_socket", emptyIdx, oneRune);
+
+        if (isWandModalOpen()) {
+          const cur = getSlotItem(type, slotIndex);
+          if (type === "wand_socket" || type === "gem_socket") {
+            if (cur) {
+              if (tryReturnItemToBagOnly({ ...cur, quantity: 1 })) {
+                setSlotItem(type, slotIndex, null);
                 renderInventory();
               } else {
-                addFloatingText("🔮 3 ô chiêu đũa phép đã đầy!", player.x - 24, player.y - 16, "#fbbf24");
+                addFloatingText("🎒 Túi đồ đã đầy!", player.x - 18, player.y - 16, "#ef4444");
               }
             }
             return;
           }
-          if (cur.id === "magic_wand") {
-            customizerTargetWand = cur;
-            renderWandCustomizerModal();
-            return;
+          if (type === "inv" && cur) {
+            if (canItemGoInWandSocket(cur)) {
+              const wand = getCustomizerWandTarget();
+              if (wand) {
+                const wd = ensureWandData(wand);
+                const emptyIdx = wd.slots.indexOf(null);
+                if (emptyIdx >= 0) {
+                  const oneRune = { ...cur, quantity: 1 };
+                  cur.quantity -= 1;
+                  if (cur.quantity <= 0) playerInventory[slotIndex] = null;
+                  setSlotItem("wand_socket", emptyIdx, oneRune);
+                  renderInventory();
+                } else {
+                  addFloatingText("📜 3 ô chiêu thức đã đầy!", player.x - 24, player.y - 16, "#fbbf24");
+                }
+              }
+              return;
+            }
+            if (canItemGoInGemSlot(cur)) {
+              const wand = getCustomizerWandTarget();
+              if (wand) {
+                const wd = ensureWandData(wand);
+                const emptyIdx = wd.gemSlots.indexOf(null);
+                if (emptyIdx >= 0) {
+                  const oneGem = { ...cur, quantity: 1 };
+                  cur.quantity -= 1;
+                  if (cur.quantity <= 0) playerInventory[slotIndex] = null;
+                  setSlotItem("gem_socket", emptyIdx, oneGem);
+                  renderInventory();
+                } else {
+                  addFloatingText("💎 3 ô ngọc khảm đã đầy!", player.x - 24, player.y - 16, "#fbbf24");
+                }
+              }
+              return;
+            }
+            if (cur.id === "magic_wand") {
+              customizerTargetWand = cur;
+              renderWandCustomizerModal();
+              return;
+            }
           }
         }
       }
@@ -4450,9 +4701,13 @@
           return;
         }
 
-        // Ô khảm đũa phép chỉ nhận Ngọc Chiêu Thức
+        // Phần 1 chỉ nhận Ngọc Chiêu Thức; Phần 2 chỉ nhận Ngọc Khảm Chỉ Số
         if (type === "wand_socket" && cursorItem && !canItemGoInWandSocket(cursorItem)) {
-          addFloatingText("❌ Chỉ khảm được Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
+          addFloatingText("❌ Phần 1 chỉ nhận Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
+          return;
+        }
+        if (type === "gem_socket" && cursorItem && !canItemGoInGemSlot(cursorItem)) {
+          addFloatingText("❌ Phần 2 chỉ nhận Ngọc Khảm Chỉ Số!", player.x - 24, player.y - 16, "#ef4444");
           return;
         }
 
@@ -4487,11 +4742,25 @@
         }
         if (type === "wand_socket" && cursorItem) {
           if (!canItemGoInWandSocket(cursorItem)) {
-            addFloatingText("❌ Chỉ khảm được Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
+            addFloatingText("❌ Phần 1 chỉ nhận Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
             return;
           }
           if (!currentItem) {
             setSlotItem("wand_socket", slotIndex, { ...cursorItem, quantity: 1 });
+            cursorItem.quantity -= 1;
+            if (cursorItem.quantity <= 0) cursorItem = null;
+            updateCursorUI();
+            renderInventory();
+          }
+          return;
+        }
+        if (type === "gem_socket" && cursorItem) {
+          if (!canItemGoInGemSlot(cursorItem)) {
+            addFloatingText("❌ Phần 2 chỉ nhận Ngọc Khảm Chỉ Số!", player.x - 24, player.y - 16, "#ef4444");
+            return;
+          }
+          if (!currentItem) {
+            setSlotItem("gem_socket", slotIndex, { ...cursorItem, quantity: 1 });
             cursorItem.quantity -= 1;
             if (cursorItem.quantity <= 0) cursorItem = null;
             updateCursorUI();
@@ -4562,7 +4831,7 @@
 
       slotEl.addEventListener("touchstart", (e) => {
         const invClosed = (!inventoryUI || inventoryUI.style.display === "none" || inventoryUI.style.display === "");
-        const panelOpen = !invClosed || isWandModalOpen();
+        const panelOpen = !invClosed || isWandModalOpen() || isChestOpen();
         if (isBottomHotbar && !panelOpen && !cursorItem) {
           lastTouchInteractionTime = performance.now();
           e.preventDefault();
@@ -4673,7 +4942,11 @@
               return;
             }
             if (type === "wand_socket" && !canItemGoInWandSocket(cursorItem)) {
-              addFloatingText("❌ Chỉ khảm được Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
+              addFloatingText("❌ Phần 1 chỉ nhận Ngọc Chiêu Thức!", player.x - 24, player.y - 16, "#ef4444");
+              return;
+            }
+            if (type === "gem_socket" && !canItemGoInGemSlot(cursorItem)) {
+              addFloatingText("❌ Phần 2 chỉ nhận Ngọc Khảm Chỉ Số!", player.x - 24, player.y - 16, "#ef4444");
               return;
             }
 
@@ -4707,12 +4980,12 @@
 
     // THỰC THI GỘP HẾT CÁC VẬT PHẨM GIỐNG NHAU (TỐI ĐA 64 - 1 STACK)
     function executeDoubleClickCollect(type, slotIndex) {
-      if (type === "wand_socket") {
+      if (type === "wand_socket" || type === "gem_socket") {
         if (!cursorItem) {
-          const cur = getSlotItem("wand_socket", slotIndex);
+          const cur = getSlotItem(type, slotIndex);
           if (cur) {
             if (tryReturnItemToBagOnly({ ...cur, quantity: 1 })) {
-              setSlotItem("wand_socket", slotIndex, null);
+              setSlotItem(type, slotIndex, null);
               renderInventory();
             } else {
               addFloatingText("🎒 Túi đồ đã đầy!", player.x - 18, player.y - 16, "#ef4444");
@@ -4722,7 +4995,7 @@
         return;
       }
 
-      // TH1: Chuẩn Minecraft - Nếu đang cầm vật phẩm trên con trỏ chuột, nháy đúp sẽ gom tất cả item giống nhau dưới túi & bàn chế tạo lên tay cho đầy 64
+      // TH1: Chuẩn Minecraft - Nếu đang cầm vật phẩm trên con trỏ chuột, nháy đúp sẽ gom tất cả item giống nhau dưới túi, rương & bàn chế tạo lên tay cho đầy 64
       if (cursorItem) {
         // Quét kho đồ & hotbar
         for (let i = 0; i < 36; i++) {
@@ -4736,7 +5009,21 @@
             if (it.quantity <= 0) playerInventory[i] = null;
           }
         }
-        // Quét thêm cả 4 ô chế tạo
+        // Quét Rương Đồ nếu đang mở
+        if (isChestOpen() && activeOpenChest && Array.isArray(activeOpenChest.items)) {
+          for (let ci = 0; ci < 27; ci++) {
+            if (cursorItem.quantity >= MAX_STACK) break;
+            const cIt = activeOpenChest.items[ci];
+            if (cIt && cIt.name === cursorItem.name) {
+              const needed = MAX_STACK - cursorItem.quantity;
+              const take = Math.min(needed, cIt.quantity);
+              cursorItem.quantity += take;
+              cIt.quantity -= take;
+              if (cIt.quantity <= 0) activeOpenChest.items[ci] = null;
+            }
+          }
+        }
+        // Quét thêm cả lưới chế tạo
         const activeCraftInv = currentUIMode === 'workstation' ? workstationCraftingInventory : pocketCraftingInventory;
         const craftLen = activeCraftInv.length;
         for (let c = 0; c < craftLen; c++) {
@@ -4765,6 +5052,20 @@
               targetItem.quantity += take;
               otherItem.quantity -= take;
               if (otherItem.quantity <= 0) playerInventory[i] = null;
+            }
+          }
+          if (isChestOpen() && activeOpenChest && Array.isArray(activeOpenChest.items)) {
+            for (let ci = 0; ci < 27; ci++) {
+              if (type === "chest" && ci === slotIndex) continue;
+              if (targetItem.quantity >= MAX_STACK) break;
+              const cOther = activeOpenChest.items[ci];
+              if (cOther && cOther.name === targetItem.name) {
+                const needed = MAX_STACK - targetItem.quantity;
+                const take = Math.min(needed, cOther.quantity);
+                targetItem.quantity += take;
+                cOther.quantity -= take;
+                if (cOther.quantity <= 0) activeOpenChest.items[ci] = null;
+              }
             }
           }
           const activeCraftInv2 = currentUIMode === 'workstation' ? workstationCraftingInventory : pocketCraftingInventory;
@@ -5200,7 +5501,9 @@
 
     function showItemTooltip(item, x, y, isTouch = false) {
       if (!tooltipEl || !item) return;
-      const wandSig = item.wandData && Array.isArray(item.wandData.slots) ? item.wandData.slots.join(",") : "";
+      const wandSig = item.wandData
+        ? `${Array.isArray(item.wandData.slots) ? item.wandData.slots.join(",") : ""}/${Array.isArray(item.wandData.gemSlots) ? item.wandData.gemSlots.join(",") : ""}`
+        : "";
       const cacheKey = `${item.id || ""}|${item.name || ""}|${item.durability ?? ""}|${item.maxDurability ?? ""}|${wandSig}`;
       const needsContentRebuild = (tooltipEl.style.display !== "block" || cacheKey !== lastTooltipCacheKey);
 
@@ -5223,6 +5526,8 @@
           else { badgeText = "⚔️ VŨ KHÍ"; badgeColor = "#fb7185"; }
         } else if (data.category === "spell") {
           badgeText = "🔮 NGỌC CHIÊU THỨC"; badgeColor = "#c084fc";
+        } else if (data.category === "gem") {
+          badgeText = "💎 NGỌC KHẢM CHỈ SỐ"; badgeColor = "#22d3ee";
         } else if (data.category === "armor") {
           badgeColor = "#38bdf8";
           if (data.slotType === "helmet") badgeText = "🛡️ NÓN GIÁP";
@@ -5262,6 +5567,25 @@
           if (data.damage) {
             statsHtml += `<div class="tooltip-stat-row"><span>⚔️ Sát thương:</span><span class="tooltip-stat-val dmg">+${data.damage} DMG</span></div>`;
           }
+          if (data.damageBonus) {
+            statsHtml += `<div class="tooltip-stat-row"><span>⚔️ Cộng sát thương:</span><span class="tooltip-stat-val dmg">+${data.damageBonus} DMG</span></div>`;
+          }
+          if (data.cooldownReduction) {
+            statsHtml += `<div class="tooltip-stat-row"><span>💨 Giảm hồi chiêu:</span><span class="tooltip-stat-val spd">-${data.cooldownReduction}%</span></div>`;
+          }
+          if (data.critChanceBonus) {
+            statsHtml += `<div class="tooltip-stat-row"><span>💥 Tỉ lệ Chí Mạng:</span><span class="tooltip-stat-val dmg">+${data.critChanceBonus}%</span></div>`;
+          }
+          if (data.effectType === "burn") {
+            statsHtml += `<div class="tooltip-stat-row"><span>🔥 Hiệu ứng:</span><span class="tooltip-stat-val dmg">Thiêu đốt / 3x Cháy Lan</span></div>`;
+          } else if (data.effectType === "slow") {
+            statsHtml += `<div class="tooltip-stat-row"><span>❄️ Hiệu ứng:</span><span class="tooltip-stat-val armor">Làm chậm / 3x Sóng Băng</span></div>`;
+          } else if (data.effectType === "vampire") {
+            statsHtml += `<div class="tooltip-stat-row"><span>🩸 Hiệu ứng:</span><span class="tooltip-stat-val hp">Hút +15% Máu (3x: 55%)</span></div>`;
+          }
+          if (data.id === "chest") {
+            statsHtml += `<div class="tooltip-stat-row"><span>📦 Sức chứa:</span><span class="tooltip-stat-val spd">27 Ô lưu trữ</span></div>`;
+          }
           if (data.armor) {
             statsHtml += `<div class="tooltip-stat-row"><span>🛡️ Giáp:</span><span class="tooltip-stat-val armor">+${data.armor}</span></div>`;
           }
@@ -5300,16 +5624,28 @@
         // Tính năng đặc biệt nổi bật (chỉ hiện khi trang bị thực sự có cơ chế riêng)
         let perks = Array.isArray(data.perks) ? [...data.perks] : [];
         if (data.id === "magic_wand") {
-          const wd = item.wandData ? { slots: normalizeWandSlots(item.wandData.slots) } : { slots: [null, null, null] };
+          const wd = ensureWandData({ id: "magic_wand", wandData: item.wandData });
           const res = getWandResonance({ id: "magic_wand", wandData: wd });
+          const gemB = getWandGemBonuses({ id: "magic_wand", wandData: wd });
           const socketedNames = wd.slots.map((sid, idx) => {
             const sp = sid ? SPELLS_DATABASE[sid] : null;
             return sp ? `C${idx + 1}: ${sp.badge} ${sp.shortName}` : `C${idx + 1}: (Trống)`;
           }).join(" • ");
+          const gemNames = wd.gemSlots.map((gid, idx) => {
+            const gd = gid ? ITEMS_DATABASE[gid] : null;
+            return gd ? `G${idx + 1}: ${gd.name}` : `G${idx + 1}: (Trống)`;
+          }).join(" • ");
           if (res) {
             perks.unshift(`${res.label} — ${res.desc}`);
           }
-          perks.unshift(`✨ Đánh thường: ${res ? res.basicDesc : "Ngọc Cầu Ma Pháp"}`, `🔮 3 Chiêu: ${socketedNames}`);
+          if (gemB.summaryParts.length > 0) {
+            perks.unshift(`💎 Chỉ số Ngọc: ${gemB.summaryParts.join(" • ")}`);
+          }
+          perks.unshift(
+            `✨ Đánh thường: ${res ? res.basicDesc : "Cầu Năng Lượng Tím"}${gemB.damageBonus ? ` (${4 + gemB.damageBonus} DMG)` : ""}`,
+            `🔮 Phần 1 (Chiêu): ${socketedNames}`,
+            `💎 Phần 2 (Ngọc): ${gemNames}`
+          );
         }
         if (tooltipPerks) {
           if (perks.length > 0) {
@@ -5327,6 +5663,7 @@
         if (tooltipDesc) {
           const isGearOrStatItem = Boolean(
             data.category !== "spell" &&
+            data.category !== "gem" &&
             (data.damage || data.rangedDamage || data.woodcuttingSpeed ||
             data.miningSpeed || data.armor || data.healAmount || perks.length > 0)
           );
@@ -5594,20 +5931,16 @@
           quantity: 1,
           durability: 200,
           maxDurability: 200,
-          wandData: { slots: [null, null, null] }
+          wandData: { slots: [null, null, null], gemSlots: [null, null, null] }
         };
       }
 
-      // 7. NGỌC CẦU MA PHÁP
-      else if (totalFilled === 5 && counts['diamond'] === 1 && counts['iron_ore'] === 2 && counts['feather'] === 2 && matchShapedPattern(c, [
-        [null, 'feather', null],
-        ['iron_ore', 'diamond', 'iron_ore'],
-        [null, 'feather', null]
-      ])) {
-        workstationCraftResultItem = { id: 'spell_arcane_orb', name: SPELLS_DATABASE.spell_arcane_orb.name, quantity: 1 };
+      // 7. RƯƠNG ĐỒ (Fill đủ 8 ô gỗ viền 3x3, trừ ô chính giữa [4] trống)
+      else if (totalFilled === 8 && counts['wood_log'] === 8 && (!c[4] || c[4].quantity <= 0)) {
+        workstationCraftResultItem = { id: 'chest', name: 'Rương Đồ', quantity: 1 };
       }
 
-      // 8. NGỌC TRỌNG LỰC (Vòng đá + Sắt + Kim Cương tâm)
+      // 8. NGỌC TRỌNG LỰC (Chiêu Thức duy nhất — Vòng đá + Sắt + Kim Cương tâm)
       else if (totalFilled === 9 && counts['stone_rock'] === 4 && counts['iron_ore'] === 4 && counts['diamond'] === 1 && matchShapedPattern(c, [
         ['stone_rock', 'iron_ore', 'stone_rock'],
         ['iron_ore', 'diamond', 'iron_ore'],
@@ -5616,31 +5949,59 @@
         workstationCraftResultItem = { id: 'spell_gravity', name: SPELLS_DATABASE.spell_gravity.name, quantity: 1 };
       }
 
-      // 9. NGỌC HỎA CẦU (Than + Quặng Vàng tâm)
+      // --- CÁC LOẠI NGỌC KHẢM CHỈ SỐ / HIỆU ỨNG (PHẦN 2 - KHÔNG PHẢI CHIÊU THỨC) ---
+      // 9. NGỌC SỨC MẠNH (+3 DMG; 3x = +12 DMG)
+      else if (totalFilled === 5 && counts['iron_ore'] === 4 && counts['stone_rock'] === 1 && matchShapedPattern(c, [
+        [null, 'iron_ore', null],
+        ['iron_ore', 'stone_rock', 'iron_ore'],
+        [null, 'iron_ore', null]
+      ])) {
+        workstationCraftResultItem = { id: 'gem_damage', name: 'Ngọc Sức Mạnh', quantity: 1 };
+      }
+
+      // 10. NGỌC VIÊM HỎA (Thiêu đốt; 3x = Cháy Lan AoE)
       else if (totalFilled === 5 && counts['coal'] === 4 && counts['gold_ore'] === 1 && matchShapedPattern(c, [
         [null, 'coal', null],
         ['coal', 'gold_ore', 'coal'],
         [null, 'coal', null]
       ])) {
-        workstationCraftResultItem = { id: 'spell_fireball', name: SPELLS_DATABASE.spell_fireball.name, quantity: 1 };
+        workstationCraftResultItem = { id: 'gem_fire', name: 'Ngọc Viêm Hỏa', quantity: 1 };
       }
 
-      // 10. NGỌC BĂNG TIỄN (Cá Tươi + Kim Cương tâm)
+      // 11. NGỌC BĂNG SƯƠNG (Làm chậm; 3x = Sóng Băng Lan)
       else if (totalFilled === 5 && counts['raw_fish'] === 4 && counts['diamond'] === 1 && matchShapedPattern(c, [
         [null, 'raw_fish', null],
         ['raw_fish', 'diamond', 'raw_fish'],
         [null, 'raw_fish', null]
       ])) {
-        workstationCraftResultItem = { id: 'spell_frost', name: SPELLS_DATABASE.spell_frost.name, quantity: 1 };
+        workstationCraftResultItem = { id: 'gem_frost', name: 'Ngọc Băng Sương', quantity: 1 };
       }
 
-      // 11. NGỌC LÔI KÍCH (Quặng Vàng + Kim Cương tâm)
+      // 12. NGỌC HÚT MÁU (+15% Lifesteal; 3x = 55%)
+      else if (totalFilled === 5 && counts['boar_unripe'] === 4 && counts['gold_ore'] === 1 && matchShapedPattern(c, [
+        [null, 'boar_unripe', null],
+        ['boar_unripe', 'gold_ore', 'boar_unripe'],
+        [null, 'boar_unripe', null]
+      ])) {
+        workstationCraftResultItem = { id: 'gem_vampire', name: 'Ngọc Hút Máu', quantity: 1 };
+      }
+
+      // 13. NGỌC TỐC ĐỘ (-14% Hồi chiêu mỗi viên)
+      else if (totalFilled === 5 && counts['feather'] === 4 && counts['copper_ore'] === 1 && matchShapedPattern(c, [
+        [null, 'feather', null],
+        ['feather', 'copper_ore', 'feather'],
+        [null, 'feather', null]
+      ])) {
+        workstationCraftResultItem = { id: 'gem_haste', name: 'Ngọc Tốc Độ', quantity: 1 };
+      }
+
+      // 14. NGỌC CHÍ MẠNG (+18% Chí mạng x1.75)
       else if (totalFilled === 5 && counts['gold_ore'] === 4 && counts['diamond'] === 1 && matchShapedPattern(c, [
         [null, 'gold_ore', null],
         ['gold_ore', 'diamond', 'gold_ore'],
         [null, 'gold_ore', null]
       ])) {
-        workstationCraftResultItem = { id: 'spell_lightning', name: SPELLS_DATABASE.spell_lightning.name, quantity: 1 };
+        workstationCraftResultItem = { id: 'gem_crit', name: 'Ngọc Chí Mạng', quantity: 1 };
       }
 
       craftResultItem = workstationCraftResultItem;
@@ -5943,7 +6304,7 @@
 
       const wandGemGrid = document.getElementById("wandGemGrid");
       if (wandGemGrid && wandGemGrid.children.length === 0) {
-        for (let s = 0; s < 2; s++) {
+        for (let s = 0; s < 3; s++) {
           const col = document.createElement("div");
           col.className = "wand-socket-col";
 
@@ -6054,15 +6415,15 @@
       const wandGemCountBadge = document.getElementById("wandGemCountBadge");
       const wandGemStatsStrip = document.getElementById("wandGemStatsStrip");
 
-      const subText = `${equippedCount}/3 Chiêu • ${gemEquippedCount}/2 Ngọc`;
+      const subText = `${equippedCount}/3 Chiêu • ${gemEquippedCount}/3 Ngọc`;
       if (wandModalSubtitle && wandModalSubtitle.textContent !== subText) {
         wandModalSubtitle.textContent = subText;
       }
       if (wandSpellCountBadge && wandSpellCountBadge.textContent !== `${equippedCount}/3`) {
         wandSpellCountBadge.textContent = `${equippedCount}/3`;
       }
-      if (wandGemCountBadge && wandGemCountBadge.textContent !== `${gemEquippedCount}/2`) {
-        wandGemCountBadge.textContent = `${gemEquippedCount}/2`;
+      if (wandGemCountBadge && wandGemCountBadge.textContent !== `${gemEquippedCount}/3`) {
+        wandGemCountBadge.textContent = `${gemEquippedCount}/3`;
       }
 
       // Đếm tổng ấn chiêu và ngọc trong túi
@@ -6075,7 +6436,7 @@
           if (canItemGoInGemSlot(it)) totalGemsInBag += (it.quantity || 1);
         }
       }
-      const badgeText = `${totalRunesInBag} ấn • ${totalGemsInBag} ngọc`;
+      const badgeText = `${totalRunesInBag} chiêu • ${totalGemsInBag} ngọc`;
       if (wandOwnedCountBadge && wandOwnedCountBadge.textContent !== badgeText) {
         wandOwnedCountBadge.textContent = badgeText;
       }
@@ -6107,9 +6468,9 @@
       }
 
       const wandGemGrid = document.getElementById("wandGemGrid");
+      const gemBonuses = wand ? getWandGemBonuses(wand) : null;
       if (wandGemGrid) {
-        const gemNames = [];
-        for (let idx = 0; idx < 2; idx++) {
+        for (let idx = 0; idx < 3; idx++) {
           const col = wandGemGrid.children[idx];
           if (!col) continue;
           const slotEl = col.querySelector(".slot");
@@ -6120,18 +6481,28 @@
 
           if (slotEl) {
             updateSlotDOM(slotEl, gemItem, idx, false);
+            slotEl.classList.toggle("is-resonant", Boolean(gemBonuses && gemBonuses.allSameGemId && gemData));
           }
           col.classList.toggle("is-filled", Boolean(gemData));
           const nextLabel = gemData ? gemData.name : `Ngọc ${idx + 1}`;
           if (labelEl && labelEl.textContent !== nextLabel) {
             labelEl.textContent = nextLabel;
           }
-          if (gemData) {
-            gemNames.push(gemData.name);
-          }
         }
         if (wandGemStatsStrip) {
-          wandGemStatsStrip.textContent = gemNames.length > 0 ? `Đang khảm: ${gemNames.join(" + ")}` : "Chưa khảm ngọc • Gắn ngọc để tăng chỉ số & hiệu ứng";
+          let stripText = "Chưa khảm ngọc • Gắn ngọc để tăng chỉ số & hiệu ứng (không phải chiêu thức)";
+          if (gemBonuses && gemBonuses.allSameGemId === "gem_fire") {
+            stripText = `🔥 Cộng Hưởng 3 Ngọc Viêm Hỏa: Đòn đánh gây Cháy Lan AoE! • ${gemBonuses.summaryParts.join(" • ")}`;
+          } else if (gemBonuses && gemBonuses.allSameGemId === "gem_frost") {
+            stripText = `❄️ Cộng Hưởng 3 Ngọc Băng Sương: Sóng Băng Làm Chậm Lan! • ${gemBonuses.summaryParts.join(" • ")}`;
+          } else if (gemBonuses && gemBonuses.allSameGemId) {
+            stripText = `✦ Cộng Hưởng 3 Ngọc Cùng Loại! • ${gemBonuses.summaryParts.join(" • ")}`;
+          } else if (gemBonuses && gemBonuses.summaryParts.length > 0) {
+            stripText = `Chỉ số đang cộng: ${gemBonuses.summaryParts.join(" • ")}`;
+          }
+          if (wandGemStatsStrip.textContent !== stripText) {
+            wandGemStatsStrip.textContent = stripText;
+          }
         }
       }
 
@@ -6159,7 +6530,7 @@
               wandResonanceBanner.textContent = `✦ 2/3 ${nearSpell.badge} ${nearSpell.shortName} — thêm 1 viên cùng loại để Cộng Hưởng!`;
             } else {
               wandResonanceBanner.className = "wand-resonance-banner";
-              wandResonanceBanner.textContent = "Đánh thường: Ngọc Cầu Ma Pháp • Khảm 3 ngọc giống nhau để Cộng Hưởng!";
+              wandResonanceBanner.textContent = "Đánh thường: Cầu Năng Lượng Tím • Khảm 3 Ngọc Trọng Lực để Cộng Hưởng!";
             }
           }
         }
@@ -7178,6 +7549,21 @@
         note: "Đặt xuống đất để mở chế tạo 3x3 & Lò Rèn"
       },
       {
+        id: "chest",
+        resultId: "chest",
+        name: "Rương Đồ",
+        outputQty: 1,
+        category: "materials",
+        type: "crafting",
+        pattern2x2: null,
+        pattern3x3: [
+          ["wood_log", "wood_log", "wood_log"],
+          ["wood_log", null, "wood_log"],
+          ["wood_log", "wood_log", "wood_log"]
+        ],
+        note: "Fill 8 Khúc Gỗ viền 3x3 (trừ ô chính giữa) → Rương Đồ 27 ô"
+      },
+      {
         id: "wood_sword",
         resultId: "wood_sword",
         name: "Kiếm Gỗ",
@@ -7286,22 +7672,7 @@
           [null, "wooden_stick", null],
           ["wooden_stick", null, null]
         ],
-        note: "3x3: 1 Kim Cương + 2 Cành Cây (khảm 3 chiêu thức)"
-      },
-      {
-        id: "spell_arcane_orb",
-        resultId: "spell_arcane_orb",
-        name: "Ngọc Cầu Ma Pháp",
-        outputQty: 1,
-        category: "gear",
-        type: "crafting",
-        pattern2x2: null,
-        pattern3x3: [
-          [null, "feather", null],
-          ["iron_ore", "diamond", "iron_ore"],
-          [null, "feather", null]
-        ],
-        note: "Ngọc phép cơ bản bắn cầu năng lượng tím"
+        note: "3x3: 1 Kim Cương + 2 Cành Cây (Phần 1 Chiêu Thức + Phần 2 Ngọc Khảm)"
       },
       {
         id: "spell_gravity",
@@ -7316,12 +7687,27 @@
           ["iron_ore", "diamond", "iron_ore"],
           ["stone_rock", "iron_ore", "stone_rock"]
         ],
-        note: "Vòng báo → Cột sáng → Đè bẹp → Đất lún → Lắc 3f"
+        note: "Chiêu thức (Phần 1): Vòng báo → Cột sáng → Đè bẹp → Đất lún"
       },
       {
-        id: "spell_fireball",
-        resultId: "spell_fireball",
-        name: "Ngọc Hỏa Cầu",
+        id: "gem_damage",
+        resultId: "gem_damage",
+        name: "Ngọc Sức Mạnh",
+        outputQty: 1,
+        category: "gear",
+        type: "crafting",
+        pattern2x2: null,
+        pattern3x3: [
+          [null, "iron_ore", null],
+          ["iron_ore", "stone_rock", "iron_ore"],
+          [null, "iron_ore", null]
+        ],
+        note: "Ngọc khảm (Phần 2): +3 DMG mỗi viên (3 viên: +12 DMG)"
+      },
+      {
+        id: "gem_fire",
+        resultId: "gem_fire",
+        name: "Ngọc Viêm Hỏa",
         outputQty: 1,
         category: "gear",
         type: "crafting",
@@ -7331,12 +7717,12 @@
           ["coal", "gold_ore", "coal"],
           [null, "coal", null]
         ],
-        note: "Nổ hỏa cầu diện rộng 7 AoE DMG"
+        note: "Ngọc khảm (Phần 2): Thiêu đốt; 3 viên kích hoạt Cháy Lan AoE"
       },
       {
-        id: "spell_frost",
-        resultId: "spell_frost",
-        name: "Ngọc Băng Tiễn",
+        id: "gem_frost",
+        resultId: "gem_frost",
+        name: "Ngọc Băng Sương",
         outputQty: 1,
         category: "gear",
         type: "crafting",
@@ -7346,12 +7732,42 @@
           ["raw_fish", "diamond", "raw_fish"],
           [null, "raw_fish", null]
         ],
-        note: "Bắn 3 tia băng làm chậm quái 50%"
+        note: "Ngọc khảm (Phần 2): Làm chậm 50%; 3 viên Sóng Băng Lan"
       },
       {
-        id: "spell_lightning",
-        resultId: "spell_lightning",
-        name: "Ngọc Lôi Kích",
+        id: "gem_vampire",
+        resultId: "gem_vampire",
+        name: "Ngọc Hút Máu",
+        outputQty: 1,
+        category: "gear",
+        type: "crafting",
+        pattern2x2: null,
+        pattern3x3: [
+          [null, "boar_unripe", null],
+          ["boar_unripe", "gold_ore", "boar_unripe"],
+          [null, "boar_unripe", null]
+        ],
+        note: "Ngọc khảm (Phần 2): +15% Hút Máu (3 viên: 55%)"
+      },
+      {
+        id: "gem_haste",
+        resultId: "gem_haste",
+        name: "Ngọc Tốc Độ",
+        outputQty: 1,
+        category: "gear",
+        type: "crafting",
+        pattern2x2: null,
+        pattern3x3: [
+          [null, "feather", null],
+          ["feather", "copper_ore", "feather"],
+          [null, "feather", null]
+        ],
+        note: "Ngọc khảm (Phần 2): -14% thời gian hồi chiêu mỗi viên"
+      },
+      {
+        id: "gem_crit",
+        resultId: "gem_crit",
+        name: "Ngọc Chí Mạng",
         outputQty: 1,
         category: "gear",
         type: "crafting",
@@ -7361,7 +7777,7 @@
           ["gold_ore", "diamond", "gold_ore"],
           [null, "gold_ore", null]
         ],
-        note: "Gọi sét từ trời đánh thẳng mục tiêu (9 DMG)"
+        note: "Ngọc khảm (Phần 2): +18% Chí Mạng (x1.75 DMG) mỗi viên"
       },
       // Công thức Lò Rèn Nâng Cấp (ghép 2 món cùng loại & cùng cấp)
       { id: "forge_stone_sword", resultId: "stone_sword", name: "Kiếm Đá", outputQty: 1, category: "forge", type: "forge", inputId: "wood_sword", rate: 1.00 },
@@ -8004,7 +8420,10 @@
         renderForge();
         renderEquipmentSlots();
         renderPaperdoll();
-        renderRecipeBook();
+        if (isRecipeBookOpen) renderRecipeBook();
+      }
+      if (isChestOpen()) {
+        renderChestUI();
       }
       if (isWandModalOpen()) {
         renderWandCustomizerModal();
@@ -8027,7 +8446,7 @@
       return tryEatConsumable(activeHotbarIndex);
     }
 
-    // Lắng nghe chuột phải trên Canvas để đặt Bàn Chế Tạo hoặc mở Bàn Chế Tạo
+    // Lắng nghe chuột phải trên Canvas để đặt Bàn Chế Tạo / Rương Đồ hoặc mở tương tác
     if (canvas) {
       
       canvas.addEventListener("mousedown", (e) => {
@@ -8039,7 +8458,7 @@
         const worldX = clientX / zoom + camera.x;
         const worldY = clientY / zoom + camera.y;
 
-        // Nếu bấm trực tiếp vào Vòng Khảm Đũa hoặc Bàn Chế Tạo trong tầm với thì không đánh thường
+        // Nếu bấm trực tiếp vào Vòng Khảm Đũa, Rương Đồ hoặc Bàn Chế Tạo trong tầm với thì không đánh thường
         if (currentMap === "home") {
           const distClickAltar = Math.hypot(worldX - HOME_WAND_ALTAR.x, worldY - HOME_WAND_ALTAR.y);
           if (distClickAltar <= HOME_WAND_ALTAR.hoverRadius + 2) {
@@ -8047,7 +8466,7 @@
           }
         }
         for (const obj of currentObjects) {
-          if (obj.type === "crafting_table") {
+          if (obj.type === "crafting_table" || obj.type === "chest") {
             const dist = Math.hypot((player.x + 8) - (obj.x + 8), (player.y + 8) - (obj.y + 8));
             if (dist <= INTERACTION_RADIUS + 22 && worldX >= obj.x - 6 && worldX <= obj.x + 22 && worldY >= obj.y - 6 && worldY <= obj.y + 22) {
               return;
@@ -8111,10 +8530,14 @@
         }
 
         for (const obj of currentObjects) {
-          if (obj.type === "crafting_table") {
+          if (obj.type === "crafting_table" || obj.type === "chest") {
             const dist = Math.hypot((player.x + 8) - (obj.x + 8), (player.y + 8) - (obj.y + 8));
             if (dist <= INTERACTION_RADIUS + 22 && worldX >= obj.x - 6 && worldX <= obj.x + 22 && worldY >= obj.y - 6 && worldY <= obj.y + 22) {
-              toggleInventory(true, 'workstation');
+              if (obj.type === "chest") {
+                toggleChestUI(true, obj);
+              } else {
+                toggleInventory(true, 'workstation');
+              }
               return;
             }
           }
@@ -8132,20 +8555,31 @@
         const worldX = clientX / zoom + camera.x;
         const worldY = clientY / zoom + camera.y;
 
-        // 1. Kiểm tra xem có click trúng Bàn Chế Tạo trên map không
+        // 1. Kiểm tra xem có click trúng Rương Đồ hoặc Bàn Chế Tạo trên map không
         for (const obj of currentObjects) {
-          if (obj.type === "crafting_table") {
+          if (obj.type === "crafting_table" || obj.type === "chest") {
             const dist = Math.hypot((player.x + 8) - (obj.x + 8), (player.y + 8) - (obj.y + 8));
-            // Cự ly thoải mái để click mở bàn chế tạo (bán kính 32px)
             if (dist <= INTERACTION_RADIUS + 22 && worldX >= obj.x - 6 && worldX <= obj.x + 22 && worldY >= obj.y - 6 && worldY <= obj.y + 22) {
-              toggleInventory(true, 'workstation');
+              if (obj.type === "chest") {
+                toggleChestUI(true, obj);
+              } else {
+                toggleInventory(true, 'workstation');
+              }
               return;
             }
           }
         }
 
-        // 2. Nếu đang cầm Bàn Chế Tạo trên tay, click chuột phải để đặt xuống vị trí click
+        // 2. Nếu đang cầm Rương Đồ hoặc Bàn Chế Tạo trên tay, click chuột phải để đặt xuống vị trí click
         const equippedItem = playerInventory[activeHotbarIndex];
+        if (equippedItem && equippedItem.id === "chest") {
+          const tileX = Math.floor(worldX / 16) * 16;
+          const tileY = Math.floor(worldY / 16) * 16;
+          const distToPlayer = Math.hypot((player.x + 8) - (tileX + 8), (player.y + 8) - (tileY + 8));
+          if (distToPlayer <= INTERACTION_RADIUS + 20) {
+            if (tryPlaceChest(activeHotbarIndex, tileX, tileY)) return;
+          }
+        }
         if (equippedItem && (equippedItem.id === "crafting_table" || (equippedItem.name && equippedItem.name.includes("Bàn Chế Tạo")))) {
           const tileX = Math.floor(worldX / 16) * 16;
           const tileY = Math.floor(worldY / 16) * 16;
@@ -8253,16 +8687,23 @@
         renderInventory();
         updateCursorUI();
         syncCampfireAndInventoryState();
+        syncChestAndInventoryState();
       } else {
         cancelActiveTouchInvState(true);
         inventoryUI.style.display = "none";
-        if (!isWandModalOpen()) {
+        if (isChestOpen()) {
+          activeOpenChest = null;
+          const chestUIEl = document.getElementById("chest-ui");
+          if (chestUIEl) chestUIEl.style.display = "none";
+        }
+        if (!isWandModalOpen() && !isChestOpen()) {
           isPaused = false;
           needsCanvasRedraw = true;
         }
         hideItemTooltip();
         updateCursorUI();
         syncCampfireAndInventoryState();
+        syncChestAndInventoryState();
       }
       if (window.onMobileHudSync) window.onMobileHudSync();
     }
@@ -8744,6 +9185,7 @@
 
     function loadMap(mapId, newPlayerPos = null) {
       resetFishingState();
+      if (isChestOpen()) toggleChestUI(false);
       wandAltarTriggerLock = false;
       currentMap = mapId;
       const config = mapConfigs[mapId];
@@ -8853,19 +9295,22 @@
             const mCy = mob.y + mob.height / 2;
             addFloatingText(`-${burnDmg} 🔥`, mob.x - 2, mob.y - 11, "#fb923c", false);
 
-            // Cháy lan sang các quái vật lân cận trong bán kính 28px
-            for (const other of currentMobs) {
-              if (other === mob || other.hp <= 0) continue;
-              const oCx = other.x + other.width / 2;
-              const oCy = other.y + other.height / 2;
-              if (Math.hypot(oCx - mCx, oCy - mCy) <= 28) {
-                if (!other.burnTimer || other.burnTimer <= 0.3) {
-                  other.burnTimer = Math.max(other.burnTimer || 0, 2.4);
-                  other.burnTickTimer = 0.55;
-                  addFloatingText("🔥 Cháy lan!", other.x - 10, other.y - 16, "#fde047", true);
-                  spawnMagicHitBurst((mCx + oCx) / 2, (mCy + oCy) / 2, 0, "#f97316", "#fde047", 9);
-                } else {
-                  other.burnTimer = Math.max(other.burnTimer, 1.8);
+            // Cháy lan sang các quái vật lân cận trong bán kính 28px (khi Cộng Hưởng 3 Ngọc Viêm Hỏa)
+            if (mob.burnSpread) {
+              for (const other of currentMobs) {
+                if (other === mob || other.hp <= 0) continue;
+                const oCx = other.x + other.width / 2;
+                const oCy = other.y + other.height / 2;
+                if (Math.hypot(oCx - mCx, oCy - mCy) <= 28) {
+                  if (!other.burnTimer || other.burnTimer <= 0.3) {
+                    other.burnTimer = Math.max(other.burnTimer || 0, 2.4);
+                    other.burnTickTimer = 0.55;
+                    other.burnSpread = true;
+                    addFloatingText("🔥 Cháy lan!", other.x - 10, other.y - 16, "#fde047", true);
+                    spawnMagicHitBurst((mCx + oCx) / 2, (mCy + oCy) / 2, 0, "#f97316", "#fde047", 9);
+                  } else {
+                    other.burnTimer = Math.max(other.burnTimer, 1.8);
+                  }
                 }
               }
             }
@@ -9310,6 +9755,63 @@
       return true;
     }
 
+    // Đặt Rương Đồ (27 ô chứa) xuống mặt đất
+    function tryPlaceChest(slotIdx, overrideX = null, overrideY = null) {
+      let placeX = overrideX !== null ? overrideX : Math.round(player.x / 16) * 16;
+      let placeY = overrideY !== null ? overrideY : Math.round(player.y / 16) * 16;
+
+      if (overrideX === null || overrideY === null) {
+        if (playerFacing === 'right') placeX += 16;
+        else if (playerFacing === 'left') placeX -= 16;
+        else if (playerFacing === 'down') placeY += 16;
+        else if (playerFacing === 'up') placeY -= 16;
+      }
+
+      const placeBox = { x: placeX, y: placeY, width: 16, height: 16 };
+      if (!isBoxOnWalkableGround(placeBox)) {
+        addFloatingText("❌ VỊ TRÍ KHÔNG HỢP LỆ!", player.x - 10, player.y - 12, "#ef4444");
+        return false;
+      }
+      const playerBody = { x: player.x, y: player.y, width: 16, height: 16 };
+      if (checkAABB(placeBox, playerBody)) {
+        addFloatingText("❌ KHÔNG THỂ ĐẶT ĐÈ LÊN NGƯỜI!", player.x - 10, player.y - 12, "#ef4444");
+        return false;
+      }
+      for (const o of currentObjects) {
+        if (checkAABB(placeBox, o)) {
+          addFloatingText("❌ ĐÃ CÓ VẬT THỂ Ở ĐÂY!", player.x - 10, player.y - 12, "#ef4444");
+          return false;
+        }
+      }
+
+      const item = playerInventory[slotIdx];
+      if (!item || item.id !== "chest") return false;
+      item.quantity -= 1;
+      if (item.quantity <= 0) {
+        playerInventory[slotIdx] = null;
+      }
+      renderHotbar();
+
+      const newChest = {
+        type: "chest",
+        x: placeX,
+        y: placeY,
+        width: 16,
+        height: 16,
+        name: "Rương Đồ",
+        items: new Array(27).fill(null)
+      };
+
+      currentObjects.push(newChest);
+      playImpactSound(false);
+      spawnHitSparks(placeX + 8, placeY + 8, -Math.PI / 2);
+      addFloatingText("📦 ĐÃ ĐẶT RƯƠNG ĐỒ!", placeX - 10, placeY - 14, "#fbbf24");
+      showNotification("✨ Đã đặt Rương Đồ! Đứng gần bấm [E] hoặc [Chuột Phải] để cất đồ.", false);
+      updateStatsHUD();
+      return true;
+    }
+    window.tryPlaceChest = tryPlaceChest;
+
     
     // Tính thời gian yêu cầu và trạng thái công cụ cho Cây (tree) hoặc Đá (rock)
     function getHarvestInfo(targetObj) {
@@ -9371,13 +9873,14 @@
         pickupItem({ id: "feather", name: "Lông Vũ", quantity: Math.floor(Math.random() * 2) + 1 });
         pickupItem({ id: "chicken_unripe", name: "Thịt Gà Sống", quantity: 1 });
         addFloatingText("+1 THỊT GÀ 🍗", mob.x - 4, mob.y - 14, "#fef08a", true);
-        if (Math.random() < 0.22) {
-          pickupItem({ id: "spell_arcane_orb", name: SPELLS_DATABASE.spell_arcane_orb.name, quantity: 1 });
-          addFloatingText("✨ +1 NGỌC CẦU PHÉP!", mob.x - 16, mob.y - 26, "#e879f9", true);
+        if (Math.random() < 0.18) {
+          const dropGem = Math.random() < 0.5 ? ITEMS_DATABASE.gem_haste : ITEMS_DATABASE.gem_crit;
+          pickupItem({ id: dropGem.id, name: dropGem.name, quantity: 1 });
+          addFloatingText(`💎 +1 ${dropGem.name.toUpperCase()}!`, mob.x - 16, mob.y - 26, "#22d3ee", true);
         }
         scheduleObjectRespawn("chicken", mob.color, false, true);
       } else {
-        // Heo rừng rớt da thú + thịt heo sống + cơ hội rơi Ngọc Chiêu Thức
+        // Heo rừng rớt da thú + thịt heo sống + cơ hội rơi Ngọc Trọng Lực hoặc Ngọc Khảm
         pickupItem({ id: "leather_hide", name: "Da Thú", quantity: 1 });
         pickupItem({ id: "boar_unripe", name: "Thịt Heo Sống", quantity: 1 });
         addFloatingText("+1 DA THÚ & THỊT HEO 🥩", mob.x - 4, mob.y - 14, "#ffedd5", true);
@@ -9386,11 +9889,14 @@
           pickupItem({ id: "spell_gravity", name: SPELLS_DATABASE.spell_gravity.name, quantity: 1 });
           addFloatingText("⬇ +1 NGỌC TRỌNG LỰC!", mob.x - 20, mob.y - 26, "#c084fc", true);
         } else if (dropRoll < 0.28) {
-          pickupItem({ id: "spell_lightning", name: SPELLS_DATABASE.spell_lightning.name, quantity: 1 });
-          addFloatingText("⚡ +1 NGỌC LÔI KÍCH!", mob.x - 20, mob.y - 26, "#fde047", true);
-        } else if (dropRoll < 0.48) {
-          pickupItem({ id: "spell_fireball", name: SPELLS_DATABASE.spell_fireball.name, quantity: 1 });
-          addFloatingText("🔥 +1 NGỌC HỎA CẦU!", mob.x - 20, mob.y - 26, "#fb923c", true);
+          pickupItem({ id: "gem_fire", name: ITEMS_DATABASE.gem_fire.name, quantity: 1 });
+          addFloatingText("🔥 +1 NGỌC VIÊM HỎA!", mob.x - 20, mob.y - 26, "#fb923c", true);
+        } else if (dropRoll < 0.42) {
+          pickupItem({ id: "gem_damage", name: ITEMS_DATABASE.gem_damage.name, quantity: 1 });
+          addFloatingText("⚔️ +1 NGỌC SỨC MẠNH!", mob.x - 20, mob.y - 26, "#f87171", true);
+        } else if (dropRoll < 0.50) {
+          pickupItem({ id: "gem_vampire", name: ITEMS_DATABASE.gem_vampire.name, quantity: 1 });
+          addFloatingText("🩸 +1 NGỌC HÚT MÁU!", mob.x - 20, mob.y - 26, "#e879f9", true);
         }
         scheduleObjectRespawn("boar", mob.color || "#8b0000", true, false);
       }
@@ -9494,6 +10000,9 @@
           if (Math.random() < 0.10) {
             pickupItem({ id: "spell_gravity", name: SPELLS_DATABASE.spell_gravity.name, quantity: 1 });
             addFloatingText("⬇ +1 NGỌC TRỌNG LỰC!", target.x - 16, target.y - 36, "#c084fc", true);
+          } else if (Math.random() < 0.08) {
+            pickupItem({ id: "gem_damage", name: ITEMS_DATABASE.gem_damage.name, quantity: 1 });
+            addFloatingText("💎 +1 NGỌC SỨC MẠNH!", target.x - 16, target.y - 36, "#f87171", true);
           }
         }
 
@@ -9506,141 +10015,41 @@
       updateStatsHUD();
     }
 
-    function castSingleWandSpell(spellId, tipX, tipY, castAngle, clickWorldPos = null) {
+    function castDefaultWandBasicOrb(tipX, tipY, castAngle, gemBonuses = null) {
       const cosA = Math.cos(castAngle);
       const sinA = Math.sin(castAngle);
-      const sp = SPELLS_DATABASE[spellId] || SPELLS_DATABASE.spell_arcane_orb;
-
-      if (spellId === "spell_gravity") {
-        spawnMagicCastVfx(tipX, tipY, castAngle, "#a855f7", "#f0abfc", 10);
-        castGravitySpell(castAngle, clickWorldPos);
-        playSpellCastSound("spell_gravity");
-        return;
-      }
-
-      if (spellId === "spell_fireball") {
-        const speed = 235;
-        activeProjectiles.push({
-          x: tipX, y: tipY,
-          vx: cosA * speed, vy: sinA * speed,
-          angle: castAngle,
-          damage: sp.damage || 7,
-          traveled: 0, maxRange: 230,
-          width: 12, height: 12,
-          trailTimer: 0,
-          isFireball: true
-        });
-        spawnMagicCastVfx(tipX, tipY, castAngle, "#f97316", "#fde047", 10);
-        playSpellCastSound("spell_fireball");
-        return;
-      }
-
-      if (spellId === "spell_frost") {
-        const speed = 280;
-        [-0.18, 0, 0.18].forEach((offset) => {
-          const a = castAngle + offset;
-          activeProjectiles.push({
-            x: tipX, y: tipY,
-            vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
-            angle: a,
-            damage: sp.damage || 3,
-            traveled: 0, maxRange: 210,
-            width: 8, height: 8,
-            trailTimer: 0,
-            isFrostShard: true
-          });
-        });
-        spawnMagicCastVfx(tipX, tipY, castAngle, "#38bdf8", "#e0f2fe", 9);
-        playSpellCastSound("spell_frost");
-        return;
-      }
-
-      if (spellId === "spell_lightning") {
-        const pCx = player.x + player.width / 2;
-        const pCy = player.y + player.height / 2;
-        let tx = pCx + cosA * 76;
-        let ty = pCy + sinA * 76;
-        let targetMob = null;
-
-        if (clickWorldPos) {
-          const dClick = Math.min(155, Math.hypot(clickWorldPos.x - pCx, clickWorldPos.y - pCy));
-          const aClick = Math.atan2(clickWorldPos.y - pCy, clickWorldPos.x - pCx);
-          tx = pCx + Math.cos(aClick) * dClick;
-          ty = pCy + Math.sin(aClick) * dClick;
-          let bestDist = 26;
-          for (const mob of currentMobs) {
-            const d = Math.hypot((mob.x + mob.width / 2) - tx, (mob.y + mob.height / 2) - ty);
-            if (d < bestDist) { bestDist = d; targetMob = mob; }
-          }
-        } else {
-          let bestScore = Infinity;
-          for (const mob of currentMobs) {
-            const mx = mob.x + mob.width / 2;
-            const my = mob.y + mob.height;
-            const d = Math.hypot(mx - pCx, my - pCy);
-            if (d > 155) continue;
-            let diff = Math.abs(Math.atan2(my - pCy, mx - pCx) - castAngle);
-            if (diff > Math.PI) diff = Math.PI * 2 - diff;
-            if (diff <= Math.PI * 0.40 && d + diff * 30 < bestScore) {
-              bestScore = d + diff * 30;
-              targetMob = mob;
-            }
-          }
-        }
-        if (targetMob) {
-          tx = targetMob.x + targetMob.width / 2;
-          ty = targetMob.y + targetMob.height;
-        }
-        tx = Math.max(16, Math.min(MAP_SIZE - 16, tx));
-        ty = Math.max(16, Math.min(MAP_SIZE - 16, ty));
-
-        const pts = [];
-        const segs = 6;
-        for (let s = 0; s <= segs; s++) {
-          const t = s / segs;
-          pts.push({
-            x: tx + (s === 0 || s === segs ? 0 : (Math.random() - 0.5) * 14),
-            y: (ty - 160) + t * 160
-          });
-        }
-        lightningBolts.push({ pts, life: 0.24, maxLife: 0.24 });
-
-        const dmg = sp.damage || 9;
-        for (let mIdx = currentMobs.length - 1; mIdx >= 0; mIdx--) {
-          const mob = currentMobs[mIdx];
-          const mx = mob.x + mob.width / 2;
-          const my = mob.y + mob.height;
-          if (mob === targetMob || Math.hypot(mx - tx, my - ty) <= 24) {
-            mob.hp -= dmg;
-            if (combatFxConfig.hitFlash) mob.hurtFlashTimer = combatFxConfig.hitFlashDuration || 0.08;
-            addFloatingText(`-${dmg} HP ⚡`, mob.x - 6, mob.y - 12, "#fde047", true);
-            if (mob.hp <= 0) {
-              currentMobs.splice(mIdx, 1);
-              handleMobDeath(mob, mx, mob.y + mob.height / 2);
-            }
-          }
-        }
-        spawnMagicCastVfx(tipX, tipY, castAngle, "#facc15", "#ffffff", 9);
-        spawnMagicHitBurst(tx, ty, 0, "#facc15", "#ffffff", 15);
-        triggerHitJuice(6, 0, 0.20, 1);
-        playSpellCastSound("spell_lightning");
-        return;
-      }
-
-      // Mặc định: Ngọc Cầu Ma Pháp (spell_arcane_orb)
+      const gb = gemBonuses || {};
       const speed = 270;
       activeProjectiles.push({
         x: tipX, y: tipY,
         vx: cosA * speed, vy: sinA * speed,
         angle: castAngle,
-        damage: sp.damage || 4,
+        damage: 4 + (gb.damageBonus || 0),
         traveled: 0, maxRange: 260,
         width: 10, height: 10,
         trailTimer: 0,
-        isMagicOrb: true
+        isMagicOrb: true,
+        critChance: gb.critChance || 0,
+        gemBurn: (gb.burnStacks || 0) > 0,
+        gemBurnSpread: Boolean(gb.burnSpread),
+        gemFrost: (gb.frostStacks || 0) > 0,
+        gemFrostSpread: Boolean(gb.frostSpread),
+        gemVampire: gb.vampirePct || 0
       });
       spawnMagicCastVfx(tipX, tipY, castAngle);
-      playSpellCastSound("spell_arcane_orb");
+      playMagicCastSound();
+    }
+
+    function castSingleWandSpell(spellId, tipX, tipY, castAngle, clickWorldPos = null, gemBonuses = null) {
+      if (spellId === "spell_gravity") {
+        spawnMagicCastVfx(tipX, tipY, castAngle, "#a855f7", "#f0abfc", 10);
+        castGravitySpell(castAngle, clickWorldPos, gemBonuses);
+        playSpellCastSound("spell_gravity");
+        return;
+      }
+
+      // Đòn đánh thường mặc định của Đũa Phép (Cầu Năng Lượng Tím + chỉ số Ngọc khảm)
+      castDefaultWandBasicOrb(tipX, tipY, castAngle, gemBonuses);
     }
 
     function computeWandCastTip(castAngle) {
@@ -9692,8 +10101,10 @@
 
       const { tipX, tipY } = computeWandCastTip(snapped);
       const sp = SPELLS_DATABASE[spellId];
-      castSingleWandSpell(spellId, tipX, tipY, snapped, aimWorldPos);
-      wandSkillCooldowns[slotIdx] = sp.cooldown || 0.55;
+      const gemBonuses = getWandGemBonuses(wand);
+      castSingleWandSpell(spellId, tipX, tipY, snapped, aimWorldPos, gemBonuses);
+      const rawCd = sp.cooldown || 0.92;
+      wandSkillCooldowns[slotIdx] = Math.max(0.25, rawCd * gemBonuses.cooldownMult);
       wandSkillMaxCooldowns[slotIdx] = wandSkillCooldowns[slotIdx];
 
       degradeEquippedItem(activeHotbarIndex);
@@ -9782,67 +10193,11 @@
       return true;
     };
 
-    function castResonantBasicAttack(resonance, tipX, tipY, castAngle) {
+    function castResonantBasicAttack(resonance, tipX, tipY, castAngle, gemBonuses = null) {
       const rId = resonance.spellId;
       const cosA = Math.cos(castAngle);
       const sinA = Math.sin(castAngle);
-
-      if (rId === "spell_fireball") {
-        const speed = 255;
-        activeProjectiles.push({
-          x: tipX, y: tipY,
-          vx: cosA * speed, vy: sinA * speed,
-          angle: castAngle,
-          damage: 5,
-          traveled: 0, maxRange: 255,
-          width: 11, height: 11,
-          trailTimer: 0,
-          isMagicOrb: true,
-          resonanceType: "spell_fireball"
-        });
-        spawnMagicCastVfx(tipX, tipY, castAngle, "#f97316", "#fde047", 10);
-        playSpellCastSound("spell_fireball");
-        return;
-      }
-
-      if (rId === "spell_frost") {
-        const speed = 285;
-        [-0.14, 0, 0.14].forEach((offset) => {
-          const a = castAngle + offset;
-          activeProjectiles.push({
-            x: tipX, y: tipY,
-            vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
-            angle: a,
-            damage: 3,
-            traveled: 0, maxRange: 225,
-            width: 9, height: 9,
-            trailTimer: 0,
-            isMagicOrb: true,
-            resonanceType: "spell_frost"
-          });
-        });
-        spawnMagicCastVfx(tipX, tipY, castAngle, "#38bdf8", "#e0f2fe", 9);
-        playSpellCastSound("spell_frost");
-        return;
-      }
-
-      if (rId === "spell_lightning") {
-        const speed = 310;
-        activeProjectiles.push({
-          x: tipX, y: tipY,
-          vx: cosA * speed, vy: sinA * speed,
-          angle: castAngle,
-          damage: 5,
-          traveled: 0, maxRange: 260,
-          width: 10, height: 10,
-          trailTimer: 0,
-          isMagicOrb: true,
-          resonanceType: "spell_lightning"
-        });
-        spawnMagicCastVfx(tipX, tipY, castAngle, "#facc15", "#ffffff", 9);
-        playSpellCastSound("spell_lightning");
-        return;
-      }
+      const gb = gemBonuses || {};
 
       if (rId === "spell_gravity") {
         const speed = 240;
@@ -9850,40 +10205,25 @@
           x: tipX, y: tipY,
           vx: cosA * speed, vy: sinA * speed,
           angle: castAngle,
-          damage: 4,
+          damage: 4 + (gb.damageBonus || 0),
           traveled: 0, maxRange: 245,
           width: 11, height: 11,
           trailTimer: 0,
           isMagicOrb: true,
-          resonanceType: "spell_gravity"
+          resonanceType: "spell_gravity",
+          critChance: gb.critChance || 0,
+          gemBurn: (gb.burnStacks || 0) > 0,
+          gemBurnSpread: Boolean(gb.burnSpread),
+          gemFrost: (gb.frostStacks || 0) > 0,
+          gemFrostSpread: Boolean(gb.frostSpread),
+          gemVampire: gb.vampirePct || 0
         });
         spawnMagicCastVfx(tipX, tipY, castAngle, "#a855f7", "#f0abfc", 10);
-        playSpellCastSound("spell_arcane_orb");
+        playSpellCastSound("spell_gravity");
         return;
       }
 
-      // Mặc định: Song Cầu Ma Pháp (spell_arcane_orb x3)
-      const speed = 330;
-      const perpX = -sinA * 4.5;
-      const perpY = cosA * 4.5;
-      [-1, 1].forEach((side) => {
-        activeProjectiles.push({
-          x: tipX + perpX * side,
-          y: tipY + perpY * side,
-          vx: cosA * speed, vy: sinA * speed,
-          angle: castAngle,
-          damage: 4,
-          traveled: 0, maxRange: 290,
-          width: 9, height: 9,
-          trailTimer: 0,
-          pierceRemaining: 1,
-          hitMobSet: new Set(),
-          isMagicOrb: true,
-          resonanceType: "spell_arcane_orb"
-        });
-      });
-      spawnMagicCastVfx(tipX, tipY, castAngle, "#e879f9", "#ffffff", 10);
-      playSpellCastSound("spell_arcane_orb");
+      castDefaultWandBasicOrb(tipX, tipY, castAngle, gemBonuses);
     }
 
     function performAction() {
@@ -9891,6 +10231,12 @@
 
       // Lấy vũ khí/công cụ đang cầm trên tay (Hotbar active slot)
       const equippedItem = playerInventory[activeHotbarIndex];
+
+      // Nếu đang cầm Rương Đồ: Đặt xuống đất ngay trước mặt!
+      if (equippedItem && equippedItem.id === 'chest') {
+        tryPlaceChest(activeHotbarIndex);
+        return;
+      }
 
       // Nếu đang cầm Bàn Chế Tạo: Đặt xuống đất ngay trước mặt!
       if (equippedItem && (equippedItem.id === 'crafting_table' || (equippedItem.name && equippedItem.name.includes('Bàn Chế Tạo')))) {
@@ -9904,18 +10250,18 @@
         return;
       }
 
-      // Nếu đang cầm Đũa Phép: Nút đánh lớn luôn bắn ĐÁNH THƯỜNG (kèm Cộng Hưởng nếu đủ 3 ngọc cùng loại!)
+      // Nếu đang cầm Đũa Phép: Nút đánh lớn luôn bắn ĐÁNH THƯỜNG (Cộng Hưởng chiêu / Cộng Hưởng 3 Ngọc & chỉ số Ngọc)
       if (equippedItem && equippedItem.id === 'magic_wand') {
         const castAngle = wandCastAngle;
-        const clickWorldPos = pendingPointerWorldPos;
         pendingPointerWorldPos = null;
 
         const { tipX, tipY } = computeWandCastTip(castAngle);
         const resonance = getWandResonance(equippedItem);
+        const gemBonuses = getWandGemBonuses(equippedItem);
         if (resonance) {
-          castResonantBasicAttack(resonance, tipX, tipY, castAngle);
+          castResonantBasicAttack(resonance, tipX, tipY, castAngle, gemBonuses);
         } else {
-          castSingleWandSpell("spell_arcane_orb", tipX, tipY, castAngle, clickWorldPos);
+          castDefaultWandBasicOrb(tipX, tipY, castAngle, gemBonuses);
         }
         degradeEquippedItem(activeHotbarIndex);
         return;
@@ -10241,11 +10587,24 @@
         if (window.onMobileHotbarSelect && isMobileMode()) window.onMobileHotbarSelect(activeHotbarIndex);
         return;
       }
-      // Nhấn E để đóng / mở túi đồ và tạm dừng (Pause) game
+      // Nhấn E để đóng / mở Rương đồ (nếu đứng cạnh rương) hoặc túi đồ và tạm dừng (Pause) game
       if (e.key && e.key.toLowerCase() === "e") {
         if (isWandModalOpen()) openWandCustomizer(false);
         initCampfireUIEvents();
         e.preventDefault();
+        if (isChestOpen()) {
+          toggleChestUI(false);
+          return;
+        }
+        if (inventoryUI && inventoryUI.style.display !== "none") {
+          toggleInventory(false);
+          return;
+        }
+        const nearChest = checkNearChest();
+        if (nearChest) {
+          toggleChestUI(true, nearChest);
+          return;
+        }
         // Kiểm tra xem người chơi có đang đứng cạnh Bàn Chế Tạo nào không
         let nearTable = false;
         for (const obj of currentObjects) {
@@ -10257,11 +10616,7 @@
             }
           }
         }
-        if (inventoryUI && inventoryUI.style.display !== "none") {
-          toggleInventory(false);
-        } else {
-          toggleInventory(true, nearTable ? 'workstation' : 'pocket');
-        }
+        toggleInventory(true, nearTable ? 'workstation' : 'pocket');
         return;
       }
       // Nhấn R khi đang mở túi đồ để bật / tắt nhanh Sổ Tay Công Thức
@@ -10274,6 +10629,11 @@
         if (isWandModalOpen()) {
           e.preventDefault();
           openWandCustomizer(false);
+          return;
+        }
+        if (isChestOpen()) {
+          e.preventDefault();
+          toggleChestUI(false);
           return;
         }
         if (combatFxPanel && combatFxPanel.style.display !== "none" && combatFxPanel.style.display !== "") {
@@ -10457,7 +10817,8 @@
         playerFacing = angleToPlayerFacing(snapped);
         player.direction = playerFacing;
 
-        player.attackCooldown = 0.36;
+        const gemBonuses = getWandGemBonuses(curItem);
+        player.attackCooldown = Math.max(0.18, 0.36 * gemBonuses.cooldownMult);
         wandCastTimer = WAND_CAST_DURATION;
         return true;
       }
@@ -10553,9 +10914,9 @@
     // 9. CẬP NHẬT LOGIC GAME & VA CHẠM AABB
     // -------------------------------------------------------------
     function getObjectCollisionBox(obj) {
-      if (obj.type === "crafting_table") {
-        // Thu hẹp hitbox bàn chế tạo lại 12x12 để người chơi lướt qua các khe hẹp mượt mà, không bao giờ bị kẹt
-        return { x: obj.x + 2, y: obj.y + 2, width: 12, height: 12 };
+      if (obj.type === "crafting_table" || obj.type === "chest") {
+        // Thu hẹp hitbox vật thể đặt 12x12 để người chơi lướt qua các khe hẹp mượt mà, không bao giờ bị kẹt
+        return { x: obj.x + 2, y: obj.y + 3, width: 12, height: 11 };
       }
       return obj;
     }
@@ -11109,7 +11470,7 @@
                     durability: gItem.item.durability !== undefined ? gItem.item.durability : dbData.durability,
                     maxDurability: gItem.item.maxDurability || dbData.maxDurability,
                     icon: dbData.icon || gItem.item.icon || "",
-                    ...(gItem.item.wandData ? { wandData: cloneWandData(gItem.item.wandData) } : (itemId === "magic_wand" ? { wandData: { slots: [null, null, null] } } : {}))
+                    ...(gItem.item.wandData ? { wandData: cloneWandData(gItem.item.wandData) } : (itemId === "magic_wand" ? { wandData: { slots: [null, null, null], gemSlots: [null, null, null] } } : {}))
                   };
                   remaining -= add;
                 }
@@ -11132,90 +11493,9 @@
         }
       }
 
-      // --- CẬP NHẬT VẬT THỂ BAY (PROJECTILES - MŨI TÊN & CẦU MA PHÁP / HỎA CẦU / BĂNG TIỄN / CỘNG HƯỞNG) ---
-      const detonateFireball = (fx, fy, dmg, angle, aoeR = 28, igniteBurn = false) => {
-        spawnMagicHitBurst(fx, fy, angle, "#f97316", "#fde047", igniteBurn ? 22 : 18);
-        playImpactSound(true);
-        triggerHitJuice(5, 0, 0.22, 1);
-        for (let mIdx = currentMobs.length - 1; mIdx >= 0; mIdx--) {
-          const mob = currentMobs[mIdx];
-          const mx = mob.x + mob.width / 2;
-          const my = mob.y + mob.height / 2;
-          if (Math.hypot(mx - fx, my - fy) <= aoeR) {
-            mob.hp -= dmg;
-            if (combatFxConfig.hitFlash) mob.hurtFlashTimer = combatFxConfig.hitFlashDuration || 0.07;
-            if (igniteBurn) {
-              mob.burnTimer = Math.max(mob.burnTimer || 0, 3.2);
-              mob.burnTickTimer = Math.min(mob.burnTickTimer || 0.45, 0.45);
-            }
-            addFloatingText(`-${dmg} HP 🔥`, mob.x - 4, mob.y - 10, "#fb923c", true);
-            if (combatFxConfig.knockback) {
-              const pushA = Math.atan2(my - fy, mx - fx);
-              const px = mob.x + Math.cos(pushA) * 14;
-              const py = mob.y + Math.sin(pushA) * 14;
-              if (!checkMobCollision({ x: px, y: py, width: mob.width, height: mob.height })) {
-                mob.x = px; mob.y = py;
-              }
-            }
-            if (mob.hp <= 0) {
-              currentMobs.splice(mIdx, 1);
-              handleMobDeath(mob, mx, my);
-            }
-          }
-        }
-      };
-
+      // --- CẬP NHẬT VẬT THỂ BAY (PROJECTILES - MŨI TÊN & CẦU NĂNG LƯỢNG PHÉP THUẬT) ---
       const detonateResonanceImpact = (proj, ix, iy, primaryMob = null) => {
         const rType = proj.resonanceType;
-        if (rType === "spell_fireball") {
-          detonateFireball(ix, iy, proj.damage, proj.angle, 34, true);
-          return true;
-        }
-        if (rType === "spell_frost") {
-          spawnMagicHitBurst(ix, iy, proj.angle, "#38bdf8", "#e0f2fe", 14);
-          for (const mob of currentMobs) {
-            const mx = mob.x + mob.width / 2;
-            const my = mob.y + mob.height / 2;
-            if (mob === primaryMob || Math.hypot(mx - ix, my - iy) <= 24) {
-              mob.slowTimer = Math.max(mob.slowTimer || 0, 3.2);
-            }
-          }
-          return false;
-        }
-        if (rType === "spell_lightning" && primaryMob) {
-          let chainsLeft = 2;
-          let prevX = ix;
-          let prevY = iy;
-          for (let mIdx = currentMobs.length - 1; mIdx >= 0 && chainsLeft > 0; mIdx--) {
-            const other = currentMobs[mIdx];
-            if (other === primaryMob || other.hp <= 0) continue;
-            const ox = other.x + other.width / 2;
-            const oy = other.y + other.height / 2;
-            if (Math.hypot(ox - prevX, oy - prevY) <= 52) {
-              chainsLeft--;
-              const pts = [];
-              for (let s = 0; s <= 4; s++) {
-                const t = s / 4;
-                pts.push({
-                  x: prevX + (ox - prevX) * t + (s === 0 || s === 4 ? 0 : (Math.random() - 0.5) * 8),
-                  y: prevY + (oy - prevY) * t + (s === 0 || s === 4 ? 0 : (Math.random() - 0.5) * 8)
-                });
-              }
-              lightningBolts.push({ pts, life: 0.18, maxLife: 0.18 });
-              other.hp -= 3;
-              if (combatFxConfig.hitFlash) other.hurtFlashTimer = 0.06;
-              addFloatingText("-3 HP ⚡", other.x - 4, other.y - 10, "#fef08a", false);
-              spawnMagicHitBurst(ox, oy, 0, "#facc15", "#ffffff", 9);
-              prevX = ox;
-              prevY = oy;
-              if (other.hp <= 0) {
-                currentMobs.splice(mIdx, 1);
-                handleMobDeath(other, ox, oy);
-              }
-            }
-          }
-          return false;
-        }
         if (rType === "spell_gravity") {
           spawnMagicHitBurst(ix, iy, proj.angle, "#a855f7", "#f0abfc", 18);
           groundShockwaves.push({
@@ -11242,6 +11522,14 @@
               if (mob !== primaryMob) {
                 mob.hp -= 3;
                 if (combatFxConfig.hitFlash) mob.hurtFlashTimer = 0.05;
+                if (proj.gemBurn) {
+                  mob.burnTimer = Math.max(mob.burnTimer || 0, 2.6);
+                  mob.burnTickTimer = Math.min(mob.burnTickTimer || 0.55, 0.55);
+                  if (proj.gemBurnSpread) mob.burnSpread = true;
+                }
+                if (proj.gemFrost) {
+                  mob.slowTimer = Math.max(mob.slowTimer || 0, 2.6);
+                }
                 addFloatingText("-3 HP 🌌", mob.x - 4, mob.y - 10, "#e879f9", false);
                 if (mob.hp <= 0) {
                   currentMobs.splice(mIdx, 1);
@@ -11263,29 +11551,24 @@
         proj.y += stepY;
         proj.traveled += Math.hypot(stepX, stepY);
 
-        // Hạt bụi sao ma pháp / lửa / băng / cộng hưởng bay theo đuôi đạn phép
-        if (proj.isMagicOrb || proj.isFireball || proj.isFrostShard) {
+        // Hạt bụi sao ma pháp bay theo đuôi cầu năng lượng
+        if (proj.isMagicOrb) {
           proj.trailTimer = (proj.trailTimer || 0) + deltaTime;
-          if (proj.trailTimer >= 0.024) {
+          if (proj.trailTimer >= 0.028) {
             proj.trailTimer = 0;
             const perpAngle = proj.angle + Math.PI / 2;
             const jitter = (Math.random() - 0.5) * 3.5;
-            const isFireTrail = proj.isFireball || proj.resonanceType === "spell_fireball";
-            const isFrostTrail = proj.isFrostShard || proj.resonanceType === "spell_frost";
-            const isLightningTrail = proj.resonanceType === "spell_lightning";
-            const trailPalette = isFireTrail
-              ? (Math.random() > 0.4 ? "#f97316" : (Math.random() > 0.5 ? "#fde047" : "#ef4444"))
-              : (isFrostTrail
-                ? (Math.random() > 0.35 ? "#38bdf8" : "#e0f2fe")
-                : (isLightningTrail
-                  ? (Math.random() > 0.4 ? "#facc15" : "#fef08a")
-                  : (Math.random() > 0.35 ? "#c084fc" : (Math.random() > 0.5 ? "#7dd3fc" : "#ffffff"))));
+            const trailPalette = proj.gemBurn
+              ? (Math.random() > 0.4 ? "#f97316" : (Math.random() > 0.5 ? "#fde047" : "#c084fc"))
+              : (proj.gemFrost
+                ? (Math.random() > 0.4 ? "#38bdf8" : "#e0f2fe")
+                : (Math.random() > 0.35 ? "#c084fc" : (Math.random() > 0.5 ? "#7dd3fc" : "#ffffff")));
             combatParticles.push({
               x: proj.x + Math.cos(perpAngle) * jitter - Math.cos(proj.angle) * 2,
               y: proj.y + Math.sin(perpAngle) * jitter - Math.sin(proj.angle) * 2,
               vx: -proj.vx * 0.08 + (Math.random() - 0.5) * 14,
               vy: -proj.vy * 0.08 + (Math.random() - 0.5) * 14,
-              size: isFireTrail ? 2.0 + Math.random() * 1.4 : 1.4 + Math.random() * 1.1,
+              size: 1.4 + Math.random() * 1.1,
               color: trailPalette,
               life: 0.16 + Math.random() * 0.10,
               maxLife: 0.26,
@@ -11294,7 +11577,7 @@
           }
         }
 
-        const isSpellProj = Boolean(proj.isMagicOrb || proj.isFireball || proj.isFrostShard);
+        const isSpellProj = Boolean(proj.isMagicOrb);
 
         // Kiểm tra va chạm với Mobs (Heo Rừng, Gà Rừng)
         let hitMob = false;
@@ -11311,52 +11594,84 @@
             } else {
               hitMob = true;
             }
-            if (proj.isFireball) {
-              detonateFireball(proj.x, proj.y, proj.damage, proj.angle);
-              break;
-            }
-            if (proj.resonanceType === "spell_fireball") {
-              detonateResonanceImpact(proj, proj.x, proj.y, mob);
-              break;
-            }
 
-            mob.hp -= proj.damage;
+            const isCrit = Boolean(proj.critChance && Math.random() < proj.critChance);
+            const finalDamage = isCrit ? Math.max(1, Math.round(proj.damage * 1.75)) : proj.damage;
+            mob.hp -= finalDamage;
             playImpactSound(mob.hp <= 0);
 
             if (combatFxConfig.hitFlash) {
               mob.hurtFlashTimer = combatFxConfig.hitFlashDuration || 0.065;
             }
-            if (proj.isFrostShard || proj.resonanceType === "spell_frost") {
-              mob.slowTimer = Math.max(mob.slowTimer || 0, proj.resonanceType === "spell_frost" ? 3.2 : 2.5);
-            }
 
             const mobCenterX = mob.x + mob.width / 2;
             const mobCenterY = mob.y + mob.height / 2;
-            if (proj.isFrostShard || proj.resonanceType === "spell_frost") {
-              spawnMagicHitBurst(mobCenterX, mobCenterY, proj.angle, "#38bdf8", "#e0f2fe", 9);
-            } else if (proj.resonanceType === "spell_lightning") {
-              spawnMagicHitBurst(mobCenterX, mobCenterY, proj.angle, "#facc15", "#ffffff", 11);
-            } else if (proj.isMagicOrb) {
+
+            // Hiệu ứng Ngọc Viêm Hỏa & Cộng hưởng 3 viên Cháy Lan AoE
+            if (proj.gemBurn) {
+              mob.burnTimer = Math.max(mob.burnTimer || 0, 3.0);
+              mob.burnTickTimer = Math.min(mob.burnTickTimer || 0.55, 0.55);
+              if (proj.gemBurnSpread) {
+                mob.burnSpread = true;
+                groundShockwaves.push({
+                  x: mobCenterX, y: mobCenterY, radius: 6, maxRadius: 34,
+                  life: 0.22, maxLife: 0.22,
+                  color: "#f97316", coreColor: "#fde047"
+                });
+                for (const other of currentMobs) {
+                  if (other === mob || other.hp <= 0) continue;
+                  const ox = other.x + other.width / 2;
+                  const oy = other.y + other.height / 2;
+                  if (Math.hypot(ox - mobCenterX, oy - mobCenterY) <= 34) {
+                    other.burnTimer = Math.max(other.burnTimer || 0, 2.8);
+                    other.burnTickTimer = Math.min(other.burnTickTimer || 0.5, 0.5);
+                    other.burnSpread = true;
+                  }
+                }
+              }
+            }
+
+            // Hiệu ứng Ngọc Băng Sương & Cộng hưởng 3 viên Sóng Băng Lan
+            if (proj.gemFrost) {
+              mob.slowTimer = Math.max(mob.slowTimer || 0, proj.gemFrostSpread ? 3.4 : 2.2);
+              if (proj.gemFrostSpread) {
+                groundShockwaves.push({
+                  x: mobCenterX, y: mobCenterY, radius: 6, maxRadius: 34,
+                  life: 0.22, maxLife: 0.22,
+                  color: "#38bdf8", coreColor: "#e0f2fe"
+                });
+                for (const other of currentMobs) {
+                  if (other === mob || other.hp <= 0) continue;
+                  const ox = other.x + other.width / 2;
+                  const oy = other.y + other.height / 2;
+                  if (Math.hypot(ox - mobCenterX, oy - mobCenterY) <= 34) {
+                    other.slowTimer = Math.max(other.slowTimer || 0, 3.0);
+                  }
+                }
+              }
+            }
+
+            // Hiệu ứng Ngọc Hút Máu
+            if (proj.gemVampire && proj.gemVampire > 0 && player.hp < player.maxHp) {
+              const healAmt = Math.max(1, Math.round(finalDamage * proj.gemVampire));
+              player.hp = Math.min(player.maxHp, player.hp + healAmt);
+              addFloatingText(`+${healAmt} HP 🩸`, player.x - 4, player.y - 14, "#f472b6", false);
+              updateStatsHUD();
+            }
+
+            if (proj.isMagicOrb) {
               spawnMagicHitBurst(mobCenterX, mobCenterY, proj.angle);
             } else {
               spawnHitSparks(mobCenterX, mobCenterY, proj.angle);
             }
             triggerHitJuice(combatFxConfig.shakeIntensity || 3, 50);
-            const hitTag = (proj.isFrostShard || proj.resonanceType === "spell_frost")
-              ? " HP ❄️"
-              : (proj.resonanceType === "spell_lightning"
-                ? " HP ⚡"
-                : (proj.isMagicOrb ? " HP ✨" : " HP 🏹"));
-            const hitColor = (proj.isFrostShard || proj.resonanceType === "spell_frost")
-              ? "#7dd3fc"
-              : (proj.resonanceType === "spell_lightning"
-                ? "#fde047"
-                : (proj.isMagicOrb ? "#e879f9" : "#38bdf8"));
-            addFloatingText("-" + proj.damage + hitTag, mob.x - 4, mob.y - 10, hitColor);
+            const hitTag = isCrit ? " HP 💥" : (proj.isMagicOrb ? " HP ✨" : " HP 🏹");
+            const hitColor = isCrit ? "#fde047" : (proj.isMagicOrb ? "#e879f9" : "#38bdf8");
+            addFloatingText("-" + finalDamage + hitTag, mob.x - 4, mob.y - 10, hitColor, isCrit);
 
             // Knockback quái lui lại
             if (combatFxConfig.knockback) {
-              const kbDist = (proj.isFrostShard || proj.resonanceType === "spell_frost") ? 10 : 18;
+              const kbDist = 18;
               const pushX = mob.x + Math.cos(proj.angle) * kbDist;
               const pushY = mob.y + Math.sin(proj.angle) * kbDist;
               if (!checkMobCollision({ x: pushX, y: pushY, width: mob.width, height: mob.height })) {
@@ -11398,11 +11713,7 @@
             if (objBox && checkAABB(pBox, objBox)) {
               hitObstacle = true;
               playImpactSound(false);
-              if (proj.isFireball || proj.resonanceType === "spell_fireball") {
-                detonateFireball(proj.x, proj.y, proj.damage, proj.angle, proj.resonanceType ? 34 : 28, Boolean(proj.resonanceType));
-              } else if (proj.isFrostShard || proj.resonanceType === "spell_frost") {
-                spawnMagicHitBurst(proj.x, proj.y, proj.angle, "#38bdf8", "#e0f2fe", 8);
-              } else if (proj.resonanceType === "spell_gravity") {
+              if (proj.resonanceType === "spell_gravity") {
                 detonateResonanceImpact(proj, proj.x, proj.y, null);
               } else if (proj.isMagicOrb) {
                 spawnMagicHitBurst(proj.x, proj.y, proj.angle);
@@ -11419,11 +11730,7 @@
         // Tự hủy khi bắn trúng quái, trúng chướng ngại vật hoặc bay quá tầm tối đa
         if (hitMob || hitObstacle || proj.traveled >= proj.maxRange) {
           if (!hitMob && !hitObstacle && proj.traveled >= proj.maxRange) {
-            if (proj.isFireball || proj.resonanceType === "spell_fireball") {
-              detonateFireball(proj.x, proj.y, proj.damage, proj.angle, proj.resonanceType ? 34 : 28, Boolean(proj.resonanceType));
-            } else if (proj.isFrostShard || proj.resonanceType === "spell_frost") {
-              spawnMagicHitBurst(proj.x, proj.y, proj.angle, "#38bdf8", "#e0f2fe", 8);
-            } else if (proj.resonanceType === "spell_gravity") {
+            if (proj.resonanceType === "spell_gravity") {
               detonateResonanceImpact(proj, proj.x, proj.y, null);
             } else if (proj.isMagicOrb) {
               spawnMagicHitBurst(proj.x, proj.y, proj.angle);
@@ -11812,7 +12119,34 @@
                 ctx.lineWidth = 1;
                 ctx.strokeRect(obj.x, obj.y, 16, 16);
               }
-              // Đã bỏ viền khung xanh theo yêu cầu người dùng
+            } else if (obj.type === "chest") {
+              const chestImg = images.chest;
+              if (chestImg && chestImg.complete && chestImg.naturalWidth > 0) {
+                ctx.drawImage(chestImg, obj.x, obj.y, 16, 16);
+              } else {
+                ctx.fillStyle = "#b45309";
+                ctx.fillRect(obj.x + 1, obj.y + 3, 14, 11);
+                ctx.strokeStyle = "#451a03";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(obj.x + 1, obj.y + 3, 14, 11);
+                ctx.fillStyle = "#fde047";
+                ctx.fillRect(obj.x + 7, obj.y + 7, 2, 3);
+              }
+              if (obj === activeOpenChest) {
+                ctx.fillStyle = "rgba(250, 204, 21, 0.28)";
+                ctx.fillRect(obj.x + 1, obj.y + 2, 14, 4);
+              } else {
+                const distToChest = Math.hypot((player.x + 8) - (obj.x + 8), (player.y + 8) - (obj.y + 8));
+                if (distToChest <= INTERACTION_RADIUS + 22) {
+                  ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+                  ctx.fillRect(obj.x + 2, obj.y - 8, 12, 7);
+                  ctx.fillStyle = "#fde047";
+                  ctx.font = "bold 5px monospace";
+                  ctx.textAlign = "center";
+                  ctx.fillText("E", obj.x + 8, obj.y - 3);
+                  ctx.textAlign = "left";
+                }
+              }
             } else if (obj.type === "forge") {
               ctx.fillStyle = "saddlebrown";
               ctx.fillRect(obj.x, obj.y, 16, 16);
@@ -11835,9 +12169,8 @@
       }
 
       
-      // Vẽ vật phẩm rơi trên mặt đất (Pixel art bồng bềnh nhẹ nhàng)
+      // Vẽ vật phẩm rơi trên mặt đất (Pixel art bồng bềnh nhẹ nhàng - dùng Cache Image để chống lag)
       for (const gi of droppedItems) {
-        const itemImg = images[gi.item.id] || (gi.item.icon ? null : null);
         const iconSrc = getItemIcon(gi.item);
         const floatY = Math.sin(gi.bobTimer) * 2;
 
@@ -11851,10 +12184,9 @@
             ctx.ellipse(gi.x + 5, gi.y + 10, 4.5, 2, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Vẽ icon vật phẩm nổi bồng bềnh
-            const cachedImg = new Image();
-            cachedImg.src = iconSrc;
-            if (cachedImg.complete && cachedImg.naturalWidth > 0) {
+            // Vẽ icon vật phẩm nổi bồng bềnh từ cache
+            const cachedImg = getCachedIconImage(iconSrc);
+            if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
               ctx.drawImage(cachedImg, gi.x, gi.y + floatY, 10, 10);
             } else {
               ctx.fillStyle = "#fbbf24";
@@ -12742,60 +13074,16 @@
         ctx.translate(proj.x, proj.y);
         ctx.rotate(proj.angle);
 
-        if (proj.isFireball) {
-          const pulse = 1 + Math.sin(performance.now() * 0.028) * 0.16;
-          const tailGrad = ctx.createLinearGradient(-13, 0, 5, 0);
-          tailGrad.addColorStop(0, "rgba(239, 68, 68, 0)");
-          tailGrad.addColorStop(0.55, "rgba(249, 115, 22, 0.7)");
-          tailGrad.addColorStop(1, "rgba(253, 224, 71, 0.95)");
-          ctx.fillStyle = tailGrad;
-          ctx.beginPath();
-          ctx.moveTo(-13, 0);
-          ctx.lineTo(2, -4.0 * pulse);
-          ctx.lineTo(4.5, 0);
-          ctx.lineTo(2, 4.0 * pulse);
-          ctx.closePath();
-          ctx.fill();
-
-          ctx.fillStyle = "rgba(249, 115, 22, 0.65)";
-          ctx.beginPath();
-          ctx.arc(0, 0, 5.6 * pulse, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = "#fde047";
-          ctx.beginPath();
-          ctx.arc(0.5, 0, 3.0 * pulse, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
-        } else if (proj.isFrostShard) {
-          ctx.fillStyle = "rgba(56, 189, 248, 0.45)";
-          ctx.beginPath();
-          ctx.moveTo(-8, 0);
-          ctx.lineTo(0, -2.6);
-          ctx.lineTo(7, 0);
-          ctx.lineTo(0, 2.6);
-          ctx.closePath();
-          ctx.fill();
-          ctx.fillStyle = "#e0f2fe";
-          ctx.beginPath();
-          ctx.moveTo(-5, 0);
-          ctx.lineTo(0, -1.5);
-          ctx.lineTo(5.5, 0);
-          ctx.lineTo(0, 1.5);
-          ctx.closePath();
-          ctx.fill();
-        } else if (proj.isMagicOrb) {
+        if (proj.isMagicOrb) {
           const pulse = 1 + Math.sin(performance.now() * 0.024) * 0.14;
           const rType = proj.resonanceType;
-          const orbColors = rType === "spell_fireball"
-            ? { tail1: "rgba(239, 68, 68, 0)", tail2: "rgba(249, 115, 22, 0.72)", tail3: "rgba(253, 224, 71, 0.95)", aura: "rgba(249, 115, 22, 0.56)", ring: "rgba(253, 224, 71, 0.85)", core: "#fef08a" }
-            : (rType === "spell_frost"
-              ? { tail1: "rgba(14, 165, 233, 0)", tail2: "rgba(56, 189, 248, 0.68)", tail3: "rgba(224, 242, 254, 0.95)", aura: "rgba(56, 189, 248, 0.52)", ring: "rgba(186, 230, 253, 0.85)", core: "#e0f2fe" }
-              : (rType === "spell_lightning"
-                ? { tail1: "rgba(234, 179, 8, 0)", tail2: "rgba(250, 204, 21, 0.72)", tail3: "rgba(254, 249, 195, 0.96)", aura: "rgba(250, 204, 21, 0.54)", ring: "rgba(254, 240, 138, 0.9)", core: "#fef9c3" }
-                : (rType === "spell_gravity"
-                  ? { tail1: "rgba(88, 28, 135, 0)", tail2: "rgba(147, 51, 234, 0.68)", tail3: "rgba(240, 171, 252, 0.95)", aura: "rgba(126, 34, 206, 0.6)", ring: "rgba(216, 180, 254, 0.85)", core: "#f0abfc" }
-                  : { tail1: "rgba(168, 85, 247, 0)", tail2: "rgba(192, 132, 252, 0.55)", tail3: "rgba(245, 208, 254, 0.9)", aura: "rgba(168, 85, 247, 0.48)", ring: "rgba(56, 189, 248, 0.75)", core: "#f5d0fe" })));
+          const orbColors = proj.gemBurn
+            ? { tail1: "rgba(239, 68, 68, 0)", tail2: "rgba(249, 115, 22, 0.68)", tail3: "rgba(253, 224, 71, 0.95)", aura: "rgba(249, 115, 22, 0.50)", ring: "rgba(253, 224, 71, 0.85)", core: "#fef08a" }
+            : (proj.gemFrost
+              ? { tail1: "rgba(14, 165, 233, 0)", tail2: "rgba(56, 189, 248, 0.65)", tail3: "rgba(224, 242, 254, 0.95)", aura: "rgba(56, 189, 248, 0.48)", ring: "rgba(186, 230, 253, 0.85)", core: "#e0f2fe" }
+              : (rType === "spell_gravity"
+                ? { tail1: "rgba(88, 28, 135, 0)", tail2: "rgba(147, 51, 234, 0.68)", tail3: "rgba(240, 171, 252, 0.95)", aura: "rgba(126, 34, 206, 0.6)", ring: "rgba(216, 180, 254, 0.85)", core: "#f0abfc" }
+                : { tail1: "rgba(168, 85, 247, 0)", tail2: "rgba(192, 132, 252, 0.55)", tail3: "rgba(245, 208, 254, 0.9)", aura: "rgba(168, 85, 247, 0.48)", ring: "rgba(56, 189, 248, 0.75)", core: "#f5d0fe" }));
 
           const tailGrad = ctx.createLinearGradient(-11, 0, 4, 0);
           tailGrad.addColorStop(0, orbColors.tail1);
@@ -13400,6 +13688,12 @@
           mctx.fillStyle = obj.type === "forge" ? "#f97316" : "#fbbf24";
           mctx.fillRect(ox - 2, oy - 2, 4, 4);
           mctx.strokeStyle = "#451a03";
+          mctx.lineWidth = 0.8;
+          mctx.strokeRect(ox - 2, oy - 2, 4, 4);
+        } else if (obj.type === "chest") {
+          mctx.fillStyle = "#d97706";
+          mctx.fillRect(ox - 2, oy - 2, 4, 4);
+          mctx.strokeStyle = "#fef08a";
           mctx.lineWidth = 0.8;
           mctx.strokeRect(ox - 2, oy - 2, 4, 4);
         }
