@@ -499,6 +499,39 @@
 
     const gravityFxConfig = { ...DEFAULT_GRAVITY_FX_CONFIG };
 
+    const DEFAULT_WOOD_FX_CONFIG = {
+      step1Enabled: true,
+      waveHeight: 28,
+      waveSpeed: 240,
+      waveFrequency: 2.2,
+
+      step2Enabled: true,
+      branchCount: 4,
+      branchSpread: 32,
+      staggerDelay: 0.05,
+
+      step3Enabled: true,
+      craterRadius: 16,
+      rockCount: 6,
+      dustDensity: 10,
+
+      step4Enabled: true,
+      leafCount: 12,
+      leafSize: 4,
+      bloomSpeed: 8.0,
+
+      step5Enabled: true,
+      coilRings: 3,
+      squeezingForce: 12,
+      sleepChance: 0.40,
+      sleepDuration: 3.5,
+      shakeIntensity: 7,
+      shakeDuration: 0.25,
+      damage: 12
+    };
+
+    const woodFxConfig = { ...DEFAULT_WOOD_FX_CONFIG };
+
     // DOM Binding cho Panel Cài đặt hiệu ứng chiến đấu & Giao diện
     const combatFxSettingsBtn = document.getElementById("combatFxSettingsBtn");
     const combatFxPanel = document.getElementById("combatFxPanel");
@@ -539,8 +572,10 @@
       });
       const genPane = document.getElementById("fxTabGeneral");
       const gravPane = document.getElementById("fxTabGravity");
+      const woodPane = document.getElementById("fxTabWood");
       if (genPane) genPane.style.display = tabName === "general" ? "block" : "none";
       if (gravPane) gravPane.style.display = tabName === "gravity" ? "block" : "none";
+      if (woodPane) woodPane.style.display = tabName === "wood" ? "block" : "none";
     }
 
     const GRAVITY_STEP_GROUPS = [
@@ -753,6 +788,211 @@
 
     mountGravityStepAccordion(document.getElementById("fxGravityAccordion"));
     syncGravityFxControlsFromConfig();
+
+    const WOOD_STEP_GROUPS = [
+      {
+        step: 1,
+        checkProp: "step1Enabled",
+        title: "1. Uốn sóng (thân gỗ vòng cung)",
+        summary: (cfg) => `${Math.round(cfg.waveHeight)}px • ${cfg.waveFrequency.toFixed(1)}Hz`,
+        params: [
+          { prop: "waveHeight", label: "Độ cao sóng (px):", min: 10, max: 60, step: 2, unit: "px", decimals: 0 },
+          { prop: "waveSpeed", label: "Tốc độ lan (px/s):", min: 100, max: 400, step: 10, unit: "", decimals: 0 },
+          { prop: "waveFrequency", label: "Tần số sóng:", min: 1.0, max: 4.0, step: 0.2, unit: "", decimals: 1 }
+        ]
+      },
+      {
+        step: 2,
+        checkProp: "step2Enabled",
+        title: "2. Nhiều nhánh (3-4 thân lệch nhịp)",
+        summary: (cfg) => `${Math.round(cfg.branchCount)} nhánh • ${cfg.staggerDelay.toFixed(2)}s`,
+        params: [
+          { prop: "branchCount", label: "Số nhánh gỗ:", min: 1, max: 6, step: 1, unit: "", decimals: 0 },
+          { prop: "branchSpread", label: "Độ tỏa nhánh (px):", min: 10, max: 60, step: 2, unit: "px", decimals: 0 },
+          { prop: "staggerDelay", label: "Lệch nhịp (s):", min: 0.01, max: 0.15, step: 0.01, unit: "s", decimals: 2 }
+        ]
+      },
+      {
+        step: 3,
+        checkProp: "step3Enabled",
+        title: "3. Đất vỡ (vết nứt, đá & bụi)",
+        summary: (cfg) => `${Math.round(cfg.craterRadius)}px • ${Math.round(cfg.rockCount)} đá`,
+        params: [
+          { prop: "craterRadius", label: "Bán kính nứt (px):", min: 10, max: 35, step: 1, unit: "px", decimals: 0 },
+          { prop: "rockCount", label: "Số đá văng:", min: 2, max: 14, step: 1, unit: "", decimals: 0 },
+          { prop: "dustDensity", label: "Hạt bụi đất:", min: 4, max: 24, step: 2, unit: "", decimals: 0 }
+        ]
+      },
+      {
+        step: 4,
+        checkProp: "step4Enabled",
+        title: "4. Lá mọc (bung nở lá tươi)",
+        summary: (cfg) => `${Math.round(cfg.leafCount)} lá • ${cfg.bloomSpeed.toFixed(1)}x`,
+        params: [
+          { prop: "leafCount", label: "Số lượng lá:", min: 4, max: 24, step: 2, unit: "", decimals: 0 },
+          { prop: "leafSize", label: "Kích thước lá (px):", min: 2, max: 8, step: 1, unit: "px", decimals: 0 },
+          { prop: "bloomSpeed", label: "Tốc độ bung nở:", min: 2.0, max: 15.0, step: 0.5, unit: "x", decimals: 1 }
+        ]
+      },
+      {
+        step: 5,
+        checkProp: "step5Enabled",
+        title: "5. Quấn chặt & Phấn hoa ngủ",
+        summary: (cfg) => `${Math.round(cfg.coilRings)} vòng • Ngủ ${cfg.sleepDuration.toFixed(1)}s`,
+        params: [
+          { prop: "coilRings", label: "Vòng xoắn quấn:", min: 1, max: 6, step: 1, unit: "", decimals: 0 },
+          { prop: "squeezingForce", label: "Lực siết chặt:", min: 4, max: 30, step: 2, unit: " DMG", decimals: 0 },
+          { prop: "sleepChance", label: "Tỷ lệ phấn ngủ:", min: 0.1, max: 1.0, step: 0.1, unit: "", decimals: 1 },
+          { prop: "sleepDuration", label: "Thời gian ngủ (s):", min: 1.0, max: 8.0, step: 0.5, unit: "s", decimals: 1 },
+          { prop: "shakeIntensity", label: "Cường độ rung:", min: 2, max: 16, step: 1, unit: "", decimals: 0 }
+        ]
+      }
+    ];
+
+    function syncWoodFxControlsFromConfig() {
+      document.querySelectorAll("input[data-wood-check]").forEach((cb) => {
+        const prop = cb.dataset.woodCheck;
+        if (!prop) return;
+        const enabled = Boolean(woodFxConfig[prop]);
+        cb.checked = enabled;
+        const item = cb.closest(".grav-step-item");
+        if (item) item.classList.toggle("is-disabled", !enabled);
+      });
+
+      document.querySelectorAll("input[data-wood-prop]").forEach((slider) => {
+        const prop = slider.dataset.woodProp;
+        const unit = slider.dataset.woodUnit || "";
+        const decimals = Number(slider.dataset.woodDecimals || 0);
+        const val = Number(woodFxConfig[prop]);
+        slider.value = String(val);
+        const valSpan = slider.parentElement ? slider.parentElement.querySelector(".grav-val-lbl") : null;
+        if (valSpan) {
+          valSpan.textContent = (decimals > 0 ? val.toFixed(decimals) : Math.round(val)) + unit;
+        }
+      });
+
+      document.querySelectorAll("[data-wood-summary]").forEach((el) => {
+        const stepNum = Number(el.dataset.woodSummary);
+        const grp = WOOD_STEP_GROUPS.find((g) => g.step === stepNum);
+        if (grp) el.textContent = grp.summary(woodFxConfig);
+      });
+    }
+
+    function mountWoodStepAccordion(containerEl) {
+      if (!containerEl) return;
+      containerEl.innerHTML = "";
+
+      WOOD_STEP_GROUPS.forEach((grp, idx) => {
+        const item = document.createElement("div");
+        item.className = "grav-step-item" + (idx === 0 ? " is-open" : "");
+
+        const header = document.createElement("div");
+        header.className = "grav-step-header";
+
+        const label = document.createElement("label");
+        label.className = "grav-step-toggle-label";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.woodCheck = grp.checkProp;
+        checkbox.checked = Boolean(woodFxConfig[grp.checkProp]);
+        checkbox.addEventListener("click", (e) => e.stopPropagation());
+        checkbox.addEventListener("change", (e) => {
+          woodFxConfig[grp.checkProp] = e.target.checked;
+          syncWoodFxControlsFromConfig();
+        });
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = grp.title;
+        label.appendChild(checkbox);
+        label.appendChild(titleSpan);
+
+        const meta = document.createElement("div");
+        meta.className = "grav-step-meta";
+        const summarySpan = document.createElement("span");
+        summarySpan.dataset.woodSummary = String(grp.step);
+        summarySpan.textContent = grp.summary(woodFxConfig);
+        const chevron = document.createElement("span");
+        chevron.className = "grav-step-chevron";
+        chevron.textContent = "▾";
+        meta.appendChild(summarySpan);
+        meta.appendChild(chevron);
+
+        header.appendChild(label);
+        header.appendChild(meta);
+        header.addEventListener("click", (e) => {
+          if (e.target === checkbox) return;
+          const willOpen = !item.classList.contains("is-open");
+          containerEl.querySelectorAll(".grav-step-item").forEach((other) => {
+            other.classList.remove("is-open");
+          });
+          if (willOpen) item.classList.add("is-open");
+        });
+
+        const body = document.createElement("div");
+        body.className = "grav-step-body";
+
+        grp.params.forEach((p) => {
+          const row = document.createElement("div");
+          row.className = "fx-param-row";
+
+          const lbl = document.createElement("span");
+          lbl.textContent = p.label;
+
+          const slider = document.createElement("input");
+          slider.type = "range";
+          slider.min = String(p.min);
+          slider.max = String(p.max);
+          slider.step = String(p.step);
+          slider.value = String(woodFxConfig[p.prop]);
+          slider.dataset.woodProp = p.prop;
+          slider.dataset.woodUnit = p.unit;
+          slider.dataset.woodDecimals = String(p.decimals);
+
+          const valSpan = document.createElement("span");
+          valSpan.className = "grav-val-lbl";
+
+          slider.addEventListener("input", (e) => {
+            woodFxConfig[p.prop] = parseFloat(e.target.value);
+            syncWoodFxControlsFromConfig();
+          });
+
+          row.appendChild(lbl);
+          row.appendChild(slider);
+          row.appendChild(valSpan);
+          body.appendChild(row);
+        });
+
+        item.appendChild(header);
+        item.appendChild(body);
+        containerEl.appendChild(item);
+      });
+    }
+
+    function resetWoodFxConfigDefaults() {
+      Object.assign(woodFxConfig, DEFAULT_WOOD_FX_CONFIG);
+      syncWoodFxControlsFromConfig();
+      addFloatingText("↺ Đã khôi phục Mộc Độn mặc định", player.x - 24, player.y - 16, "#86efac");
+    }
+
+    function applyWoodPreset() {
+      woodFxConfig.step1Enabled = true;
+      woodFxConfig.step2Enabled = true;
+      woodFxConfig.step3Enabled = true;
+      woodFxConfig.step4Enabled = true;
+      woodFxConfig.step5Enabled = true;
+      woodFxConfig.branchCount = 5;
+      woodFxConfig.sleepChance = 0.85;
+      syncWoodFxControlsFromConfig();
+      addFloatingText("🌲 Rừng Thiêng Xanh Thẳm Tối Đa!", player.x - 24, player.y - 16, "#22c55e");
+    }
+
+    mountWoodStepAccordion(document.getElementById("fxWoodAccordion"));
+    syncWoodFxControlsFromConfig();
+
+    const btnWoodReset = document.getElementById("btnWoodReset");
+    if (btnWoodReset) btnWoodReset.addEventListener("click", resetWoodFxConfigDefaults);
+
+    const btnWoodPreset = document.getElementById("btnWoodPreset");
+    if (btnWoodPreset) btnWoodPreset.addEventListener("click", applyWoodPreset);
 
     if (combatFxSettingsBtn && combatFxPanel) {
       combatFxSettingsBtn.addEventListener("click", () => {
@@ -1554,6 +1794,185 @@
       }
     }
 
+    const activeWoodEffects = [];
+    const woodGroundCraters = [];
+
+    function castWoodSpell(aimAngle, clickWorldPos = null, gemBonuses = null) {
+      const pCx = player.x + player.width / 2;
+      const pCy = player.y + player.height / 2;
+
+      let tx = pCx + Math.cos(aimAngle) * 90;
+      let ty = pCy + Math.sin(aimAngle) * 90;
+      let targetMob = null;
+
+      if (clickWorldPos) {
+        const dClick = Math.hypot(clickWorldPos.x - pCx, clickWorldPos.y - pCy);
+        const clamped = Math.min(dClick, 180);
+        const aClick = Math.atan2(clickWorldPos.y - pCy, clickWorldPos.x - pCx);
+        tx = pCx + Math.cos(aClick) * clamped;
+        ty = pCy + Math.sin(aClick) * clamped;
+        let bestDist = 32;
+        for (const mob of currentMobs) {
+          const d = Math.hypot((mob.x + mob.width / 2) - tx, (mob.y + mob.height / 2) - ty);
+          if (d < bestDist) {
+            bestDist = d;
+            targetMob = mob;
+          }
+        }
+      } else {
+        let bestScore = Infinity;
+        for (const mob of currentMobs) {
+          const mx = mob.x + mob.width / 2;
+          const my = mob.y + mob.height;
+          const dist = Math.hypot(mx - pCx, my - pCy);
+          if (dist > 180) continue;
+          let diff = Math.abs(Math.atan2(my - pCy, mx - pCx) - aimAngle);
+          if (diff > Math.PI) diff = Math.PI * 2 - diff;
+          if (diff <= Math.PI * 0.45) {
+            const score = dist + diff * 35;
+            if (score < bestScore) {
+              bestScore = score;
+              targetMob = mob;
+            }
+          }
+        }
+      }
+
+      if (targetMob) {
+        tx = targetMob.x + targetMob.width / 2;
+        ty = targetMob.y + targetMob.height / 2;
+      }
+
+      tx = Math.max(16, Math.min(MAP_SIZE - 16, tx));
+      ty = Math.max(16, Math.min(MAP_SIZE - 16, ty));
+
+      const totalDist = Math.hypot(tx - pCx, ty - pCy);
+      const duration = Math.max(0.3, totalDist / Math.max(80, woodFxConfig.waveSpeed || 240));
+
+      const branches = [];
+      const numBranches = woodFxConfig.step2Enabled ? Math.max(1, Math.min(6, woodFxConfig.branchCount || 4)) : 1;
+      for (let i = 0; i < numBranches; i++) {
+        const angleOffset = (i - (numBranches - 1) / 2) * 0.22;
+        const stagger = i * (woodFxConfig.staggerDelay || 0.05);
+        branches.push({
+          index: i,
+          angleOffset: angleOffset,
+          stagger: stagger,
+          progress: 0
+        });
+      }
+
+      activeWoodEffects.push({
+        startX: pCx,
+        startY: pCy,
+        targetX: tx,
+        targetY: ty,
+        targetMob: targetMob,
+        gemBonuses: gemBonuses,
+        duration: duration,
+        timer: 0,
+        branches: branches,
+        impacted: false
+      });
+    }
+
+    function executeWoodImpact(eff) {
+      const x = eff.targetX;
+      const y = eff.targetY;
+      const gb = eff.gemBonuses || {};
+      const dmg = Math.max(2, Math.round((woodFxConfig.damage || 12) + (gb.damageBonus || 0)));
+
+      if (woodFxConfig.step3Enabled) {
+        const craterR = Math.max(10, woodFxConfig.craterRadius || 16);
+        woodGroundCraters.push({
+          x: x,
+          y: y,
+          radius: craterR,
+          maxRadius: craterR,
+          life: 4.5,
+          maxLife: 4.5,
+          cracks: generateCraterCracks(woodFxConfig.rockCount || 6, craterR)
+        });
+        spawnWoodDebris(x, y, woodFxConfig.rockCount || 6, craterR);
+      }
+
+      let hitCount = 0;
+      for (const mob of currentMobs) {
+        if (mob.hp <= 0) continue;
+        const mCx = mob.x + mob.width / 2;
+        const mCy = mob.y + mob.height / 2;
+        const dist = Math.hypot(mCx - x, mCy - y);
+        if (dist <= 38) {
+          hitCount++;
+          mob.hp -= dmg;
+          if (combatFxConfig.hitFlash) {
+            mob.hurtFlashTimer = combatFxConfig.hitFlashDuration || 0.08;
+          }
+          addFloatingText(`-${dmg} 🌲`, mob.x, mob.y - 12, "#22c55e", false);
+
+          if (woodFxConfig.step5Enabled) {
+            mob.boundTimer = 2.2;
+            if (Math.random() < (woodFxConfig.sleepChance || 0.40)) {
+              mob.sleepTimer = woodFxConfig.sleepDuration || 3.5;
+              addFloatingText("💤 Ngủ say!", mob.x - 4, mob.y - 24, "#86efac", true);
+              spawnSleepPollenParticles(mCx, mCy);
+            }
+          }
+
+          if (mob.hp <= 0) {
+            currentMobs.splice(currentMobs.indexOf(mob), 1);
+            handleMobDeath(mob, mCx, mCy);
+          }
+        }
+      }
+
+      if (woodFxConfig.step5Enabled) {
+        triggerHitJuice(woodFxConfig.shakeIntensity || 7, 0, woodFxConfig.shakeDuration || 0.25, 2);
+      }
+
+      spawnMagicHitBurst(x, y, 0, "#22c55e", "#86efac", 16);
+      playSpellCastSound("spell_wood");
+      if (hitCount > 0) {
+        addFloatingText("🌲 MỘC ĐỘN GIÁNG!", x - 24, y - 18, "#22c55e", true);
+      }
+    }
+
+    function spawnWoodDebris(x, y, count, radius) {
+      for (let k = 0; k < count; k++) {
+        const a = Math.random() * Math.PI * 2;
+        const spd = 30 + Math.random() * 50;
+        combatParticles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(a) * spd,
+          vy: Math.sin(a) * spd - 20,
+          size: 2 + Math.random() * 2,
+          color: Math.random() > 0.5 ? "#166534" : "#78716c",
+          life: 0.4 + Math.random() * 0.3,
+          maxLife: 0.7,
+          isMagicMote: true
+        });
+      }
+    }
+
+    function spawnSleepPollenParticles(x, y) {
+      for (let k = 0; k < 8; k++) {
+        const a = Math.random() * Math.PI * 2;
+        const dist = Math.random() * 16;
+        combatParticles.push({
+          x: x + Math.cos(a) * dist,
+          y: y + Math.sin(a) * dist,
+          vx: (Math.random() - 0.5) * 12,
+          vy: -15 - Math.random() * 15,
+          size: 1.8 + Math.random() * 1.5,
+          color: "#d9f99d",
+          life: 0.6 + Math.random() * 0.4,
+          maxLife: 1.0,
+          isMagicMote: true
+        });
+      }
+    }
+
     function updateGravityAndSpellEffects(deltaTime) {
       for (let i = activeGravityEffects.length - 1; i >= 0; i--) {
         const eff = activeGravityEffects[i];
@@ -1604,6 +2023,25 @@
         lightningBolts[i].life -= deltaTime;
         if (lightningBolts[i].life <= 0) {
           lightningBolts.splice(i, 1);
+        }
+      }
+
+      for (let i = activeWoodEffects.length - 1; i >= 0; i--) {
+        const eff = activeWoodEffects[i];
+        eff.timer += deltaTime;
+        if (eff.timer >= eff.duration) {
+          if (!eff.impacted) {
+            eff.impacted = true;
+            executeWoodImpact(eff);
+          }
+          activeWoodEffects.splice(i, 1);
+        }
+      }
+
+      for (let i = woodGroundCraters.length - 1; i >= 0; i--) {
+        woodGroundCraters[i].life -= deltaTime;
+        if (woodGroundCraters[i].life <= 0) {
+          woodGroundCraters.splice(i, 1);
         }
       }
     }
@@ -1795,6 +2233,95 @@
         ctx.moveTo(lb.pts[0].x, lb.pts[0].y);
         for (let k = 1; k < lb.pts.length; k++) ctx.lineTo(lb.pts[k].x, lb.pts[k].y);
         ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function renderWoodGroundEffects(ctx) {
+      for (const c of woodGroundCraters) {
+        const alpha = Math.max(0, Math.min(1, c.life / Math.min(1.0, c.maxLife * 0.4)));
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(c.x, c.y);
+
+        const grad = ctx.createRadialGradient(0, 0, c.radius * 0.1, 0, 0, c.radius);
+        grad.addColorStop(0, "rgba(20, 83, 45, 0.75)");
+        grad.addColorStop(0.7, "rgba(54, 83, 20, 0.4)");
+        grad.addColorStop(1, "rgba(54, 83, 20, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, c.radius, c.radius * 0.65, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(22, 101, 52, 0.85)";
+        ctx.lineWidth = 1.1;
+        ctx.lineCap = "round";
+        for (const pts of c.cracks) {
+          ctx.beginPath();
+          ctx.moveTo(pts[0].x, pts[0].y);
+          for (let k = 1; k < pts.length; k++) {
+            ctx.lineTo(pts[k].x, pts[k].y);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    function renderWoodAirEffects(ctx) {
+      for (const eff of activeWoodEffects) {
+        const p = Math.min(1, eff.timer / eff.duration);
+        ctx.save();
+        for (const br of eff.branches) {
+          const bp = Math.max(0, Math.min(1, (eff.timer - br.stagger) / Math.max(0.1, eff.duration - br.stagger)));
+          if (bp <= 0) continue;
+
+          const bx = eff.startX + (eff.targetX - eff.startX) * bp;
+          const by = eff.startY + (eff.targetY - eff.startY) * bp;
+
+          const waveH = woodFxConfig.step1Enabled ? (woodFxConfig.waveHeight || 28) * Math.sin(bp * Math.PI * (woodFxConfig.waveFrequency || 2.2)) : 0;
+          const finalY = by - waveH + (br.angleOffset * 15);
+
+          ctx.strokeStyle = "#166534";
+          ctx.lineWidth = 4.5 - br.index * 0.6;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(eff.startX, eff.startY);
+          const cpX = (eff.startX + bx) / 2 + br.angleOffset * 20;
+          const cpY = (eff.startY + finalY) / 2 - Math.abs(waveH) * 1.3;
+          ctx.quadraticCurveTo(cpX, cpY, bx, finalY);
+          ctx.stroke();
+
+          ctx.strokeStyle = "#22c55e";
+          ctx.lineWidth = 2.0;
+          ctx.beginPath();
+          ctx.moveTo(eff.startX, eff.startY);
+          ctx.quadraticCurveTo(cpX, cpY, bx, finalY);
+          ctx.stroke();
+
+          if (woodFxConfig.step4Enabled && bp > 0.15) {
+            ctx.fillStyle = "#86efac";
+            for (let l = 0; l < 4; l++) {
+              const la = bp * Math.PI * 4 + l * (Math.PI / 2);
+              const lx = bx + Math.cos(la) * 8;
+              const ly = finalY + Math.sin(la) * 6;
+              ctx.beginPath();
+              ctx.arc(lx, ly, woodFxConfig.leafSize || 4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+
+        if (p >= 0.85 && woodFxConfig.step5Enabled) {
+          ctx.strokeStyle = "#14532d";
+          ctx.lineWidth = 2.5;
+          const rings = woodFxConfig.coilRings || 3;
+          for (let r = 0; r < rings; r++) {
+            ctx.beginPath();
+            ctx.arc(eff.targetX, eff.targetY, 12 + r * 5, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
         ctx.restore();
       }
     }
@@ -2620,6 +3147,19 @@
         hasSettings: true,
         desc: "5 bước: Vòng báo tím → Cột sáng đổ xuống → Đè bẹp/Tờ giấy → Đất lún nứt → Dừng 3 frame & lắc mạnh",
         icon: "assets/items/skills/spell_gravity.png"
+      },
+      spell_wood: {
+        id: "spell_wood",
+        name: "Ngọc Mộc Độn",
+        shortName: "Mộc Độn",
+        badge: "🪵",
+        color: "#22c55e",
+        glow: "#86efac",
+        cooldown: 1.10,
+        damage: 10,
+        hasSettings: true,
+        desc: "5 bước: Sóng uốn lượn 3 thân gỗ → Đất nứt bụi đá → Lá mọc bung nở → Quấn chặt siết mục tiêu → Hoa nở phấn ngủ",
+        icon: "assets/items/skills/spell_wood.png"
       }
     };
 
@@ -2633,6 +3173,16 @@
         glow: "#f0abfc",
         basicDesc: "Cầu Hố Đen (Hút Gom & Đè Diện Rộng)",
         desc: "Khảm 3 Ngọc Trọng Lực: Đánh thường tạo hố trọng lực mini 36px kéo tụ quái, gây AoE & làm choáng nhẹ!"
+      },
+      spell_wood: {
+        spellId: "spell_wood",
+        label: "🌲 Cộng Hưởng: Rừng Thiêng Xanh Thẳm",
+        shortCap: "Đánh 🌲",
+        badge: "🌲",
+        color: "#22c55e",
+        glow: "#86efac",
+        basicDesc: "Cọc Rễ Gai (Gây Độc & Đâm Rễ Lan)",
+        desc: "Khảm 3 Ngọc Mộc Độn: Đánh thường mọc rễ gai gai góc đâm xuyên mục tiêu gây độc và trói chân!"
       }
     };
 
@@ -2648,7 +3198,7 @@
     function normalizeWandSlots(rawSlots) {
       if (!Array.isArray(rawSlots)) return [null, null, null];
       const sliced = rawSlots.slice(0, 3);
-      const arr = sliced.map((sid) => (sid === "spell_gravity" ? "spell_gravity" : null));
+      const arr = sliced.map((sid) => (sid && SPELLS_DATABASE[sid] ? sid : null));
       while (arr.length < 3) arr.push(null);
       return arr;
     }
@@ -2764,6 +3314,22 @@
         ],
         description: SPELLS_DATABASE.spell_gravity.desc,
         icon: SPELLS_DATABASE.spell_gravity.icon
+      },
+      "spell_wood": {
+        id: "spell_wood",
+        name: SPELLS_DATABASE.spell_wood.name,
+        category: "spell",
+        spellId: "spell_wood",
+        rarity: "legendary",
+        maxStack: 1,
+        value: 140,
+        damage: 10,
+        perks: [
+          "✦ Lắp vào Phần 1 (Chiêu Thức Z / X / C) của Đũa Phép",
+          "✦ Mộc Độn 5 bước: Sóng uốn lượn, nứt đất, bung lá, quấn chặt & hoa nở ngủ"
+        ],
+        description: SPELLS_DATABASE.spell_wood.desc,
+        icon: SPELLS_DATABASE.spell_wood.icon
       },
       "gem_damage": {
         id: "gem_damage",
@@ -3547,7 +4113,7 @@
     playerInventory[16] = { id: 'iron_chest', name: 'Giáp Sắt', quantity: 1, durability: 240, maxDurability: 240 };
     playerInventory[17] = { id: 'iron_legs', name: 'Quần Sắt', quantity: 1, durability: 200, maxDurability: 200 };
     playerInventory[18] = { id: 'iron_boots', name: 'Giày Sắt', quantity: 1, durability: 180, maxDurability: 180 };
-    playerInventory[19] = { id: 'spell_gravity', name: SPELLS_DATABASE.spell_gravity.name, quantity: 1 };
+    playerInventory[19] = { id: 'spell_wood', name: SPELLS_DATABASE.spell_wood.name, quantity: 1 };
     playerInventory[20] = { id: 'diamond_helmet', name: 'Nón Kim Cương', quantity: 1, durability: 350, maxDurability: 350 };
     playerInventory[21] = { id: 'diamond_chest', name: 'Giáp Kim Cương', quantity: 1, durability: 500, maxDurability: 500 };
     playerInventory[22] = { id: 'diamond_legs', name: 'Quần Kim Cương', quantity: 1, durability: 420, maxDurability: 420 };
@@ -4241,7 +4807,7 @@
     }
 
     function canItemGoInSpellSlot(item) {
-      return Boolean(item && item.id === "spell_gravity" && SPELLS_DATABASE[item.id]);
+      return Boolean(item && item.id && SPELLS_DATABASE[item.id]);
     }
 
     function canItemGoInGemSlot(item) {
@@ -4348,7 +4914,7 @@
         if (!wand || index < 0 || index >= 3) return;
         const wd = ensureWandData(wand);
         const prevSpellId = wd.slots[index];
-        const nextSpellId = (item && item.id === "spell_gravity" && SPELLS_DATABASE[item.id]) ? item.id : null;
+        const nextSpellId = (item && item.id && SPELLS_DATABASE[item.id]) ? item.id : null;
         const hadResBefore = Boolean(getWandResonance(wand));
         wd.slots[index] = nextSpellId;
         wandSkillCooldowns[index] = 0;
@@ -9311,6 +9877,17 @@
           }
         }
 
+        if (mob.sleepTimer > 0) {
+          mob.sleepTimer = Math.max(0, mob.sleepTimer - deltaTime);
+          mob.isMoving = false;
+          continue;
+        }
+        if (mob.boundTimer > 0) {
+          mob.boundTimer = Math.max(0, mob.boundTimer - deltaTime);
+          mob.isMoving = false;
+          continue;
+        }
+
         // Lerp thanh máu quái vật (tỷ lệ theo maxHp để tụt mượt khi máu cao)
         if (mob.displayHp > mob.hp) {
           const drainSpeed = Math.max(8, (mob.maxHp || 10) * 1.4);
@@ -10029,6 +10606,12 @@
         playSpellCastSound("spell_gravity");
         return;
       }
+      if (spellId === "spell_wood") {
+        spawnMagicCastVfx(tipX, tipY, castAngle, "#22c55e", "#86efac", 12);
+        castWoodSpell(castAngle, clickWorldPos, gemBonuses);
+        playSpellCastSound("spell_wood");
+        return;
+      }
 
       // Đòn đánh thường mặc định của Đũa Phép (Cầu Năng Lượng Tím + chỉ số Ngọc khảm)
       castDefaultWandBasicOrb(tipX, tipY, castAngle, gemBonuses);
@@ -10202,6 +10785,29 @@
         });
         spawnMagicCastVfx(tipX, tipY, castAngle, "#a855f7", "#f0abfc", 10);
         playSpellCastSound("spell_gravity");
+        return;
+      }
+      if (rId === "spell_wood") {
+        const speed = 260;
+        activeProjectiles.push({
+          x: tipX, y: tipY,
+          vx: cosA * speed, vy: sinA * speed,
+          angle: castAngle,
+          damage: 5 + (gb.damageBonus || 0),
+          traveled: 0, maxRange: 255,
+          width: 12, height: 12,
+          trailTimer: 0,
+          isMagicOrb: true,
+          resonanceType: "spell_wood",
+          critChance: gb.critChance || 0,
+          gemBurn: (gb.burnStacks || 0) > 0,
+          gemBurnSpread: Boolean(gb.burnSpread),
+          gemFrost: (gb.frostStacks || 0) > 0,
+          gemFrostSpread: Boolean(gb.frostSpread),
+          gemVampire: gb.vampirePct || 0
+        });
+        spawnMagicCastVfx(tipX, tipY, castAngle, "#22c55e", "#86efac", 12);
+        playSpellCastSound("spell_wood");
         return;
       }
 
@@ -12038,8 +12644,9 @@
         ctx.restore();
       }
 
-      // Hiệu ứng mặt đất của Phép Trọng Lực (Đất lún, Vết nứt tia, Vòng báo tím, Vòng sóng lan)
+      // Hiệu ứng mặt đất của Phép Trọng Lực & Mộc Độn
       renderGravityGroundEffects(ctx);
+      renderWoodGroundEffects(ctx);
 
       // --- VẼ CÁC THỰC THỂ CÓ ĐỘ SÂU THEO TRỤC Y (Y-SORTING LAYER LOGIC) ---
       // Gom tất cả các đối tượng: Vật thể (Cây, Đá, Lò rèn), Heo Rừng và Player vào danh sách renderable
@@ -13112,8 +13719,9 @@
         ctx.restore();
       }
 
-      // Hiệu ứng cột sáng tím & tia sét giáng từ trên cao xuống (Bước 2 Trọng Lực + Lôi Kích)
+      // Hiệu ứng cột sáng tím & Mộc Độn
       renderGravityAirEffects(ctx);
+      renderWoodAirEffects(ctx);
 
       
       // --- VẼ THANH HIỆU ỨNG GỒNG LỰC CUNG TRÊN ĐẦU NHÂN VẬT ---
