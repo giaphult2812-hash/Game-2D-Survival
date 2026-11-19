@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- Thân bàn viền gỗ sẫm -->
+  <rect x="2" y="2" width="12" height="12" fill="#5b411a"/>
+  <!-- Mặt ván gỗ sồi vàng ấm -->
+  <rect x="3" y="3" width="10" height="10" fill="#a27b3e"/>
+  <rect x="4" y="4" width="8" height="8" fill="#c49a59"/>
+  <!-- Lưới 4 ô mờ trên mặt bàn -->
+  <rect x="7" y="3" width="2" height="10" fill="#7f5e2a"/>
+  <rect x="3" y="7" width="10" height="2" fill="#7f5e2a"/>
+  <!-- Mini Búa sắt ở góc trái -->
+  <rect x="4" y="5" width="2" height="1" fill="#e1e1e1"/>
+  <rect x="5" y="6" width="1" height="1" fill="#855723"/>
+  <!-- Mini Cưa sắt ở góc phải -->
+  <rect x="10" y="9" width="2" height="2" fill="#bebebe"/>
+  <rect x="11" y="8" width="1" height="1" fill="#855723"/>
+  <!-- Đinh tán 4 góc -->
+  <rect x="3" y="3" width="1" height="1" fill="#37250f"/>
+  <rect x="12" y="3" width="1" height="1" fill="#37250f"/>
+  <rect x="3" y="12" width="1" height="1" fill="#37250f"/>
+  <rect x="12" y="12" width="1" height="1" fill="#37250f"/>
+</svg>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- Cần câu pixel art 16x16 hướng chéo 45° -->
+  <!-- Viền tối thân cần gỗ & ngọn cần -->
+  <rect x="1" y="13" width="2" height="2" fill="#2a1608"/>
+  <rect x="2" y="12" width="2" height="2" fill="#2a1608"/>
+  <rect x="3" y="11" width="2" height="2" fill="#2a1608"/>
+  <rect x="4" y="10" width="2" height="2" fill="#2a1608"/>
+  <rect x="5" y="9" width="2" height="2" fill="#2a1608"/>
+  <rect x="6" y="7" width="2" height="2" fill="#2a1608"/>
+  <rect x="7" y="6" width="2" height="2" fill="#2a1608"/>
+  <rect x="8" y="4" width="2" height="2" fill="#2a1608"/>
+  <rect x="9" y="3" width="2" height="2" fill="#2a1608"/>
+  <rect x="11" y="2" width="2" height="2" fill="#2a1608"/>
+  <rect x="12" y="1" width="2" height="2" fill="#2a1608"/>
+
+  <!-- Tay cầm bọc da & lõi gỗ sồi -->
+  <rect x="1" y="14" width="1" height="1" fill="#5b3412"/>
+  <rect x="2" y="13" width="1" height="1" fill="#7c4a1b"/>
+  <rect x="3" y="12" width="1" height="1" fill="#9e5e24"/>
+  <rect x="4" y="11" width="1" height="1" fill="#bf7832"/>
+  <rect x="5" y="10" width="1" height="1" fill="#9e5e24"/>
+  <rect x="6" y="8" width="1" height="1" fill="#bf7832"/>
+  <rect x="7" y="7" width="1" height="1" fill="#d99448"/>
+  <rect x="8" y="5" width="1" height="1" fill="#bf7832"/>
+  <rect x="9" y="4" width="1" height="1" fill="#e2b478"/>
+  <rect x="10" y="3" width="1" height="1" fill="#e2b478"/>
+  <rect x="12" y="2" width="1" height="1" fill="#f1d5a5"/>
+
+  <!-- Cuộn máy câu kim loại ở gốc cần -->
+  <rect x="4" y="12" width="2" height="2" fill="#334155"/>
+  <rect x="5" y="12" width="1" height="1" fill="#94a3b8"/>
+  <rect x="4" y="13" width="1" height="1" fill="#cbd5e1"/>
+
+  <!-- Dây cước rủ xuống từ đầu cần (13,2) -->
+  <rect x="13" y="3" width="1" height="5" fill="#bae6fd"/>
+  <!-- Phao câu đỏ trắng -->
+  <rect x="12" y="8" width="3" height="2" fill="#ef4444"/>
+  <rect x="12" y="8" width="1" height="1" fill="#fca5a5"/>
+  <rect x="12" y="10" width="3" height="1" fill="#f8fafc"/>
+  <!-- Lưỡi câu bạc cong -->
+  <rect x="13" y="11" width="1" height="2" fill="#cbd5e1"/>
+  <rect x="12" y="13" width="1" height="1" fill="#94a3b8"/>
+  <rect x="11" y="12" width="1" height="1" fill="#f8fafc"/>
+</svg>

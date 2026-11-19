@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>2D Top-Down Pixel Art Game (16x16 Quy Chuẩn)</title>
+  <meta name="description" content="Game 2D Top-down Pixel Art 16x16: Hệ thống camera zoom pixel-perfect, khử mờ răng cưa và điều khiển mượt mà trên cả máy tính và điện thoại." />
+  <meta property="og:title" content="2D Top-Down Pixel Art Game (16x16)" />
+  <meta property="og:description" content="Game 2D Top-down Pixel Art 16x16: Hệ thống camera zoom pixel-perfect, khử mờ răng cưa và điều khiển mượt mà." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/game.css" />
+  <link rel="stylesheet" href="styles/mobile.css" />
+</head>
+<body>
+  <!-- CANVAS CHÍNH CHIẾM TOÀN MÀN HÌNH -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- MÀN HÌNH TẢI GAME (LOADING SCREEN) -->
+  <div id="loadingScreen">
+    <div class="loading-emblem" aria-hidden="true">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter">
+        <path d="M14.5 17.5L3 6V3h3l11.5 11.5"/>
+        <path d="M13 19l6-6"/>
+        <path d="M16 16l4 4"/>
+        <path d="M19 21l2-2"/>
+      </svg>
+    </div>
+    <div class="loading-title">2D SURVIVAL PIXEL</div>
+    <div id="loadingText" class="loading-subtitle">Đang tải tài nguyên Pixel Art...</div>
+    <div class="loading-bar-track">
+      <div id="loadingBar" class="loading-bar-fill"></div>
+    </div>
+  </div>
+
+  <!-- VẬT PHẨM LƠ LỬNG THEO CON TRỎ -->
+  <div id="cursor-item"></div>
+
+  <!-- NÚT GIAO DIỆN MÁY TÍNH & NÚT BẬT THÔNG TIN TRÊN ĐIỆN THOẠI -->
+  <button id="btnInventoryBtn" type="button" title="Mở Túi Đồ [E]">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+      <path d="M6 8h12l1 12H5L6 8z"/>
+      <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+      <path d="M10 13h4"/>
+    </svg>
+    <span>Túi Đồ</span>
+    <kbd class="hud-kbd">E</kbd>
+  </button>
+  <button id="btnMobileHudInfo" type="button" title="Thông số FPS / Tọa độ">INFO</button>
+  <button id="combatFxSettingsBtn" type="button" title="Tùy chỉnh hiệu ứng & giao diện">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.77 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    <span>Cài Đặt</span>
+  </button>
+
+  <!-- BẢN ĐỒ NHỎ TRONG SUỐT GÓC PHẢI TRÊN (MINI-MAP OVERLAY) -->
+  <div id="minimapOverlay" aria-label="Bản đồ nhỏ">
+    <div id="minimapHeader">
+      <span id="minimapTitle">🏠 NHÀ</span>
+      <span id="minimapCoords">248, 248</span>
+    </div>
+    <canvas id="minimapCanvas" width="128" height="128"></canvas>
+    <div id="minimapLegend">
+      <span><i class="mm-dot mm-tree"></i>Cây</span>
+      <span><i class="mm-dot mm-rock"></i>Đá</span>
+      <span><i class="mm-dot mm-mob"></i>Quái</span>
+      <span><i class="mm-dot mm-portal"></i>Cổng</span>
+    </div>
+  </div>
+
+  <!-- NHÃN TÊN VẬT PHẨM HOTBAR (MOBILE) -->
+  <div id="mobileHotbarLabel"></div>
+
+  <!-- THANH HÀNH ĐỘNG ĐÁY MÀN HÌNH: HOTBAR -->
+  <div id="actionBottomDock">
+    <div id="hotbar-ui"></div>
+  </div>
+
+  <!-- GIAO DIỆN DUAL-MODE: TÚI ĐỒ (2x2) / BÀN CHẾ TẠO (3x3 + FORGE) -->
+  <div id="inventory-ui">
+    <div class="inv-title-bar">
+      <div class="inv-title-left">
+        <span id="invTitleText">🎒 TÚI ĐỒ CÁ NHÂN</span>
+        <span class="inv-title-mode-badge" id="invModeBadge">CHẾ TẠO 2x2</span>
+      </div>
+      <div class="inv-title-actions">
+        <button type="button" id="btnToggleRecipeBook" class="recipe-book-toggle-btn" title="Mở / Đóng Sổ Tay Công Thức [R]">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span>Công thức</span>
+          <kbd class="btn-kbd">R</kbd>
+        </button>
+        <button type="button" class="inv-close-btn" onclick="toggleInventory(false)" title="Đóng túi đồ [E]">
+          <span>Đóng</span>
+          <kbd class="btn-kbd">E</kbd>
+        </button>
+      </div>
+    </div>
+
+    <div class="inv-main-layout" id="invMainLayout">
+      <!-- SỔ TAY CÔNG THỨC CHUẨN MINECRAFT -->
+      <aside id="recipeBookPanel" class="recipe-book-panel" style="display:none;" aria-label="Sổ tay công thức">
+        <div class="recipe-book-header">
+          <span class="recipe-book-title">SỔ CÔNG THỨC</span>
+          <span id="recipeBookCountBadge" class="recipe-book-count">0/0 đủ</span>
+        </div>
+
+        <div class="recipe-tabs" id="recipeTabs">
+          <button type="button" class="recipe-tab active" data-cat="all">Tất cả</button>
+          <button type="button" class="recipe-tab" data-cat="gear">Dụng cụ</button>
+          <button type="button" class="recipe-tab" data-cat="materials">Cơ bản</button>
+          <button type="button" class="recipe-tab" data-cat="forge">Lò rèn</button>
+        </div>
+
+        <div class="recipe-controls-row">
+          <div class="recipe-search-wrap">
+            <input type="text" id="recipeSearchInput" class="recipe-search-input" placeholder="Tìm công thức..." autocomplete="off">
+            <button type="button" id="btnClearRecipeSearch" class="recipe-search-clear" style="display:none;" aria-label="Xóa tìm kiếm">✕</button>
+          </div>
+          <button type="button" id="btnRecipeCraftableFilter" class="recipe-craftable-toggle" title="Lọc công thức đang đủ nguyên liệu">✓ Đủ đồ</button>
+        </div>
+
+        <div class="recipe-book-grid" id="recipeBookGrid"></div>
+
+        <div class="recipe-preview-box" id="recipePreviewBox">
+          <div class="recipe-preview-empty">Chọn công thức để xem cách xếp &amp; tự điền vào lưới</div>
+        </div>
+      </aside>
+
+      <!-- CỘT CHẾ TẠO / LÒ RÈN / KHO ĐỒ -->
+      <div class="inv-content-column">
+        <!-- KHU VỰC TRÊN: TRANG BỊ + CHẾ TẠO (2x2) HOẶC WORKSTATION (3x3 + LÒ RÈN) -->
+        <div class="inv-top-panels">
+          <!-- KHU VỰC CHẾ TẠO 2X2 CÁ NHÂN -->
+          <div class="pocket-crafting-section" id="pocketCraftingSection">
+            <!-- CỘT 4 Ô TRANG BỊ GIÁP & XEM TRƯỚC NGOẠI HÌNH -->
+            <div class="equip-preview-row">
+              <div class="equipment-column">
+                <div class="equip-header">
+                  <span>TRANG BỊ</span>
+                  <span id="equipArmorBadge" class="equip-armor-badge">+0 Giáp</span>
+                </div>
+                <div class="equip-slot-wrapper">
+                  <span class="equip-slot-label">Nón</span>
+                  <div class="slot" id="equipSlot0" data-type="equip" data-index="0" data-slot-type="helmet"><span class="equip-watermark">🪖</span></div>
+                </div>
+                <div class="equip-slot-wrapper">
+                  <span class="equip-slot-label">Áo</span>
+                  <div class="slot" id="equipSlot1" data-type="equip" data-index="1" data-slot-type="chest"><span class="equip-watermark">🦺</span></div>
+                </div>
+                <div class="equip-slot-wrapper">
+                  <span class="equip-slot-label">Quần</span>
+                  <div class="slot" id="equipSlot2" data-type="equip" data-index="2" data-slot-type="legs"><span class="equip-watermark">👖</span></div>
+                </div>
+                <div class="equip-slot-wrapper">
+                  <span class="equip-slot-label">Giày</span>
+                  <div class="slot" id="equipSlot3" data-type="equip" data-index="3" data-slot-type="boots"><span class="equip-watermark">👢</span></div>
+                </div>
+              </div>
+
+              <!-- KHUNG XEM TRƯỚC NGOẠI HÌNH (PAPERDOLL PREVIEW) -->
+              <div class="paperdoll-preview-box" id="paperdollPreviewBox">
+                <div class="paperdoll-sparkles" id="paperdollSparkles" aria-hidden="true"></div>
+                <canvas id="paperdollCanvas" class="paperdoll-canvas" width="48" height="48"></canvas>
+                <span class="paperdoll-title">NHÂN VẬT</span>
+              </div>
+            </div>
+
+            <div class="equip-divider"></div>
+
+            <div class="pocket-craft-group">
+              <div class="crafting-grid-wrapper">
+                <span class="crafting-grid-label">CHẾ TẠO</span>
+                <div class="pocket-crafting-grid" id="pocketCraftingGrid"></div>
+              </div>
+              <div class="crafting-arrow" aria-hidden="true">
+                <svg width="18" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h15"/><path d="M12 2l5 5-5 5"/></svg>
+              </div>
+              <div class="craft-result-wrapper">
+                <span class="crafting-grid-label">KẾT QUẢ</span>
+                <div class="craft-result-slot" id="pocketCraftResultSlot"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KHU VỰC BÀN CHẾ TẠO 3X3 & LÒ RÈN NÂNG CẤP -->
+          <div class="workstation-container" id="workstationContainer" style="display:none;">
+            <div class="workstation-crafting-panel">
+              <div class="panel-subhead">
+                <span class="crafting-grid-label">BÀN CHẾ TẠO (3x3)</span>
+              </div>
+              <div class="workstation-craft-row">
+                <div class="workstation-grid" id="workstationCraftingGrid"></div>
+                <div class="crafting-arrow" aria-hidden="true">
+                  <svg width="18" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h15"/><path d="M12 2l5 5-5 5"/></svg>
+                </div>
+                <div class="craft-result-wrapper">
+                  <div class="craft-result-slot" id="workstationCraftResultSlot"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="workstation-forge-panel" id="forgeSection">
+              <div class="panel-subhead">
+                <span class="crafting-grid-label forge-title">LÒ RÈN NÂNG CẤP</span>
+                <span class="forge-subhint">Ghép 2 món cùng cấp</span>
+              </div>
+              <div class="forge-main-row">
+                <div class="forge-slots-row">
+                  <div class="slot" id="forgeSlotItem" title="Đặt vũ khí / công cụ thứ 1"><span class="slot-watermark">⚔️</span></div>
+                  <span class="forge-plus">+</span>
+                  <div class="slot" id="forgeSlotMaterial" title="Đặt vũ khí / công cụ thứ 2 (cùng loại &amp; cùng cấp)"><span class="slot-watermark">⚔️</span></div>
+                </div>
+                <div class="crafting-arrow forge-arrow" aria-hidden="true">
+                  <svg width="18" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h15"/><path d="M12 2l5 5-5 5"/></svg>
+                </div>
+                <div class="craft-result-wrapper">
+                  <div class="forge-result-slot disabled" id="forgeResultSlot" title="Dự kiến sản phẩm sau khi rèn"></div>
+                </div>
+              </div>
+              <div class="forge-footer-row">
+                <div id="forgeRateBadge" class="forge-rate-badge">Tỉ lệ: --</div>
+                <button type="button" id="btnExecuteForge" class="forge-execute-btn">⚒️ NÂNG CẤP</button>
+              </div>
+              <div id="forgeResultBanner" class="forge-result-banner" style="display:none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KHU VỰC DƯỚI: KHO ĐỒ 27 Ô + HOTBAR 9 Ô (DÒNG NÀO RA DÒNG NẤY) -->
+        <div class="inv-bag-column">
+          <div class="storage-section-wrapper">
+            <div class="inv-section-header">
+              <span class="storage-section-label">KHO ĐỒ</span>
+              <span class="inv-section-meta">27 Ô</span>
+            </div>
+            <div class="storage-grid-container" id="storageGrid"></div>
+          </div>
+
+          <div class="hotbar-inv-wrapper">
+            <div class="inv-section-header">
+              <span class="hotbar-inv-label">HOTBAR</span>
+              <span class="inv-section-meta">PHÍM 1 – 9</span>
+            </div>
+            <div class="hotbar-inv-grid" id="hotbarInvGrid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLTIP VẬT PHẨM -->
+  <div id="item-tooltip">
+    <div class="tooltip-header">
+      <div class="tooltip-title" id="tooltipTitle">Tên Vật Phẩm</div>
+      <div class="tooltip-badge" id="tooltipBadge">VŨ KHÍ</div>
+    </div>
+    <div class="tooltip-stats" id="tooltipStats"></div>
+    <div class="tooltip-perks" id="tooltipPerks"></div>
+    <div class="tooltip-desc" id="tooltipDesc"></div>
+  </div>
+
+  <!-- BẢNG TÙY CHỈNH HIỆU ỨNG CHIẾN ĐẤU & PHÉP TRỌNG LỰC -->
+  <div id="combatFxPanel">
+    <h3>
+      <span>⚙️ Tùy Chỉnh &amp; Giao Diện</span>
+      <button type="button" id="closeCombatFxPanel" class="fx-close-btn" aria-label="Đóng cài đặt">✕</button>
+    </h3>
+
+    <div class="fx-tabs-bar" role="tablist">
+      <button type="button" class="fx-tab-btn active" data-fx-tab="general">⚔️ Chung &amp; Chỉ Số</button>
+      <button type="button" class="fx-tab-btn" data-fx-tab="gravity">🌌 Trọng Lực (5 Bước)</button>
+    </div>
+
+    <div id="fxTabGeneral" class="fx-tab-pane active">
+      <div class="fx-toggle-row fx-toggle-divider">
+        <label><input type="checkbox" id="cfgMinimap" checked> 🗺️ Hiện Mini-Map [M]</label>
+      </div>
+      <div class="fx-toggle-row">
+        <label><input type="checkbox" id="cfgHitFlash" checked> 1. Hit Flash (Chớp trắng)</label>
+      </div>
+      <div class="fx-param-row">
+        <span>Thời lượng chớp (ms):</span>
+        <input type="range" id="cfgHitFlashDur" min="30" max="150" value="65">
+        <span id="valHitFlashDur">65ms</span>
+      </div>
+      <div class="fx-toggle-row">
+        <label><input type="checkbox" id="cfgImpactSound" checked> 2. Impact Sound (Âm thanh)</label>
+      </div>
+      <div class="fx-param-row">
+        <span>Âm lượng (Volume):</span>
+        <input type="range" id="cfgSoundVol" min="0" max="100" value="80">
+        <span id="valSoundVol">80%</span>
+      </div>
+      <div class="fx-toggle-row">
+        <label><input type="checkbox" id="cfgHitParticles" checked> 3. Hit Particles (Tia lửa)</label>
+      </div>
+      <div class="fx-param-row">
+        <span>Số hạt tia lửa:</span>
+        <input type="range" id="cfgSparkCount" min="4" max="24" value="12">
+        <span id="valSparkCount">12</span>
+      </div>
+      <div class="fx-toggle-row">
+        <label><input type="checkbox" id="cfgKnockback" checked> 4. Knockback (Đẩy lùi)</label>
+      </div>
+      <div class="fx-param-row">
+        <span>Lực đẩy quái (px):</span>
+        <input type="range" id="cfgKnockbackDist" min="4" max="30" value="14">
+        <span id="valKnockbackDist">14px</span>
+      </div>
+      <div class="fx-param-row">
+        <span>Nhân vật bật lại (px):</span>
+        <input type="range" id="cfgPlayerRecoil" min="0" max="12" value="4">
+        <span id="valPlayerRecoil">4px</span>
+      </div>
+      <div class="fx-toggle-row">
+        <label><input type="checkbox" id="cfgScreenShake" checked> 5. Screen Shake + Hit-stop</label>
+      </div>
+      <div class="fx-param-row">
+        <span>Hit-stop (dừng hình ms):</span>
+        <input type="range" id="cfgHitStop" min="0" max="200" value="80">
+        <span id="valHitStop">80ms</span>
+      </div>
+      <div class="fx-param-row">
+        <span>Cường độ rung (shake):</span>
+        <input type="range" id="cfgShakeInt" min="1" max="15" value="5">
+        <span id="valShakeInt">5</span>
+      </div>
+
+      <div class="fx-stats-section">
+        <div class="fx-stats-heading">📊 Bộ Chỉ Số Mặc Định (Sinh Vật)</div>
+        <div class="fx-section-card is-player">
+          <div class="fx-card-title">👤 Người Chơi (Player)</div>
+          <div class="fx-param-row">
+            <span>Máu (HP):</span>
+            <input type="range" id="statPlayerHp" min="20" max="300" value="50">
+            <span id="lblPlayerHp">50</span>
+          </div>
+          <div class="fx-param-row">
+            <span>Tốc độ chạy:</span>
+            <input type="range" id="statPlayerSpeed" min="30" max="220" value="60">
+            <span id="lblPlayerSpeed">60 px/s</span>
+          </div>
+          <div class="fx-param-row">
+            <span>Sức mạnh đánh (tay không):</span>
+            <input type="range" id="statPlayerAtk" min="1" max="10" value="2">
+            <span id="lblPlayerAtk">2 DMG</span>
+          </div>
+          <div class="fx-param-row">
+            <span>Hồi chiêu đánh (Cooldown):</span>
+            <input type="range" id="statPlayerCooldown" min="1" max="25" value="10">
+            <span id="lblPlayerCooldown">1.0s</span>
+          </div>
+        </div>
+        <div class="fx-section-card is-boar">
+          <div class="fx-card-title">🐗 Heo Rừng (Wild Boar)</div>
+          <div class="fx-param-row">
+            <span>Máu (HP):</span>
+            <input type="range" id="statBoarHp" min="5" max="100" value="28">
+            <span id="lblBoarHp">28</span>
+          </div>
+          <div class="fx-param-row">
+            <span>Tốc độ chung:</span>
+            <input type="range" id="statBoarSpeed" min="20" max="100" value="40">
+            <span id="lblBoarSpeed">40 px/s</span>
+          </div>
+          <div class="fx-param-row">
+            <span>Sức mạnh húc:</span>
+            <input type="range" id="statBoarAtk" min="1" max="30" value="8">
+            <span id="lblBoarAtk">8 DMG</span>
+          </div>
+          <div class="fx-param-row">
+            <span>Thời gian chiêu húc:</span>
+            <input type="range" id="statBoarAtkSpeed" min="5" max="30" value="12">
+            <span id="lblBoarAtkSpeed">1.2s</span>
+          </div>
+        </div>
+        <div class="fx-section-card is-chicken">
+          <div class="fx-card-title">🐔 Gà Rừng (Chicken)</div>
+          <div class="fx-param-row">
+            <span>Máu (HP):</span>
+            <input type="range" id="statChickenHp" min="2" max="40" value="10">
+            <span id="lblChickenHp">10</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fxTabGravity" class="fx-tab-pane" style="display:none;">
+      <div class="fx-grav-actions">
+        <button type="button" id="btnGravOvercrushPreset" class="fx-grav-btn is-accent" title="Đặt lực đè vượt ngưỡng để mục tiêu bẹp như tờ giấy">📄 Đè Tờ Giấy</button>
+        <button type="button" id="btnGravReset" class="fx-grav-btn" title="Khôi phục thông số 5 bước mặc định">↺ Mặc định</button>
+      </div>
+      <div id="fxGravityAccordion" class="grav-accordion"></div>
+    </div>
+  </div>
+
+  <div id="notificationToast"></div>
+
+  <!-- BẢNG HUD THÔNG TIN (HIỆN TRÊN MÁY TÍNH, THU GỌN TRÊN ĐIỆN THOẠI) -->
+  <div id="hud">
+    <h1>2D Pixel Art (16x16 Logic)</h1>
+    <div class="hud-row"><span class="hud-label">Máu (HP):</span> <span id="valPlayerHP" class="hud-val" style="color: #ef4444;">100 / 100</span></div>
+    <div class="hud-row"><span class="hud-label">Bản đồ:</span> <span id="valCurrentMap" class="map-badge-home">NHÀ (home)</span></div>
+    <div class="hud-row"><span class="hud-label">Quy chuẩn ô:</span> <span class="hud-val" style="color: #38bdf8;">16 x 16 px</span></div>
+    <div class="hud-row"><span class="hud-label">Độ phóng đại:</span> <span class="hud-val" style="color: #fbbf24;">Camera Zoom 3x</span></div>
+    <div class="hud-row"><span class="hud-label">Tọa độ Player:</span> <span id="valPlayerPos" class="hud-val">X: 0, Y: 0</span></div>
+    <div class="hud-row"><span class="hud-label">Sinh vật (Mobs):</span> <span id="valMobCount" class="hud-val" style="color: #f87171;">0 Heo Rừng</span></div>
+    <div class="hud-row"><span class="hud-label">Vật thể trên map:</span> <span id="valObjectCounts" class="hud-val">0</span></div>
+    <div class="hud-row"><span class="hud-label">FPS:</span> <span id="valFPS" class="hud-val">60</span></div>
+  </div>
+
+  <!-- NÚT TÚI ĐỒ RIÊNG BIỆT TRÊN ĐIỆN THOẠI (TÁCH KHỎI CỤM 4 NÚT CHIẾN ĐẤU) -->
+  <button type="button" id="btnMobileBag" aria-label="Mở túi đồ">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+      <path d="M6 8h12l1 12H5L6 8z"/>
+      <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+      <path d="M10 13h4"/>
+    </svg>
+    <span>Túi</span>
+  </button>
+
+  <!-- BỘ ĐIỀU KHIỂN CẢM ỨNG ĐIỆN THOẠI: JOYSTICK VÒNG TRÒN 8 HƯỚNG + CỤM 4 NÚT HÌNH CUNG -->
+  <div id="mobileControlsWrapper">
+    <div class="joystick-zone">
+      <div id="mobileJoystick" role="application" aria-label="Cần điều khiển 8 hướng">
+        <div class="joystick-ticks">
+          <div class="joystick-tick" data-sector="0" style="transform: rotate(0deg);"></div>
+          <div class="joystick-tick" data-sector="1" style="transform: rotate(45deg);"></div>
+          <div class="joystick-tick" data-sector="2" style="transform: rotate(90deg);"></div>
+          <div class="joystick-tick" data-sector="3" style="transform: rotate(135deg);"></div>
+          <div class="joystick-tick" data-sector="4" style="transform: rotate(180deg);"></div>
+          <div class="joystick-tick" data-sector="5" style="transform: rotate(225deg);"></div>
+          <div class="joystick-tick" data-sector="6" style="transform: rotate(270deg);"></div>
+          <div class="joystick-tick" data-sector="7" style="transform: rotate(315deg);"></div>
+        </div>
+        <div id="joystickThumb"></div>
+      </div>
+    </div>
+
+    <div class="mobile-action-cluster" id="mobileActionCluster">
+      <button type="button" id="btnInteract" class="rpg-pad-btn arc-sat-1" aria-label="Tương tác hoặc Chiêu 1">
+        <span class="wand-skill-num" id="sat1SkillNum" aria-hidden="true">1</span>
+        <span class="pad-btn-icon" id="btnInteractIcon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="square" stroke-linejoin="miter">
+            <path d="M12 3v6"/>
+            <path d="M9 6h6"/>
+            <rect x="5" y="11" width="14" height="9"/>
+            <path d="M9 15h6"/>
+          </svg>
+        </span>
+        <span class="btn-cap" id="btnInteractCap">Dùng</span>
+        <span class="wand-skill-cd-veil" id="sat1CdVeil" aria-hidden="true"></span>
+        <span class="wand-skill-cd-text" id="sat1CdText" aria-hidden="true"></span>
+      </button>
+
+      <button type="button" id="btnDropItem" class="rpg-pad-btn arc-sat-2" aria-label="Vứt vật phẩm hoặc Chiêu 2">
+        <span class="wand-skill-num" id="sat2SkillNum" aria-hidden="true">2</span>
+        <span class="pad-btn-icon" id="btnDropIcon">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="square" stroke-linejoin="miter">
+            <path d="M12 4v11"/>
+            <path d="M7 11l5 5 5-5"/>
+            <path d="M5 20h14"/>
+          </svg>
+        </span>
+        <span class="btn-cap" id="btnDropCap">Vứt</span>
+        <span class="wand-skill-cd-veil" id="sat2CdVeil" aria-hidden="true"></span>
+        <span class="wand-skill-cd-text" id="sat2CdText" aria-hidden="true"></span>
+      </button>
+
+      <button type="button" id="btnDash" class="rpg-pad-btn arc-sat-3" aria-label="Lướt né đòn hoặc Chiêu 3">
+        <span class="wand-skill-num" id="sat3SkillNum" aria-hidden="true">3</span>
+        <span class="pad-btn-icon" id="btnDashIcon">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 9h10a3 3 0 1 0-3-3"/>
+            <path d="M3 13h14a3 3 0 1 1-3 3"/>
+            <path d="M7 17h4"/>
+          </svg>
+        </span>
+        <span class="btn-cap" id="btnDashCap">Lướt</span>
+        <span class="wand-skill-cd-veil" id="sat3CdVeil" aria-hidden="true"></span>
+        <span class="wand-skill-cd-text" id="sat3CdText" aria-hidden="true"></span>
+      </button>
+
+      <button type="button" id="btnAction" class="rpg-pad-btn arc-primary" aria-label="Tấn công hoặc Đánh thường">
+        <span id="btnActionIcon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="square" stroke-linejoin="miter">
+            <path d="M14.5 17.5L3 6V3h3l11.5 11.5"/>
+            <path d="M13 19l6-6"/>
+            <path d="M16 16l4 4"/>
+            <path d="M19 21l2-2"/>
+          </svg>
+        </span>
+        <span class="btn-cap" id="btnActionCap">Đánh</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- NHẮC XOAY NGANG KHI MỞ TRÊN MÀN HÌNH DỌC -->
+  <div id="portraitRotateOverlay">
+    <div class="rotate-card">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter" style="margin: 0 auto;">
+        <rect x="6" y="3" width="12" height="18" rx="1"/>
+        <path d="M10 18h4"/>
+        <path d="M2 12c0-3 2-5 4-6"/>
+        <path d="M22 12c0 3-2 5-4 6"/>
+      </svg>
+      <h2>Xoay Ngang Màn Hình</h2>
+      <p>Giao diện cảm ứng 8 hướng và thanh vật phẩm được tối ưu cho chế độ nằm ngang để không bị che khuất tầm nhìn.</p>
+      <button type="button" id="dismissRotateBtn" class="rotate-dismiss-btn">Vẫn tiếp tục chơi</button>
+    </div>
+  </div>
+
+  <!-- GIAO DIỆN LỬA TRẠI & NƯỚNG (CAMPFIRE SMELTING/COOKING UI) -->
+  <div id="campfire-ui" style="display:none;" aria-label="Lửa trại và lò nướng">
+    <div class="cf-header">
+      <span class="cf-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2c.5 4-3 5.5-3 9a3 3 0 0 0 6 0c0-2-1-3-1-5 2.5 1.5 4 4 4 7a6 6 0 1 1-12 0c0-4 3-7 6-11z"/>
+        </svg>
+        <span>LỬA TRẠI &amp; NƯỚNG</span>
+      </span>
+      <div class="cf-header-actions">
+        <button type="button" id="btnCampfireToggleBag" class="cf-bag-btn" title="Mở / Đóng Túi Đồ để bỏ đồ vào nướng">🎒 Mở Túi</button>
+        <button type="button" class="cf-close-btn" onclick="toggleCampfireUI(false)" title="Đóng Lửa Trại">✕</button>
+      </div>
+    </div>
+
+    <div class="cf-chamber">
+      <div class="cf-input-col">
+        <div class="cf-slot-wrap">
+          <span class="cf-slot-label">Thịt / Cá</span>
+          <div class="slot cf-slot-in" id="campfireInputSlot" data-type="campfire_in" data-index="0" title="Đặt Thịt Sống hoặc Cá Sống">
+            <span class="slot-watermark">🍖</span>
+          </div>
+        </div>
+
+        <div class="cf-flame-meter">
+          <div id="campfireFlameIcon" class="cf-flame-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="#f97316" stroke="#fde047" stroke-width="1.4">
+              <path d="M12 2c.5 4-3 5.5-3 9a3 3 0 0 0 6 0c0-2-1-3-1-5 2.5 1.5 4 4 4 7a6 6 0 1 1-12 0c0-4 3-7 6-11z"/>
+            </svg>
+          </div>
+          <div class="cf-bar-track cf-fuel-track">
+            <div id="campfireFuelBar" class="cf-fuel-fill"></div>
+          </div>
+        </div>
+
+        <div class="cf-slot-wrap">
+          <div class="slot cf-slot-fuel" id="campfireFuelSlot" data-type="campfire_fuel" data-index="0" title="Đặt Gỗ hoặc Than làm nhiên liệu">
+            <span class="slot-watermark">🪵</span>
+          </div>
+          <span class="cf-slot-sublabel">Than / Gỗ</span>
+        </div>
+      </div>
+
+      <div class="cf-progress-col">
+        <svg class="cf-arrow-svg" width="24" height="16" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 8h18"/>
+          <path d="M14 2l6 6-6 6"/>
+        </svg>
+        <div class="cf-bar-track cf-cook-track">
+          <div id="campfireCookBar" class="cf-cook-fill"></div>
+        </div>
+      </div>
+
+      <div class="cf-result-col">
+        <span class="cf-slot-label is-out">Thành Phẩm</span>
+        <div class="slot cf-slot-out" id="campfireResultSlot" data-type="campfire_out" data-index="0" title="Nhận đồ nướng chín">
+          <span class="slot-watermark">✨</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cf-hint">Đặt Thịt / Cá sống cùng Gỗ hoặc Than để nướng chín (ăn hồi HP).</div>
+  </div>
+
+  <!-- BẢNG KHẢM CHIÊU ĐŨA PHÉP (KÉO THẢ ĐỒNG BỘ TÚI ĐỒ) -->
+  <div id="wand-socket-modal" style="display:none;" aria-label="Khảm chiêu thức đũa phép">
+    <div class="wand-modal-header">
+      <div class="wand-modal-title-wrap">
+        <img src="assets/items/tools_weapons/đũa phép.png" alt="Đũa Phép" class="wand-modal-icon" />
+        <span class="wand-modal-title">BÀN KHẢM ĐŨA PHÉP</span>
+        <span id="wandModalSubtitle" class="wand-modal-count">0/3</span>
+      </div>
+      <button type="button" id="btnCloseWandModal" class="wand-modal-close" aria-label="Đóng bảng khảm đũa phép">✕</button>
+    </div>
+
+    <div class="wand-modal-body">
+      <div class="wand-altar-panel">
+        <div id="wandSocketGrid" class="wand-socket-grid"></div>
+        <div id="wandResonanceBanner" class="wand-resonance-banner"></div>
+        <div class="wand-control-hint">Kéo thả hoặc Shift+Click ngọc • Chuột phải thả 1 viên</div>
+      </div>
+
+      <div class="wand-bag-panel">
+        <div class="wand-bag-header">
+          <span class="wand-section-label">TÚI ĐỒ &amp; NGỌC PHÉP</span>
+          <span id="wandOwnedCountBadge" class="wand-owned-count">0 ngọc</span>
+        </div>
+        <div id="wandStorageGrid" class="wand-storage-grid"></div>
+        <div class="wand-hotbar-divider"></div>
+        <div id="wandHotbarGrid" class="wand-hotbar-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/game-core.js"></script>
+  <script src="scripts/mobile-controls.js"></script>
+</body>
+</html>

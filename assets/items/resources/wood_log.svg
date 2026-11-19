@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- Thân khúc gỗ 1 (Chính giữa) -->
+  <rect x="2" y="4" width="10" height="7" fill="#6d3914"/>
+  <rect x="3" y="5" width="8" height="5" fill="#8f4a18"/>
+  <rect x="4" y="5" width="6" height="1" fill="#c4712b"/>
+  <rect x="3" y="7" width="5" height="1" fill="#522b0f"/>
+  <rect x="5" y="8" width="5" height="1" fill="#522b0f"/>
+  <!-- Đầu mặt cắt elip vân tuổi bên phải -->
+  <rect x="11" y="4" width="3" height="7" fill="#6d3914"/>
+  <rect x="11" y="5" width="2" height="5" fill="#cda165"/>
+  <rect x="12" y="6" width="1" height="3" fill="#deb887"/>
+  <rect x="12" y="7" width="1" height="1" fill="#8f4a18"/>
+  <!-- Khúc gỗ 2 nằm đệm phía dưới -->
+  <rect x="3" y="11" width="9" height="3" fill="#522b0f"/>
+  <rect x="4" y="11" width="7" height="2" fill="#753d16"/>
+  <rect x="11" y="11" width="2" height="2" fill="#a87c43"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- Hạt 1 (Ở giữa trên) -->
+  <rect x="6" y="3" width="3" height="4" fill="#5b3114"/>
+  <rect x="7" y="4" width="1" height="2" fill="#d49d4f"/>
+  <rect x="6" y="4" width="1" height="2" fill="#9c6228"/>
+  <!-- Hạt 2 (Góc trái dưới) -->
+  <rect x="4" y="7" width="3" height="4" fill="#5b3114"/>
+  <rect x="5" y="8" width="1" height="2" fill="#d49d4f"/>
+  <rect x="4" y="8" width="1" height="2" fill="#9c6228"/>
+  <!-- Hạt 3 (Góc phải dưới) -->
+  <rect x="8" y="7" width="4" height="4" fill="#5b3114"/>
+  <rect x="9" y="8" width="2" height="2" fill="#d49d4f"/>
+  <rect x="8" y="8" width="1" height="2" fill="#9c6228"/>
+</svg>
