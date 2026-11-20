@@ -661,57 +661,49 @@
   <script src="scripts/game-core.js"></script>
   <script src="scripts/mobile-controls.js"></script>
 
-  <!-- GIAO DIỆN NPC THƯƠNG NHÂN (HIỆN ĐẠI, KHÔNG CUỘN TRANG) -->
-  <div id="npc-shop-ui" onwheel="event.stopPropagation()" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:linear-gradient(160deg, rgba(13,18,30,0.98) 0%, rgba(18,26,43,0.98) 100%); border:1.5px solid rgba(234,179,8,0.65); border-radius:16px; padding:16px 20px; z-index:2200; color:#f8fafc; font-family:'Segoe UI',system-ui,sans-serif; box-shadow:0 24px 60px rgba(0,0,0,0.92), 0 0 30px rgba(234,179,8,0.12); width:760px; max-width:95vw; flex-direction:column; backdrop-filter:blur(10px);">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(234,179,8,0.2); padding-bottom:10px; margin-bottom:12px;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:20px;">💰</span>
-        <span style="font-size:15px; font-weight:700; color:#fde047; letter-spacing:0.3px;">THƯƠNG NHÂN THUNG LŨNG</span>
-        <span id="shopGoldBadge" style="font-size:12px; font-weight:700; background:rgba(234,179,8,0.16); border:1px solid rgba(234,179,8,0.45); color:#fef08a; padding:2px 10px; border-radius:999px;">🪙 50 Xu</span>
+  <!-- GIAO DIỆN NPC THƯƠNG NHÂN (CARD GRID HIỆN ĐẠI, TỐI ƯU KHÔNG GIAN) -->
+  <div id="npc-shop-ui" onwheel="event.stopPropagation()" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:linear-gradient(155deg, rgba(12,17,29,0.98) 0%, rgba(19,27,46,0.98) 100%); border:1.5px solid rgba(250,204,21,0.7); border-radius:16px; padding:14px 18px; z-index:2200; color:#f8fafc; font-family:'Segoe UI',system-ui,sans-serif; box-shadow:0 24px 60px rgba(0,0,0,0.92), 0 0 28px rgba(250,204,21,0.14); width:680px; max-width:95vw; flex-direction:column; backdrop-filter:blur(12px);">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(250,204,21,0.2); padding-bottom:9px; margin-bottom:10px;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <span style="font-size:18px;">💰</span>
+        <span style="font-size:14.5px; font-weight:800; color:#fde047; letter-spacing:0.3px;">THƯƠNG NHÂN THUNG LŨNG</span>
+        <span id="shopGoldBadge" style="font-size:12px; font-weight:700; background:rgba(250,204,21,0.16); border:1px solid rgba(250,204,21,0.45); color:#fef08a; padding:2px 10px; border-radius:999px;">🪙 50 Xu</span>
       </div>
-      <button type="button" onclick="toggleNpcShopUI(false)" style="background:rgba(148,163,184,0.14); border:1px solid rgba(148,163,184,0.28); color:#cbd5e1; border-radius:8px; padding:4px 10px; font-size:11.5px; font-weight:600; cursor:pointer;">Đóng ✕</button>
+      <button type="button" onclick="toggleNpcShopUI(false)" style="background:rgba(148,163,184,0.14); border:1px solid rgba(148,163,184,0.28); color:#cbd5e1; border-radius:8px; padding:3px 10px; font-size:11.5px; font-weight:600; cursor:pointer;">Đóng ✕</button>
     </div>
 
-    <!-- 2 TAB CỬA HÀNG -->
-    <div style="display:flex; gap:8px; margin-bottom:12px;">
-      <button type="button" id="tabBtnNpcShop" onclick="switchShopTab('npc')" style="flex:1; padding:8px 12px; border-radius:9px; border:1px solid #eab308; background:rgba(234,179,8,0.18); color:#fef08a; font-weight:700; font-size:12.5px; cursor:pointer;">🏪 Cửa Hàng NPC (Giá Cố Định)</button>
-      <button type="button" id="tabBtnMarketShop" onclick="switchShopTab('market')" style="flex:1; padding:8px 12px; border-radius:9px; border:1px solid rgba(148,163,184,0.28); background:rgba(30,41,59,0.55); color:#cbd5e1; font-weight:700; font-size:12.5px; cursor:pointer;">🤝 Chợ Giao Thương</button>
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+      <button type="button" id="tabBtnNpcShop" onclick="switchShopTab('npc')" style="flex:1; padding:7px 10px; border-radius:8px; border:1px solid #eab308; background:rgba(234,179,8,0.2); color:#fef08a; font-weight:700; font-size:12px; cursor:pointer;">🏪 Cửa Hàng NPC (Giá Cố Định)</button>
+      <button type="button" id="tabBtnMarketShop" onclick="switchShopTab('market')" style="flex:1; padding:7px 10px; border-radius:8px; border:1px solid rgba(148,163,184,0.28); background:rgba(30,41,59,0.55); color:#cbd5e1; font-weight:700; font-size:12px; cursor:pointer;">🤝 Chợ Giao Thương</button>
     </div>
 
-    <!-- TAB 1: 2 CỘT GỌN GÀNG, PHÂN TRANG KHÔNG CUỘN -->
-    <div id="shopTabNpc" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:stretch;">
-      <div style="background:rgba(15,23,42,0.55); border:1px solid rgba(74,222,128,0.22); border-radius:11px; padding:10px 12px; display:flex; flex-direction:column; justify-content:space-between;">
-        <div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <span style="font-size:11.5px; font-weight:700; color:#86efac;">📤 BÁN LẤY XU</span>
-            <div id="npcSellPager" style="display:flex; gap:4px; align-items:center; font-size:11px; color:#94a3b8;"></div>
-          </div>
-          <div id="npcSellList" style="display:flex; flex-direction:column; gap:6px;"></div>
+    <!-- TAB 1: BỐ CỤC 2 CỘT CARD GRID TỐI ƯU KHÔNG GIAN -->
+    <div id="shopTabNpc" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch;">
+      <div style="background:rgba(15,23,42,0.6); border:1px solid rgba(74,222,128,0.22); border-radius:10px; padding:9px 10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">
+          <span style="font-size:11px; font-weight:700; color:#86efac;">📤 BÁN LẤY XU</span>
+          <div id="npcSellPager" style="display:flex; gap:4px; align-items:center; font-size:10.5px; color:#94a3b8;"></div>
         </div>
+        <div id="npcSellList" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;"></div>
       </div>
-      <div style="background:rgba(15,23,42,0.55); border:1px solid rgba(56,189,248,0.22); border-radius:11px; padding:10px 12px; display:flex; flex-direction:column; justify-content:space-between;">
-        <div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <span style="font-size:11.5px; font-weight:700; color:#7dd3fc;">🛒 MUA TỪ NPC</span>
-            <div id="npcBuyPager" style="display:flex; gap:4px; align-items:center; font-size:11px; color:#94a3b8;"></div>
-          </div>
-          <div id="npcBuyList" style="display:flex; flex-direction:column; gap:6px;"></div>
+      <div style="background:rgba(15,23,42,0.6); border:1px solid rgba(56,189,248,0.22); border-radius:10px; padding:9px 10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">
+          <span style="font-size:11px; font-weight:700; color:#7dd3fc;">🛒 MUA TỪ NPC</span>
+          <div id="npcBuyPager" style="display:flex; gap:4px; align-items:center; font-size:10.5px; color:#94a3b8;"></div>
         </div>
+        <div id="npcBuyList" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;"></div>
       </div>
     </div>
 
-    <!-- TAB 2: CHỢ GIAO THƯƠNG (KHÔNG CUỘN) -->
-    <div id="shopTabMarket" style="display:none; flex-direction:column; gap:10px;">
-      <div style="background:rgba(30,41,59,0.55); border:1px solid rgba(148,163,184,0.2); border-radius:10px; padding:10px 12px;">
-        <div style="font-size:11.5px; font-weight:700; color:#fde047; margin-bottom:6px;">🏷️ ĐĂNG BÁN VẬT PHẨM LÊN CHỢ</div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <select id="marketSellSelect" style="flex:1; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:7px; padding:6px 8px; font-size:12px;"></select>
-          <input id="marketSellPrice" type="number" min="1" value="20" placeholder="Giá Xu" style="width:82px; background:#0f172a; color:#fde047; border:1px solid #475569; border-radius:7px; padding:6px 8px; font-size:12px; font-weight:700;" />
-          <button type="button" onclick="listSelectedOnMarket()" style="background:#eab308; color:#0f172a; border:none; border-radius:7px; padding:6px 14px; font-weight:700; font-size:12px; cursor:pointer;">Đăng Bán</button>
-        </div>
+    <!-- TAB 2: CHỢ GIAO THƯƠNG -->
+    <div id="shopTabMarket" style="display:none; flex-direction:column; gap:8px;">
+      <div style="background:rgba(30,41,59,0.55); border:1px solid rgba(148,163,184,0.2); border-radius:9px; padding:8px 10px; display:flex; gap:8px; align-items:center;">
+        <span style="font-size:11px; font-weight:700; color:#fde047; white-space:nowrap;">🏷️ Đăng bán:</span>
+        <select id="marketSellSelect" style="flex:1; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:6px; padding:5px 7px; font-size:11.5px;"></select>
+        <input id="marketSellPrice" type="number" min="1" value="20" placeholder="Xu" style="width:68px; background:#0f172a; color:#fde047; border:1px solid #475569; border-radius:6px; padding:5px 7px; font-size:11.5px; font-weight:700;" />
+        <button type="button" onclick="listSelectedOnMarket()" style="background:#eab308; color:#0f172a; border:none; border-radius:6px; padding:5px 12px; font-weight:700; font-size:11.5px; cursor:pointer;">Đăng</button>
       </div>
-      <div style="font-size:11.5px; font-weight:700; color:#7dd3fc;">🛍️ SẠP CHỢ GIAO THƯƠNG</div>
-      <div id="marketListingsContainer" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
+      <div id="marketListingsContainer" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px;"></div>
     </div>
   </div>
 </body>

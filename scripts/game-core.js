@@ -3784,7 +3784,7 @@
 
     let npcSellPage = 0;
     let npcBuyPage = 0;
-    const SHOP_PAGE_SIZE = 5;
+    const SHOP_PAGE_SIZE = 6;
 
     function changeShopPage(kind, delta) {
       if (kind === 'sell') npcSellPage = Math.max(0, npcSellPage + delta);
@@ -3821,17 +3821,17 @@
         for (const { idx, it } of pageItems) {
           const data = getItemData(it) || it;
           const unitVal = data.value || 1;
-          sHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.75);padding:6px 9px;border-radius:8px;border:1px solid rgba(148,163,184,0.14);">
-            <div style="display:flex;align-items:center;gap:8px;">
+          sHtml += `<div style="background:rgba(30,41,59,0.8);border:1px solid rgba(148,163,184,0.16);border-radius:8px;padding:7px;display:flex;flex-direction:column;gap:5px;">
+            <div style="display:flex;align-items:center;gap:6px;">
               <img src="${getItemIcon(it)}" style="width:24px;height:24px;image-rendering:pixelated;" />
-              <div>
-                <div style="font-size:12px;font-weight:700;">${data.name} <span style="color:#94a3b8;">×${it.quantity}</span></div>
-                <div style="font-size:10.5px;color:#fde047;">+${unitVal} Xu / món</div>
+              <div style="min-width:0;">
+                <div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${data.name}</div>
+                <div style="font-size:10px;color:#fde047;">×${it.quantity} · +${unitVal} Xu</div>
               </div>
             </div>
             <div style="display:flex;gap:4px;">
-              <button type="button" onclick="sellItemToNPC(${idx}, false)" style="background:#16a34a;color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;">Bán 1</button>
-              ${it.quantity > 1 ? `<button type="button" onclick="sellItemToNPC(${idx}, true)" style="background:#0284c7;color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;">Hết</button>` : ""}
+              <button type="button" onclick="sellItemToNPC(${idx}, false)" style="flex:1;background:#16a34a;color:#fff;border:none;border-radius:4px;padding:3px 0;font-size:10.5px;font-weight:700;cursor:pointer;">Bán 1</button>
+              ${it.quantity > 1 ? `<button type="button" onclick="sellItemToNPC(${idx}, true)" style="flex:1;background:#0284c7;color:#fff;border:none;border-radius:4px;padding:3px 0;font-size:10.5px;font-weight:700;cursor:pointer;">Hết</button>` : ""}
             </div>
           </div>`;
         }
@@ -3854,15 +3854,15 @@
           const data = ITEMS_DATABASE[entry.id];
           if (!data) continue;
           const canAfford = playerGold >= entry.price;
-          bHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.75);padding:6px 9px;border-radius:8px;border:1px solid rgba(148,163,184,0.14);">
-            <div style="display:flex;align-items:center;gap:8px;">
+          bHtml += `<div style="background:rgba(30,41,59,0.8);border:1px solid rgba(148,163,184,0.16);border-radius:8px;padding:7px;display:flex;flex-direction:column;gap:5px;">
+            <div style="display:flex;align-items:center;gap:6px;">
               <img src="${data.icon}" style="width:24px;height:24px;image-rendering:pixelated;" />
-              <div>
-                <div style="font-size:12px;font-weight:700;">${data.name} ${entry.qty > 1 ? '×' + entry.qty : ''}</div>
-                <div style="font-size:10px;color:#94a3b8;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${data.description || ''}</div>
+              <div style="min-width:0;">
+                <div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${data.name} ${entry.qty > 1 ? '×' + entry.qty : ''}</div>
+                <div style="font-size:10px;color:#38bdf8;">Giá cố định</div>
               </div>
             </div>
-            <button type="button" onclick="buyItemFromNPC('${entry.id}')" style="background:${canAfford ? '#eab308' : '#334155'};color:${canAfford ? '#0f172a' : '#94a3b8'};border:none;border-radius:5px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">🪙 ${entry.price}</button>
+            <button type="button" onclick="buyItemFromNPC('${entry.id}')" style="width:100%;background:${canAfford ? '#eab308' : '#334155'};color:${canAfford ? '#0f172a' : '#94a3b8'};border:none;border-radius:4px;padding:3px 0;font-size:10.5px;font-weight:700;cursor:pointer;">🪙 ${entry.price} Xu</button>
           </div>`;
         }
         buyEl.innerHTML = bHtml;
@@ -4286,7 +4286,7 @@
 
         const distClickNPC = Math.hypot(worldX - (HOME_MERCHANT.x + 8), worldY - (HOME_MERCHANT.y + 8));
         const distPlayerNPC = Math.hypot((player.x + 8) - (HOME_MERCHANT.x + 8), (player.y + 8) - (HOME_MERCHANT.y + 8));
-        if (distClickNPC <= 28 && distPlayerNPC <= 40) {
+        if (distClickNPC <= 34 && distPlayerNPC <= 52) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
