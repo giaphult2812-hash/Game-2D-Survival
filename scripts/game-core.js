@@ -4351,8 +4351,7 @@
       if (data.category !== "consumable") return false;
 
       if (player.hp >= player.maxHp) {
-        addFloatingText("MÁU ĐÃ ĐẦY!", player.x - 10, player.y - 12, "#94a3b8");
-        return true;
+                return true;
       }
 
       const hpGain = data.healAmount || 5;
@@ -5735,8 +5734,7 @@
           if (!isPointInsideOpenPanels(e.clientX, e.clientY, e.target)) {
             spawnGroundItem(cursorItem, player.x + 4, player.y + 4);
             playImpactSound(false);
-            addFloatingText("🗑️ ĐÃ NÉM " + cursorItem.name.toUpperCase(), player.x - 10, player.y - 12, "#94a3b8");
-            cursorItem = null;
+                        cursorItem = null;
             updateCursorUI();
             if (isWandModalOpen()) renderWandCustomizerModal();
             if (isChestOpen()) renderChestUI();
@@ -5848,8 +5846,7 @@
             lastTouchInteractionTime = performance.now();
             spawnGroundItem(cursorItem, player.x + 4, player.y + 4);
             playImpactSound(false);
-            addFloatingText("🗑️ ĐÃ NÉM " + cursorItem.name.toUpperCase(), player.x - 10, player.y - 12, "#94a3b8");
-            cursorItem = null;
+                        cursorItem = null;
             updateCursorUI();
             if (isWandModalOpen()) renderWandCustomizerModal();
             if (isChestOpen()) renderChestUI();
@@ -5963,8 +5960,7 @@
           if (!isPointInsideOpenPanels(endX, endY)) {
             spawnGroundItem(cursorItem, player.x + 4, player.y + 4);
             playImpactSound(false);
-            addFloatingText("🗑️ ĐÃ NÉM " + cursorItem.name.toUpperCase(), player.x - 10, player.y - 12, "#94a3b8");
-            cursorItem = null;
+                        cursorItem = null;
             updateCursorUI();
             if (isWandModalOpen()) renderWandCustomizerModal();
             if (isChestOpen()) renderChestUI();
@@ -6023,8 +6019,7 @@
       playerInventory[activeHotbarIndex] = null;
       renderHotbar();
       playImpactSound(false);
-      addFloatingText("🗑️ ĐÃ NÉM " + item.name.toUpperCase(), player.x - 10, player.y - 12, "#94a3b8");
-    }
+          }
 
     function pickupItem(newItem) {
       if (!newItem || newItem.quantity <= 0) return false;
@@ -10494,8 +10489,7 @@
                 });
                 playImpactSound(false);
                 spawnHitSparks(tileX + 8, tileY + 8, -Math.PI / 2);
-                addFloatingText("🔨 ĐÃ ĐẶT BÀN CHẾ TẠO!", tileX - 10, tileY - 14, "#4ade80");
-                updateStatsHUD();
+                                updateStatsHUD();
                 return;
               }
             }
@@ -10620,15 +10614,21 @@
 
     const floatingTexts = [];
     function addFloatingText(text, worldX, worldY, color, isItem = false) {
+      const now = performance.now();
+      // Chống spam trùng lặp thông báo giống nhau trong 0.45s
+      const dup = floatingTexts.find(f => f.text === text && (now - (f.createdAt || 0)) < 450);
+      if (dup) return;
+      if (floatingTexts.length >= 5) floatingTexts.shift();
       floatingTexts.push({
         text: text,
         x: worldX,
         y: worldY,
         color: color,
         opacity: 1.0,
-        lifeTime: isItem ? 1.5 : 1.2,
+        lifeTime: isItem ? 1.05 : 0.85,
         isItem: isItem,
-        vy: isItem ? 38 : 25
+        vy: isItem ? 22 : 16,
+        createdAt: now
       });
     }
 
@@ -11687,22 +11687,19 @@
 
       // Kiểm tra mặt đất đi được
       if (!isBoxOnWalkableGround(placeBox)) {
-        addFloatingText("❌ VỊ TRÍ KHÔNG HỢP LỆ!", player.x - 10, player.y - 12, "#ef4444");
-        return false;
+                return false;
       }
 
       // Kiểm tra không đặt đè lên vị trí Player đang đứng
       const playerBody = { x: player.x, y: player.y, width: 16, height: 16 };
       if (checkAABB(placeBox, playerBody)) {
-        addFloatingText("❌ KHÔNG THỂ ĐẶT ĐÈ LÊN NGƯỜI!", player.x - 10, player.y - 12, "#ef4444");
-        return false;
+                return false;
       }
 
       // Kiểm tra trùng lặp với vật thể khác
       for (const o of currentObjects) {
         if (checkAABB(placeBox, o)) {
-          addFloatingText("❌ ĐÃ CÓ VẬT THỂ Ở ĐÂY!", player.x - 10, player.y - 12, "#ef4444");
-          return false;
+                    return false;
         }
       }
 
@@ -11727,8 +11724,7 @@
       currentObjects.push(newTable);
       playImpactSound(false);
       spawnHitSparks(placeX + 8, placeY + 8, -Math.PI / 2);
-      addFloatingText("🔨 ĐÃ ĐẶT BÀN CHẾ TẠO!", placeX - 10, placeY - 14, "#4ade80");
-      showNotification("✨ Đã đặt Bàn Chế Tạo! Đứng gần bấm [E] hoặc [Chuột Phải] để mở.", false);
+            showNotification("✨ Đã đặt Bàn Chế Tạo! Đứng gần bấm [E] hoặc [Chuột Phải] để mở.", false);
       updateStatsHUD();
       return true;
     }
@@ -11747,18 +11743,15 @@
 
       const placeBox = { x: placeX, y: placeY, width: 16, height: 16 };
       if (!isBoxOnWalkableGround(placeBox)) {
-        addFloatingText("❌ VỊ TRÍ KHÔNG HỢP LỆ!", player.x - 10, player.y - 12, "#ef4444");
-        return false;
+                return false;
       }
       const playerBody = { x: player.x, y: player.y, width: 16, height: 16 };
       if (checkAABB(placeBox, playerBody)) {
-        addFloatingText("❌ KHÔNG THỂ ĐẶT ĐÈ LÊN NGƯỜI!", player.x - 10, player.y - 12, "#ef4444");
-        return false;
+                return false;
       }
       for (const o of currentObjects) {
         if (checkAABB(placeBox, o)) {
-          addFloatingText("❌ ĐÃ CÓ VẬT THỂ Ở ĐÂY!", player.x - 10, player.y - 12, "#ef4444");
-          return false;
+                    return false;
         }
       }
 
@@ -11783,8 +11776,7 @@
       currentObjects.push(newChest);
       playImpactSound(false);
       spawnHitSparks(placeX + 8, placeY + 8, -Math.PI / 2);
-      addFloatingText("📦 ĐÃ ĐẶT RƯƠNG ĐỒ!", placeX - 10, placeY - 14, "#fbbf24");
-      showNotification("✨ Đã đặt Rương Đồ! Đứng gần bấm [E] hoặc [Chuột Phải] để cất đồ.", false);
+            showNotification("✨ Đã đặt Rương Đồ! Đứng gần bấm [E] hoặc [Chuột Phải] để cất đồ.", false);
       updateStatsHUD();
       return true;
     }
@@ -12348,8 +12340,7 @@
           fishingState.reelDuration = 0.22;
           fishingState.fishShadow.active = false;
           playFishingSound('cast');
-          addFloatingText("Thu cần câu", player.x - 10, player.y - 12, "#cbd5e1");
-          if (window.onMobileHudSync) window.onMobileHudSync();
+                    if (window.onMobileHudSync) window.onMobileHudSync();
           return;
         }
 
@@ -12409,8 +12400,7 @@
       }
 
       if (currentMap !== "forest") {
-        addFloatingText("Ở Nhà không có tài nguyên!", player.x - 20, player.y - 10, "#cbd5e1");
-        return;
+                return;
       }
 
       const playerCenterX = player.x + player.width / 2;
@@ -13166,8 +13156,7 @@
               if (valPlayerHP) {
                 valPlayerHP.textContent = `${Math.round(player.hp)} / ${player.maxHp}`;
               }
-              addFloatingText("+2 HP 🔥", player.x, player.y - 10, "#4ade80");
-            }
+                          }
           }
         } else {
           HOME_CAMPFIRE.healTimer = 0;
@@ -13969,8 +13958,7 @@
         portalCooldown = 1.0;
         const p2 = mapConfigs.forest.portalToLake;
         loadMap(p2.targetMap, p2.targetPlayerPos);
-        addFloatingText("➡️ " + p2.label, player.x, player.y - 12, "#38bdf8");
-        return;
+                return;
       }
       if (currentPortal && portalCooldown <= 0 && checkAABB(player, currentPortal)) {
         portalCooldown = 1.0; // Đặt thời gian hồi 1 giây khi vừa dịch chuyển sang map mới
@@ -13979,8 +13967,7 @@
         loadMap(targetMap, newSpawnPos);
 
         const mapName = targetMap === "forest" ? "Khu Rừng (Forest)" : "Ngôi Nhà (Home)";
-        addFloatingText(`⚡ ĐÃ ĐẾN: ${mapName}!`, player.x - 20, player.y - 10, "#fde047");
-      }
+              }
 
       // Cập nhật hệ thống hạt Particle & hiệu ứng phép theo dòng thời gian
       if (worldDt > 0) {
@@ -15226,15 +15213,17 @@
             ctx.fillRect(mx + 4, my + 1 + bob, 8, 6);
             ctx.fillStyle = "#7e22ce";
             ctx.fillRect(mx + 3, my - 1 + bob, 10, 3);
-            ctx.save();
-            ctx.font = "bold 6px monospace";
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#fde047";
-            ctx.strokeStyle = "rgba(0,0,0,0.85)";
-            ctx.lineWidth = 2;
-            ctx.strokeText("💰 THƯƠNG NHÂN", mx + 8, my - 4 + bob);
-            ctx.fillText("💰 THƯƠNG NHÂN", mx + 8, my - 4 + bob);
-            ctx.restore();
+            if (distPlayerNPC <= 44) {
+              ctx.save();
+              ctx.font = "700 5.5px 'Chakra Petch', sans-serif";
+              ctx.textAlign = "center";
+              ctx.fillStyle = "#fef08a";
+              ctx.strokeStyle = "rgba(0,0,0,0.85)";
+              ctx.lineWidth = 1.4;
+              ctx.strokeText("Thương Nhân", mx + 8, my - 4 + bob);
+              ctx.fillText("Thương Nhân", mx + 8, my - 4 + bob);
+              ctx.restore();
+            }
           }
         });
       }
@@ -15440,30 +15429,18 @@
         renderTimeStopAirEffects(ctx);
       }
 
-      // Chữ bay (trong không gian World zoom 3x)
+      // Chữ bay tinh gọn (trong không gian World zoom 3x: 6-7px hiển thị sắc nét ~18-21px)
       for (const ft of floatingTexts) {
         ctx.save();
-        ctx.globalAlpha = Math.min(1.0, ft.opacity);
-
-        if (ft.isItem) {
-          // Hiệu ứng chữ nhận vật phẩm nổi bật (Font to, viền dày, bóng đổ)
-          ctx.font = "900 11px monospace";
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
-          ctx.strokeText(ft.text, ft.x - 10, ft.y);
-
-          ctx.fillStyle = ft.color;
-          ctx.fillText(ft.text, ft.x - 10, ft.y);
-        } else {
-          // Thông báo thông thường
-          ctx.font = "bold 9px monospace";
-          ctx.lineWidth = 2;
-          ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-          ctx.strokeText(ft.text, ft.x - 8, ft.y);
-
-          ctx.fillStyle = ft.color;
-          ctx.fillText(ft.text, ft.x - 8, ft.y);
-        }
+        ctx.globalAlpha = Math.max(0, Math.min(1.0, ft.opacity));
+        ctx.textAlign = "center";
+        ctx.font = ft.isItem ? "700 7px 'Chakra Petch', sans-serif" : "700 6px 'Chakra Petch', sans-serif";
+        ctx.lineWidth = ft.isItem ? 1.8 : 1.5;
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.88)";
+        ctx.strokeText(ft.text, ft.x + 8, ft.y);
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x + 8, ft.y);
         ctx.restore();
       }
 
