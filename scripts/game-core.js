@@ -3713,7 +3713,7 @@
     // HỆ THỐNG TIỀN TỆ (XU VÀNG), NPC THƯƠNG NHÂN & 2 CỬA HÀNG
     // -------------------------------------------------------------
     let playerGold = 50;
-    const HOME_MERCHANT = { x: 212, y: 236, width: 16, height: 16 };
+    const HOME_MERCHANT = { x: 432, y: 224, width: 16, height: 16 };
     let currentShopTab = 'npc';
 
     const NPC_SHOP_CATALOG = [
@@ -4234,7 +4234,9 @@
 
         const distClickNPC = Math.hypot(worldX - (HOME_MERCHANT.x + 8), worldY - (HOME_MERCHANT.y + 8));
         const distPlayerNPC = Math.hypot((player.x + 8) - (HOME_MERCHANT.x + 8), (player.y + 8) - (HOME_MERCHANT.y + 8));
-        if (distClickNPC <= 18 && distPlayerNPC <= 54) {
+        if (distClickNPC <= 24 && distPlayerNPC <= 72) {
+          e.preventDefault();
+          e.stopPropagation();
           toggleNpcShopUI(true);
           return;
         }
