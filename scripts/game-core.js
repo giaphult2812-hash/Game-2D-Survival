@@ -532,6 +532,33 @@
 
     const woodFxConfig = { ...DEFAULT_WOOD_FX_CONFIG };
 
+    const DEFAULT_TIMESTOP_FX_CONFIG = {
+      step1Enabled: true,
+      clockRadius: 60,
+      handSpeed: 3.5,
+      glowColor: "#38bdf8",
+
+      step2Enabled: true,
+      slowDuration: 0.50,
+      timeScaleMin: 0.00,
+
+      step3Enabled: true,
+      waveSpeed: 320,
+      desaturatePct: 100,
+
+      step4Enabled: true,
+      debrisCount: 22,
+      glitterRate: 0.12,
+
+      step5Enabled: true,
+      duration: 3.5,
+      resumeExplosionDamage: 25,
+      knockbackForce: 130,
+      shakeIntensity: 12
+    };
+
+    const timestopFxConfig = { ...DEFAULT_TIMESTOP_FX_CONFIG };
+
     // DOM Binding cho Panel Cài đặt hiệu ứng chiến đấu & Giao diện
     const combatFxSettingsBtn = document.getElementById("combatFxSettingsBtn");
     const combatFxPanel = document.getElementById("combatFxPanel");
@@ -573,9 +600,11 @@
       const genPane = document.getElementById("fxTabGeneral");
       const gravPane = document.getElementById("fxTabGravity");
       const woodPane = document.getElementById("fxTabWood");
+      const timestopPane = document.getElementById("fxTabTimestop");
       if (genPane) genPane.style.display = tabName === "general" ? "block" : "none";
       if (gravPane) gravPane.style.display = tabName === "gravity" ? "block" : "none";
       if (woodPane) woodPane.style.display = tabName === "wood" ? "block" : "none";
+      if (timestopPane) timestopPane.style.display = tabName === "timestop" ? "block" : "none";
     }
 
     const GRAVITY_STEP_GROUPS = [
@@ -994,6 +1023,214 @@
     const btnWoodPreset = document.getElementById("btnWoodPreset");
     if (btnWoodPreset) btnWoodPreset.addEventListener("click", applyWoodPreset);
 
+    const TIMESTOP_STEP_GROUPS = [
+      {
+        step: 1,
+        checkProp: "step1Enabled",
+        title: "1. Vòng đồng hồ (mặt sáng & kim dừng)",
+        summary: (cfg) => `${Math.round(cfg.clockRadius)}px • ${cfg.handSpeed.toFixed(1)}x`,
+        params: [
+          { prop: "clockRadius", label: "Bán kính đồng hồ (px):", min: 28, max: 120, step: 2, unit: "px", decimals: 0 },
+          { prop: "handSpeed", label: "Tốc độ kim ban đầu:", min: 1.0, max: 8.0, step: 0.5, unit: "x", decimals: 1 }
+        ]
+      },
+      {
+        step: 2,
+        checkProp: "step2Enabled",
+        title: "2. Chậm dần (tốc độ 1 → 0 ease-out)",
+        summary: (cfg) => `${cfg.slowDuration.toFixed(2)}s → ${cfg.timeScaleMin.toFixed(2)}x`,
+        params: [
+          { prop: "slowDuration", label: "Thời gian chậm dần (s):", min: 0.15, max: 1.50, step: 0.05, unit: "s", decimals: 2 },
+          { prop: "timeScaleMin", label: "Tốc độ tối thiểu:", min: 0.00, max: 0.30, step: 0.02, unit: "x", decimals: 2 }
+        ]
+      },
+      {
+        step: 3,
+        checkProp: "step3Enabled",
+        title: "3. Mất màu (sóng xám giữ màu bản thân)",
+        summary: (cfg) => `${Math.round(cfg.waveSpeed)}px/s • ${Math.round(cfg.desaturatePct)}%`,
+        params: [
+          { prop: "waveSpeed", label: "Tốc độ vòng sóng:", min: 120, max: 600, step: 20, unit: "px/s", decimals: 0 },
+          { prop: "desaturatePct", label: "Độ mất màu (%):", min: 20, max: 100, step: 5, unit: "%", decimals: 0 }
+        ]
+      },
+      {
+        step: 4,
+        checkProp: "step4Enabled",
+        title: "4. Lơ lửng (bụi đá lấp lánh giữa không)",
+        summary: (cfg) => `${Math.round(cfg.debrisCount)} mảnh • ${cfg.glitterRate.toFixed(2)}s`,
+        params: [
+          { prop: "debrisCount", label: "Số bụi đá lơ lửng:", min: 6, max: 48, step: 2, unit: "", decimals: 0 },
+          { prop: "glitterRate", label: "Nhịp lấp lánh (s):", min: 0.04, max: 0.30, step: 0.02, unit: "s", decimals: 2 }
+        ]
+      },
+      {
+        step: 5,
+        checkProp: "step5Enabled",
+        title: "5. Dồn đòn & Bung nổ thời gian",
+        summary: (cfg) => `${cfg.duration.toFixed(1)}s • +${Math.round(cfg.resumeExplosionDamage)} DMG • Lực ${Math.round(cfg.knockbackForce)}`,
+        params: [
+          { prop: "duration", label: "Thời gian ngưng đọng (s):", min: 1.5, max: 8.0, step: 0.5, unit: "s", decimals: 1 },
+          { prop: "resumeExplosionDamage", label: "Sát thương bùng nổ:", min: 0, max: 60, step: 2, unit: " DMG", decimals: 0 },
+          { prop: "knockbackForce", label: "Lực hất văng khi chạy lại:", min: 40, max: 240, step: 10, unit: "", decimals: 0 },
+          { prop: "shakeIntensity", label: "Rung màn hình bung nổ:", min: 2, max: 20, step: 1, unit: "", decimals: 0 }
+        ]
+      }
+    ];
+
+    function syncTimestopFxControlsFromConfig() {
+      document.querySelectorAll("input[data-timestop-check]").forEach((cb) => {
+        const prop = cb.dataset.timestopCheck;
+        if (!prop) return;
+        const enabled = Boolean(timestopFxConfig[prop]);
+        cb.checked = enabled;
+        const item = cb.closest(".grav-step-item");
+        if (item) item.classList.toggle("is-disabled", !enabled);
+      });
+
+      document.querySelectorAll("input[data-timestop-prop]").forEach((slider) => {
+        const prop = slider.dataset.timestopProp;
+        const unit = slider.dataset.timestopUnit || "";
+        const decimals = Number(slider.dataset.timestopDecimals || 0);
+        const val = Number(timestopFxConfig[prop]);
+        slider.value = String(val);
+        const valSpan = slider.parentElement ? slider.parentElement.querySelector(".grav-val-lbl") : null;
+        if (valSpan) {
+          valSpan.textContent = (decimals > 0 ? val.toFixed(decimals) : Math.round(val)) + unit;
+        }
+      });
+
+      document.querySelectorAll("[data-timestop-summary]").forEach((el) => {
+        const stepNum = Number(el.dataset.timestopSummary);
+        const grp = TIMESTOP_STEP_GROUPS.find((g) => g.step === stepNum);
+        if (grp) el.textContent = grp.summary(timestopFxConfig);
+      });
+    }
+
+    function mountTimestopStepAccordion(containerEl) {
+      if (!containerEl) return;
+      containerEl.innerHTML = "";
+
+      TIMESTOP_STEP_GROUPS.forEach((grp, idx) => {
+        const item = document.createElement("div");
+        item.className = "grav-step-item" + (idx === 0 ? " is-open" : "");
+
+        const header = document.createElement("div");
+        header.className = "grav-step-header";
+
+        const label = document.createElement("label");
+        label.className = "grav-step-toggle-label";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.timestopCheck = grp.checkProp;
+        checkbox.checked = Boolean(timestopFxConfig[grp.checkProp]);
+        checkbox.addEventListener("click", (e) => e.stopPropagation());
+        checkbox.addEventListener("change", (e) => {
+          timestopFxConfig[grp.checkProp] = e.target.checked;
+          syncTimestopFxControlsFromConfig();
+        });
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = grp.title;
+        label.appendChild(checkbox);
+        label.appendChild(titleSpan);
+
+        const meta = document.createElement("div");
+        meta.className = "grav-step-meta";
+        const summarySpan = document.createElement("span");
+        summarySpan.dataset.timestopSummary = String(grp.step);
+        summarySpan.textContent = grp.summary(timestopFxConfig);
+        const chevron = document.createElement("span");
+        chevron.className = "grav-step-chevron";
+        chevron.textContent = "▾";
+        meta.appendChild(summarySpan);
+        meta.appendChild(chevron);
+
+        header.appendChild(label);
+        header.appendChild(meta);
+        header.addEventListener("click", (e) => {
+          if (e.target === checkbox) return;
+          const willOpen = !item.classList.contains("is-open");
+          containerEl.querySelectorAll(".grav-step-item").forEach((other) => {
+            other.classList.remove("is-open");
+          });
+          if (willOpen) item.classList.add("is-open");
+        });
+
+        const body = document.createElement("div");
+        body.className = "grav-step-body";
+
+        grp.params.forEach((p) => {
+          const row = document.createElement("div");
+          row.className = "fx-param-row";
+
+          const lbl = document.createElement("span");
+          lbl.textContent = p.label;
+
+          const slider = document.createElement("input");
+          slider.type = "range";
+          slider.min = String(p.min);
+          slider.max = String(p.max);
+          slider.step = String(p.step);
+          slider.value = String(timestopFxConfig[p.prop]);
+          slider.dataset.timestopProp = p.prop;
+          slider.dataset.timestopUnit = p.unit;
+          slider.dataset.timestopDecimals = String(p.decimals);
+
+          const valSpan = document.createElement("span");
+          valSpan.className = "grav-val-lbl";
+
+          slider.addEventListener("input", (e) => {
+            timestopFxConfig[p.prop] = parseFloat(e.target.value);
+            syncTimestopFxControlsFromConfig();
+          });
+
+          row.appendChild(lbl);
+          row.appendChild(slider);
+          row.appendChild(valSpan);
+          body.appendChild(row);
+        });
+
+        item.appendChild(header);
+        item.appendChild(body);
+        containerEl.appendChild(item);
+      });
+    }
+
+    function resetTimestopFxConfigDefaults() {
+      Object.assign(timestopFxConfig, DEFAULT_TIMESTOP_FX_CONFIG);
+      syncTimestopFxControlsFromConfig();
+      addFloatingText("↺ Đã khôi phục Dừng Thời Gian mặc định", player.x - 24, player.y - 16, "#7dd3fc");
+    }
+
+    function applyTimestopPreset() {
+      timestopFxConfig.step1Enabled = true;
+      timestopFxConfig.step2Enabled = true;
+      timestopFxConfig.step3Enabled = true;
+      timestopFxConfig.step4Enabled = true;
+      timestopFxConfig.step5Enabled = true;
+      timestopFxConfig.clockRadius = 80;
+      timestopFxConfig.slowDuration = 0.50;
+      timestopFxConfig.timeScaleMin = 0.00;
+      timestopFxConfig.waveSpeed = 380;
+      timestopFxConfig.desaturatePct = 100;
+      timestopFxConfig.debrisCount = 34;
+      timestopFxConfig.duration = 4.5;
+      timestopFxConfig.resumeExplosionDamage = 35;
+      timestopFxConfig.knockbackForce = 180;
+      timestopFxConfig.shakeIntensity = 15;
+      syncTimestopFxControlsFromConfig();
+      addFloatingText("⏳ Bật Tối Thượng Ngưng Đọng Thời Gian!", player.x - 32, player.y - 16, "#38bdf8");
+    }
+
+    mountTimestopStepAccordion(document.getElementById("fxTimestopAccordion"));
+    syncTimestopFxControlsFromConfig();
+
+    const btnTimestopReset = document.getElementById("btnTimestopReset");
+    if (btnTimestopReset) btnTimestopReset.addEventListener("click", resetTimestopFxConfigDefaults);
+
+    const btnTimestopPreset = document.getElementById("btnTimestopPreset");
+    if (btnTimestopPreset) btnTimestopPreset.addEventListener("click", applyTimestopPreset);
+
     if (combatFxSettingsBtn && combatFxPanel) {
       combatFxSettingsBtn.addEventListener("click", () => {
         combatFxPanel.style.display = combatFxPanel.style.display === "block" ? "none" : "block";
@@ -1249,10 +1486,123 @@
       } catch (e) {}
     }
 
+    function playTimeStopCastSound() {
+      if (!combatFxConfig.impactSound) return;
+      try {
+        const ctxAudio = getAudioContext();
+        if (!ctxAudio) return;
+        const now = ctxAudio.currentTime;
+        const vol = (combatFxConfig.soundVolume || 0.8) * 0.34;
+
+        // Chuông đồng hồ trầm ngân vang
+        const bell = ctxAudio.createOscillator();
+        const bellGain = ctxAudio.createGain();
+        bell.type = "sine";
+        bell.frequency.setValueAtTime(587.33, now);
+        bell.frequency.exponentialRampToValueAtTime(110, now + 0.55);
+        bellGain.gain.setValueAtTime(0.001, now);
+        bellGain.gain.linearRampToValueAtTime(vol, now + 0.02);
+        bellGain.gain.exponentialRampToValueAtTime(0.001, now + 0.62);
+        bell.connect(bellGain);
+        bellGain.connect(ctxAudio.destination);
+        bell.start(now);
+        bell.stop(now + 0.62);
+
+        // Bass warp chậm dần xuống 0 trong 0.5s
+        const bass = ctxAudio.createOscillator();
+        const bassGain = ctxAudio.createGain();
+        bass.type = "triangle";
+        bass.frequency.setValueAtTime(220, now);
+        bass.frequency.exponentialRampToValueAtTime(36, now + 0.52);
+        bassGain.gain.setValueAtTime(vol * 0.9, now);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.54);
+        bass.connect(bassGain);
+        bassGain.connect(ctxAudio.destination);
+        bass.start(now);
+        bass.stop(now + 0.54);
+
+        // 3 nhịp tích tắc chậm dần
+        [0.05, 0.21, 0.42].forEach((offset, idx) => {
+          const t0 = now + offset;
+          const tick = ctxAudio.createOscillator();
+          const tGain = ctxAudio.createGain();
+          tick.type = "square";
+          tick.frequency.setValueAtTime(1100 - idx * 240, t0);
+          tGain.gain.setValueAtTime(vol * 0.28, t0);
+          tGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.045);
+          tick.connect(tGain);
+          tGain.connect(ctxAudio.destination);
+          tick.start(t0);
+          tick.stop(t0 + 0.05);
+        });
+      } catch (e) {}
+    }
+
+    function playTimeStopQueuedHitSound(hitCount = 1) {
+      if (!combatFxConfig.impactSound) return;
+      try {
+        const ctxAudio = getAudioContext();
+        if (!ctxAudio) return;
+        const now = ctxAudio.currentTime;
+        const vol = (combatFxConfig.soundVolume || 0.8) * 0.22;
+        const osc = ctxAudio.createOscillator();
+        const gain = ctxAudio.createGain();
+        const baseFreq = 680 + Math.min(600, hitCount * 75);
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.35, now + 0.06);
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain);
+        gain.connect(ctxAudio.destination);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } catch (e) {}
+    }
+
+    function playTimeStopResumeSound(hasHits = false) {
+      if (!combatFxConfig.impactSound) return;
+      try {
+        const ctxAudio = getAudioContext();
+        if (!ctxAudio) return;
+        const now = ctxAudio.currentTime;
+        const vol = (combatFxConfig.soundVolume || 0.8) * (hasHits ? 0.5 : 0.32);
+
+        // Cú giật đồng hồ ngược + nổ bung
+        const snap = ctxAudio.createOscillator();
+        const sGain = ctxAudio.createGain();
+        snap.type = "sawtooth";
+        snap.frequency.setValueAtTime(95, now);
+        snap.frequency.exponentialRampToValueAtTime(hasHits ? 32 : 52, now + 0.32);
+        sGain.gain.setValueAtTime(vol, now);
+        sGain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+        snap.connect(sGain);
+        sGain.connect(ctxAudio.destination);
+        snap.start(now);
+        snap.stop(now + 0.34);
+
+        const chime = ctxAudio.createOscillator();
+        const cGain = ctxAudio.createGain();
+        chime.type = "sine";
+        chime.frequency.setValueAtTime(440, now);
+        chime.frequency.exponentialRampToValueAtTime(1180, now + 0.14);
+        cGain.gain.setValueAtTime(vol * 0.55, now);
+        cGain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        chime.connect(cGain);
+        cGain.connect(ctxAudio.destination);
+        chime.start(now);
+        chime.stop(now + 0.24);
+      } catch (e) {}
+    }
+
     function playSpellCastSound(spellId) {
       if (!combatFxConfig.impactSound) return;
       if (spellId === "spell_gravity") {
         playGravityCastSound();
+        return;
+      }
+      if (spellId === "spell_timestop") {
+        playTimeStopCastSound();
         return;
       }
       playMagicCastSound();
@@ -1628,47 +1978,47 @@
           if (mob === eff.targetMob || dist <= radius + 8) {
             hitCount++;
             totalDealtDmg += dmg;
-            mob.hp -= dmg;
-            if (combatFxConfig.hitFlash) {
-              mob.hurtFlashTimer = combatFxConfig.hitFlashDuration || 0.08;
-            }
-            mob.gravitySquash = {
-              elapsed: 0,
-              duration: squashDur,
-              targetScaleY: targetSY,
-              targetScaleX: targetSX,
-              isOvercrush: isOvercrush
-            };
-            mob.slowTimer = Math.max(mob.slowTimer || 0, squashDur + 0.6 + (gb && gb.frostStacks > 0 ? 1.8 : 0));
-            if (gb && gb.burnStacks > 0) {
-              mob.burnTimer = Math.max(mob.burnTimer || 0, 2.8 + gb.burnStacks * 0.6);
-              mob.burnTickTimer = Math.min(mob.burnTickTimer || 0.45, 0.45);
-              mob.burnSpread = Boolean(gb.burnSpread);
-            }
-
             const critTag = isCrit ? " 💥" : "";
-            addFloatingText(
-              isOvercrush ? `-${dmg} HP${critTag} 📄 BẸP TỜ GIẤY!` : `-${dmg} HP${critTag} ⬇`,
-              mob.x - (isOvercrush ? 18 : 4),
-              mob.y - 12,
-              isCrit ? "#fde047" : (isOvercrush ? "#f0abfc" : "#c084fc"),
-              isOvercrush || isCrit
-            );
+            const gravLabel = isOvercrush ? `-${dmg} HP${critTag} 📄 BẸP TỜ GIẤY!` : `-${dmg} HP${critTag} ⬇`;
+            const gravColor = isCrit ? "#fde047" : (isOvercrush ? "#f0abfc" : "#c084fc");
+            const hitRes = applyMobDamageWithTimeStop(mob, dmg, {
+              angle: Math.atan2(mobFeetY - y, mobFeetX - x),
+              color: gravColor,
+              isCrit: isOvercrush || isCrit,
+              floatingText: gravLabel,
+              flashDur: combatFxConfig.hitFlashDuration || 0.08,
+              burnTimer: (gb && gb.burnStacks > 0) ? (2.8 + gb.burnStacks * 0.6) : 0,
+              burnSpread: Boolean(gb && gb.burnSpread),
+              slowTimer: squashDur + 0.6 + (gb && gb.frostStacks > 0 ? 1.8 : 0),
+              vampireHeal: (gb && gb.vampirePct > 0) ? Math.max(1, Math.round(dmg * gb.vampirePct)) : 0
+            });
+            if (!hitRes.queued) {
+              mob.gravitySquash = {
+                elapsed: 0,
+                duration: squashDur,
+                targetScaleY: targetSY,
+                targetScaleX: targetSX,
+                isOvercrush: isOvercrush
+              };
+              addFloatingText(
+                gravLabel,
+                mob.x - (isOvercrush ? 18 : 4),
+                mob.y - 12,
+                gravColor,
+                isOvercrush || isCrit
+              );
 
-            if (mob.hp <= 0) {
-              currentMobs.splice(mIdx, 1);
-              handleMobDeath(mob, mobFeetX, mob.y + mob.height / 2);
+              if (mob.hp <= 0) {
+                currentMobs.splice(mIdx, 1);
+                handleMobDeath(mob, mobFeetX, mob.y + mob.height / 2);
+              }
             }
           }
         }
       }
 
-      if (gb && gb.vampirePct > 0 && totalDealtDmg > 0 && player.hp < player.maxHp && player.action !== "die") {
-        const healAmt = Math.max(1, Math.round(totalDealtDmg * gb.vampirePct));
-        player.hp = Math.min(player.maxHp, player.hp + healAmt);
-        if (player.hp > player.displayHp) player.displayHp = player.hp;
-        if (valPlayerHP) valPlayerHP.textContent = `${Math.round(player.hp)} / ${player.maxHp}`;
-        addFloatingText(`+${healAmt} HP 🩸`, player.x - 4, player.y - 14, "#f472b6", false);
+      if (!(timeStopState.active && timestopFxConfig.step5Enabled) && gb && gb.vampirePct > 0 && totalDealtDmg > 0 && player.hp < player.maxHp && player.action !== "die") {
+        // Hút máu cho Gravity đã được xử lý từng mục tiêu trong applyMobDamageWithTimeStop
       }
 
       // Bước 4: Đất lún thành hố, vết nứt hình tia & đá vụn văng ra
@@ -1897,31 +2247,34 @@
       }
 
       let hitCount = 0;
-      for (const mob of currentMobs) {
+      for (let mIdx = currentMobs.length - 1; mIdx >= 0; mIdx--) {
+        const mob = currentMobs[mIdx];
         if (mob.hp <= 0) continue;
         const mCx = mob.x + mob.width / 2;
         const mCy = mob.y + mob.height / 2;
         const dist = Math.hypot(mCx - x, mCy - y);
         if (dist <= 38) {
           hitCount++;
-          mob.hp -= dmg;
-          if (combatFxConfig.hitFlash) {
-            mob.hurtFlashTimer = combatFxConfig.hitFlashDuration || 0.08;
-          }
-          addFloatingText(`-${dmg} 🌲`, mob.x, mob.y - 12, "#22c55e", false);
-
-          if (woodFxConfig.step5Enabled) {
-            mob.boundTimer = 2.2;
-            if (Math.random() < (woodFxConfig.sleepChance || 0.40)) {
-              mob.sleepTimer = woodFxConfig.sleepDuration || 3.5;
-              addFloatingText("💤 Ngủ say!", mob.x - 4, mob.y - 24, "#86efac", true);
-              spawnSleepPollenParticles(mCx, mCy);
+          const hitRes = applyMobDamageWithTimeStop(mob, dmg, {
+            angle: Math.atan2(mCy - y, mCx - x),
+            color: "#22c55e",
+            floatingText: `-${dmg} 🌲`,
+            flashDur: combatFxConfig.hitFlashDuration || 0.08
+          });
+          if (!hitRes.queued) {
+            addFloatingText(`-${dmg} 🌲`, mob.x, mob.y - 12, "#22c55e", false);
+            if (woodFxConfig.step5Enabled) {
+              mob.boundTimer = 2.2;
+              if (Math.random() < (woodFxConfig.sleepChance || 0.40)) {
+                mob.sleepTimer = woodFxConfig.sleepDuration || 3.5;
+                addFloatingText("💤 Ngủ say!", mob.x - 4, mob.y - 24, "#86efac", true);
+                spawnSleepPollenParticles(mCx, mCy);
+              }
             }
-          }
-
-          if (mob.hp <= 0) {
-            currentMobs.splice(currentMobs.indexOf(mob), 1);
-            handleMobDeath(mob, mCx, mCy);
+            if (mob.hp <= 0) {
+              currentMobs.splice(mIdx, 1);
+              handleMobDeath(mob, mCx, mCy);
+            }
           }
         }
       }
@@ -2323,6 +2676,608 @@
           }
         }
         ctx.restore();
+      }
+    }
+
+    // --- HỆ THỐNG CHIÊU DỪNG THỜI GIAN (5 BƯỚC + BÙNG NỔ KHI CHẠY LẠI) ---
+    const timeStopState = {
+      active: false,
+      originX: 0,
+      originY: 0,
+      elapsed: 0,
+      duration: 3.5,
+      slowDuration: 0.50,
+      timeScale: 1.0,
+      timeScaleMin: 0.0,
+      clockRadius: 60,
+      handAngleMinute: 0,
+      handAngleHour: -Math.PI / 2,
+      handSpeed: 3.5,
+      waveRadius: 0,
+      waveSpeed: 320,
+      desaturatePct: 100,
+      suspendedDebris: [],
+      glitterClock: 0,
+      resumeFlashTimer: 0,
+      gemBonuses: null
+    };
+
+    let timeStopScratchCanvas = null;
+    let timeStopScratchCtx = null;
+
+    function getTimeStopWorldScale() {
+      return timeStopState.active ? timeStopState.timeScale : 1.0;
+    }
+
+    function spawnTimeStopSuspendedDebris(originX, originY, count) {
+      timeStopState.suspendedDebris = [];
+      const n = Math.max(0, Math.round(count));
+      const palette = ["#94a3b8", "#cbd5e1", "#78716c", "#38bdf8", "#e0f2fe", "#a16207"];
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const dist = 14 + Math.random() * 145;
+        const px = Math.max(8, Math.min(MAP_SIZE - 8, originX + Math.cos(a) * dist));
+        const py = Math.max(8, Math.min(MAP_SIZE - 8, originY + Math.sin(a) * dist));
+        const kind = i % 3 === 0 ? "rock" : (i % 3 === 1 ? "shard" : "dust");
+        timeStopState.suspendedDebris.push({
+          x: px,
+          y: py,
+          z: 4 + Math.random() * 16,
+          targetRise: 2 + Math.random() * 5,
+          size: kind === "rock" ? (2.2 + Math.random() * 1.4) : (kind === "shard" ? 2.0 : (1.1 + Math.random() * 1.0)),
+          rot: Math.random() * Math.PI * 2,
+          color: palette[i % palette.length],
+          kind,
+          sparklePhase: Math.random() * Math.PI * 2,
+          sparkleFreq: 0.8 + Math.random() * 0.7
+        });
+      }
+    }
+
+    function applyMobDamageWithTimeStop(mob, damage, opts = {}) {
+      if (!mob || mob.hp <= 0) return { queued: false, died: false };
+      const isTimeStoppedHit = Boolean(timeStopState.active && timestopFxConfig.step5Enabled);
+      const mCx = mob.x + mob.width / 2;
+      const mCy = mob.y + mob.height / 2;
+      const hitAngle = opts.angle !== undefined ? opts.angle : Math.atan2(mCy - (player.y + 8), mCx - (player.x + 8));
+
+      if (isTimeStoppedHit) {
+        if (!mob.timeStopQueue) {
+          mob.timeStopQueue = {
+            totalDamage: 0,
+            hitCount: 0,
+            sumVx: 0,
+            sumVy: 0,
+            lastAngle: hitAngle,
+            slashes: [],
+            burnTimer: 0,
+            burnSpread: false,
+            slowTimer: 0,
+            vampireHeal: 0
+          };
+        }
+        const q = mob.timeStopQueue;
+        q.totalDamage += damage;
+        q.hitCount += 1;
+        q.lastAngle = hitAngle;
+        q.sumVx += Math.cos(hitAngle);
+        q.sumVy += Math.sin(hitAngle);
+        if (q.slashes.length < 10) {
+          q.slashes.push({
+            angle: hitAngle + (Math.random() - 0.5) * 0.45,
+            ox: (Math.random() - 0.5) * 7,
+            oy: (Math.random() - 0.5) * 7,
+            color: opts.color || "#38bdf8",
+            len: 7 + Math.random() * 5
+          });
+        }
+        if (opts.burnTimer) q.burnTimer = Math.max(q.burnTimer, opts.burnTimer);
+        if (opts.burnSpread) q.burnSpread = true;
+        if (opts.slowTimer) q.slowTimer = Math.max(q.slowTimer, opts.slowTimer);
+        if (opts.vampireHeal) q.vampireHeal += opts.vampireHeal;
+
+        const label = opts.floatingText || `-${damage} ⏳`;
+        const color = opts.color || "#38bdf8";
+        addFloatingText(label, mob.x - 4, mob.y - 10 - Math.min(12, (q.hitCount - 1) * 3), color, Boolean(opts.isCrit));
+        playTimeStopQueuedHitSound(q.hitCount);
+        return { queued: true, died: false };
+      }
+
+      mob.hp -= damage;
+      if (combatFxConfig.hitFlash) {
+        mob.hurtFlashTimer = opts.flashDur || (combatFxConfig.hitFlashDuration || 0.065);
+      }
+      if (opts.burnTimer) {
+        mob.burnTimer = Math.max(mob.burnTimer || 0, opts.burnTimer);
+        mob.burnTickTimer = Math.min(mob.burnTickTimer || 0.55, 0.55);
+        if (opts.burnSpread) mob.burnSpread = true;
+      }
+      if (opts.slowTimer) {
+        mob.slowTimer = Math.max(mob.slowTimer || 0, opts.slowTimer);
+      }
+      if (opts.vampireHeal && opts.vampireHeal > 0 && player.hp < player.maxHp && player.action !== "die") {
+        player.hp = Math.min(player.maxHp, player.hp + opts.vampireHeal);
+        if (player.hp > player.displayHp) player.displayHp = player.hp;
+        if (valPlayerHP) valPlayerHP.textContent = `${Math.round(player.hp)} / ${player.maxHp}`;
+        addFloatingText(`+${opts.vampireHeal} HP 🩸`, player.x - 4, player.y - 14, "#f472b6", false);
+      }
+      return { queued: false, died: mob.hp <= 0 };
+    }
+
+    function detonateAndResumeTimeStop(silent = false) {
+      if (!timeStopState.active) return;
+      timeStopState.active = false;
+      timeStopState.timeScale = 1.0;
+      timeStopState.resumeFlashTimer = silent ? 0 : 0.28;
+
+      if (!silent) {
+        for (const d of timeStopState.suspendedDebris) {
+          const a = Math.atan2(d.y - timeStopState.originY, d.x - timeStopState.originX);
+          const burst = 35 + Math.random() * 55;
+          combatParticles.push({
+            x: d.x,
+            y: d.y - d.z,
+            vx: Math.cos(a) * burst,
+            vy: Math.sin(a) * burst + 15,
+            size: d.size,
+            color: d.color,
+            life: 0.35 + Math.random() * 0.2,
+            maxLife: 0.55,
+            isDebris: true
+          });
+        }
+      }
+      timeStopState.suspendedDebris = [];
+
+      if (silent) {
+        for (const mob of currentMobs) {
+          delete mob.timeStopQueue;
+        }
+        return;
+      }
+
+      if (timestopFxConfig.step1Enabled || timestopFxConfig.step5Enabled) {
+        groundShockwaves.push({
+          x: timeStopState.originX,
+          y: timeStopState.originY,
+          radius: 10,
+          maxRadius: Math.max(70, (timestopFxConfig.clockRadius || 60) * 1.6),
+          life: 0.35,
+          maxLife: 0.35,
+          color: timestopFxConfig.glowColor || "#38bdf8",
+          coreColor: "#ffffff"
+        });
+      }
+
+      let totalQueuedMobs = 0;
+      let totalVampHeal = 0;
+
+      if (timestopFxConfig.step5Enabled) {
+        const extraDmg = Math.max(0, Math.round(timestopFxConfig.resumeExplosionDamage || 0));
+        const kbForce = Math.max(0, timestopFxConfig.knockbackForce || 130);
+        const tsRadius = (timestopFxConfig.clockRadius || 60) * 1.45;
+        const gb = timeStopState.gemBonuses;
+
+        for (let mIdx = currentMobs.length - 1; mIdx >= 0; mIdx--) {
+          const mob = currentMobs[mIdx];
+          const q = mob.timeStopQueue;
+          const mCx = mob.x + mob.width / 2;
+          const mCy = mob.y + mob.height / 2;
+          const distToOrigin = Math.hypot(mCx - timeStopState.originX, mCy - timeStopState.originY);
+          const inRange = distToOrigin <= tsRadius;
+
+          if (!q && (!inRange || extraDmg <= 0)) continue;
+
+          totalQueuedMobs++;
+          const stackedDmg = q ? q.totalDamage : 0;
+          const gemBonusDmg = gb ? (gb.damageBonus || 0) : 0;
+          const bonusDmg = extraDmg > 0 ? extraDmg + gemBonusDmg : 0;
+          const totalBurst = stackedDmg + bonusDmg;
+
+          mob.hp -= totalBurst;
+          if (combatFxConfig.hitFlash) {
+            mob.hurtFlashTimer = Math.max(combatFxConfig.hitFlashDuration || 0.08, 0.14);
+          }
+          if (q) {
+            if (q.burnTimer > 0) {
+              mob.burnTimer = Math.max(mob.burnTimer || 0, q.burnTimer);
+              mob.burnTickTimer = Math.min(mob.burnTickTimer || 0.45, 0.45);
+              if (q.burnSpread) mob.burnSpread = true;
+            }
+            if (q.slowTimer > 0) {
+              mob.slowTimer = Math.max(mob.slowTimer || 0, q.slowTimer);
+            }
+            totalVampHeal += q.vampireHeal || 0;
+          }
+          if (gb && gb.burnStacks > 0) {
+            mob.burnTimer = Math.max(mob.burnTimer || 0, 2.8);
+            mob.burnTickTimer = Math.min(mob.burnTickTimer || 0.45, 0.45);
+            if (gb.burnSpread) mob.burnSpread = true;
+          }
+          if (gb && gb.frostStacks > 0) {
+            mob.slowTimer = Math.max(mob.slowTimer || 0, 2.6);
+          }
+
+          let kbAngle = Math.atan2(mCy - timeStopState.originY, mCx - timeStopState.originX);
+          if (q && (Math.abs(q.sumVx) > 0.05 || Math.abs(q.sumVy) > 0.05)) {
+            kbAngle = Math.atan2(q.sumVy, q.sumVx);
+          }
+
+          if (kbForce > 0) {
+            const launchSpeed = kbForce * 1.95;
+            mob.knockbackVx = Math.cos(kbAngle) * launchSpeed;
+            mob.knockbackVy = Math.sin(kbAngle) * launchSpeed;
+            mob.knockbackTimer = 0.36;
+          }
+
+          delete mob.timeStopQueue;
+
+          spawnMagicHitBurst(mCx, mCy, kbAngle, "#38bdf8", "#fde047", 18);
+          spawnHitSparks(mCx, mCy, kbAngle);
+
+          const hitSuffix = q && q.hitCount > 0 ? ` (${q.hitCount}× DỒN ĐÒN!)` : " ⏳";
+          addFloatingText(`-${totalBurst} HP 💥${hitSuffix}`, mob.x - 16, mob.y - 16, "#fde047", true);
+
+          if (mob.hp <= 0) {
+            currentMobs.splice(mIdx, 1);
+            handleMobDeath(mob, mCx, mCy);
+          }
+        }
+
+        if (totalVampHeal > 0 && player.hp < player.maxHp && player.action !== "die") {
+          const healAmt = Math.round(totalVampHeal);
+          player.hp = Math.min(player.maxHp, player.hp + healAmt);
+          if (player.hp > player.displayHp) player.displayHp = player.hp;
+          if (valPlayerHP) valPlayerHP.textContent = `${Math.round(player.hp)} / ${player.maxHp}`;
+          addFloatingText(`+${healAmt} HP 🩸`, player.x - 4, player.y - 14, "#f472b6", false);
+        }
+
+        if (totalQueuedMobs > 0) {
+          triggerHitJuice(timestopFxConfig.shakeIntensity || 12, 0, 0.32, 3);
+          addFloatingText("⏳ THỜI GIAN CHẠY LẠI!", timeStopState.originX - 42, timeStopState.originY - 26, "#38bdf8", true);
+        } else {
+          triggerHitJuice(Math.max(4, Math.round((timestopFxConfig.shakeIntensity || 12) * 0.5)), 0, 0.22, 0);
+        }
+      }
+
+      playTimeStopResumeSound(totalQueuedMobs > 0);
+    }
+
+    function castTimestopSpell(aimAngle, clickWorldPos = null, gemBonuses = null) {
+      if (timeStopState.active) {
+        detonateAndResumeTimeStop(false);
+        return;
+      }
+
+      const ox = player.x + player.width / 2;
+      const oy = player.y + player.height - 2;
+
+      timeStopState.active = true;
+      timeStopState.originX = ox;
+      timeStopState.originY = oy;
+      timeStopState.elapsed = 0;
+      timeStopState.slowDuration = timestopFxConfig.step2Enabled ? Math.max(0.05, timestopFxConfig.slowDuration || 0.50) : 0;
+      timeStopState.duration = Math.max(0.6, timestopFxConfig.duration || 3.5);
+      timeStopState.timeScaleMin = Math.max(0, Math.min(0.4, timestopFxConfig.timeScaleMin !== undefined ? timestopFxConfig.timeScaleMin : 0));
+      timeStopState.timeScale = timestopFxConfig.step2Enabled ? 1.0 : timeStopState.timeScaleMin;
+      timeStopState.clockRadius = Math.max(24, timestopFxConfig.clockRadius || 60);
+      timeStopState.handSpeed = Math.max(0.5, timestopFxConfig.handSpeed || 3.5);
+      timeStopState.handAngleMinute = -Math.PI / 2;
+      timeStopState.handAngleHour = -Math.PI * 0.85;
+      timeStopState.waveRadius = 2;
+      timeStopState.waveSpeed = Math.max(80, timestopFxConfig.waveSpeed || 320);
+      timeStopState.desaturatePct = Math.max(0, Math.min(100, timestopFxConfig.desaturatePct || 100));
+      timeStopState.glitterClock = 0;
+      timeStopState.resumeFlashTimer = 0;
+      timeStopState.gemBonuses = gemBonuses;
+
+      if (timestopFxConfig.step4Enabled) {
+        spawnTimeStopSuspendedDebris(ox, oy, timestopFxConfig.debrisCount || 22);
+      } else {
+        timeStopState.suspendedDebris = [];
+      }
+
+      addFloatingText("⏳ DỪNG THỜI GIAN!", player.x - 24, player.y - 18, "#38bdf8", true);
+    }
+
+    function updateTimeStopEffect(realDt) {
+      if (timeStopState.resumeFlashTimer > 0) {
+        timeStopState.resumeFlashTimer = Math.max(0, timeStopState.resumeFlashTimer - realDt);
+      }
+      if (!timeStopState.active) return;
+
+      timeStopState.elapsed += realDt;
+      timeStopState.glitterClock += realDt;
+
+      // Bước 2: Tốc độ thời gian giảm từ 1 về 0 trong slowDuration (Ease-Out)
+      if (timestopFxConfig.step2Enabled && timeStopState.slowDuration > 0) {
+        const t = Math.min(1, timeStopState.elapsed / timeStopState.slowDuration);
+        const easeOut = 1 - Math.pow(1 - t, 3);
+        timeStopState.timeScale = 1 - (1 - timeStopState.timeScaleMin) * easeOut;
+        if (t >= 1) {
+          timeStopState.timeScale = timeStopState.timeScaleMin;
+        }
+      } else {
+        timeStopState.timeScale = timeStopState.timeScaleMin;
+      }
+
+      // Bước 1: Kim đồng hồ quay nhanh rồi chậm dần theo tốc độ thời gian và dừng hẳn
+      const spinFactor = timeStopState.timeScale;
+      if (spinFactor > 0.002) {
+        const angularSpeed = timeStopState.handSpeed * Math.PI * 2 * spinFactor;
+        timeStopState.handAngleMinute += angularSpeed * realDt;
+        timeStopState.handAngleHour += angularSpeed * 0.18 * realDt;
+      }
+
+      // Bước 3: Sóng mất màu lan tròn ra khắp bản đồ
+      if (timestopFxConfig.step3Enabled) {
+        timeStopState.waveRadius += timeStopState.waveSpeed * realDt;
+      }
+
+      // Bước 4: Mảnh vụn nhô nhẹ khi đang chậm dần rồi lơ lửng đứng yên giữa không trung
+      if (timestopFxConfig.step4Enabled && timeStopState.slowDuration > 0) {
+        const t = Math.min(1, timeStopState.elapsed / timeStopState.slowDuration);
+        if (t < 1) {
+          const liftRate = (1 - t) * realDt * 2.5;
+          for (const d of timeStopState.suspendedDebris) {
+            d.z += d.targetRise * liftRate;
+          }
+        }
+      }
+
+      const totalLifetime = timeStopState.duration;
+      if (timeStopState.elapsed >= totalLifetime) {
+        detonateAndResumeTimeStop(false);
+      }
+    }
+
+    function applyTimeStopGrayscaleWave(ctx, activeZoom, snapPx) {
+      if (!timestopFxConfig.step3Enabled) return;
+      if (!timeStopState.active && timeStopState.resumeFlashTimer <= 0) return;
+
+      const w = canvas.width;
+      const h = canvas.height;
+      if (w <= 0 || h <= 0) return;
+
+      if (!timeStopScratchCanvas) {
+        timeStopScratchCanvas = document.createElement("canvas");
+        timeStopScratchCtx = timeStopScratchCanvas.getContext("2d");
+      }
+      if (timeStopScratchCanvas.width !== w || timeStopScratchCanvas.height !== h) {
+        timeStopScratchCanvas.width = w;
+        timeStopScratchCanvas.height = h;
+      }
+      if (!timeStopScratchCtx) return;
+
+      const snappedCamX = snapPx(camera.x);
+      const snappedCamY = snapPx(camera.y);
+      const originScreenX = (timeStopState.originX - snappedCamX) * activeZoom;
+      const originScreenY = (timeStopState.originY - snappedCamY) * activeZoom;
+      const screenWaveRadius = Math.max(1, timeStopState.waveRadius * activeZoom);
+
+      let pct = timestopFxConfig.desaturatePct || 100;
+      if (!timeStopState.active && timeStopState.resumeFlashTimer > 0) {
+        pct *= Math.max(0, timeStopState.resumeFlashTimer / 0.28);
+      }
+      if (pct <= 1) return;
+
+      timeStopScratchCtx.clearRect(0, 0, w, h);
+      timeStopScratchCtx.drawImage(canvas, 0, 0);
+
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.beginPath();
+      ctx.arc(originScreenX, originScreenY, screenWaveRadius, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.filter = `grayscale(${pct.toFixed(0)}%) contrast(1.06) brightness(0.90)`;
+      ctx.drawImage(timeStopScratchCanvas, 0, 0);
+      ctx.restore();
+    }
+
+    function renderTimeStopGroundEffects(ctx) {
+      if (!timeStopState.active || !timestopFxConfig.step1Enabled) return;
+
+      const elapsed = timeStopState.elapsed;
+      const spreadT = Math.min(1, elapsed / 0.26);
+      const spreadEase = 1 - Math.pow(1 - spreadT, 2.4);
+      const r = timeStopState.clockRadius * spreadEase;
+      const pulse = 0.85 + 0.15 * Math.sin(performance.now() * 0.008);
+      const glowCol = timestopFxConfig.glowColor || "#38bdf8";
+
+      ctx.save();
+      ctx.translate(timeStopState.originX, timeStopState.originY);
+      ctx.scale(1, 0.68); // 2.5D nằm trên mặt đất
+
+      // Quầng sáng mặt đồng hồ loang ra dưới đất
+      const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, Math.max(4, r));
+      grad.addColorStop(0, "rgba(224, 242, 254, 0.36)");
+      grad.addColorStop(0.55, "rgba(56, 189, 248, 0.24)");
+      grad.addColorStop(0.88, "rgba(14, 165, 233, 0.12)");
+      grad.addColorStop(1, "rgba(14, 165, 233, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Vòng viền ngoài kép + vòng bánh răng bên trong
+      ctx.strokeStyle = glowCol;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = `rgba(224, 242, 254, ${0.75 * pulse})`;
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.84, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(186, 230, 253, 0.45)";
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 12 vạch giờ và 24 vạch chia nhỏ
+      for (let h = 0; h < 12; h++) {
+        const a = (Math.PI * 2 * h) / 12;
+        const inner = (h % 3 === 0) ? r * 0.72 : r * 0.80;
+        ctx.strokeStyle = (h % 3 === 0) ? "#ffffff" : "#bae6fd";
+        ctx.lineWidth = (h % 3 === 0) ? 1.4 : 0.8;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+        ctx.lineTo(Math.cos(a) * r * 0.94, Math.sin(a) * r * 0.94);
+        ctx.stroke();
+      }
+
+      // Kim giờ & Kim phút quay rồi dừng hẳn
+      const isStopped = timeStopState.timeScale <= 0.01;
+      const handCol = isStopped ? "#fde047" : "#ffffff";
+
+      // Kim giờ
+      ctx.strokeStyle = handCol;
+      ctx.lineWidth = 2.0;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(timeStopState.handAngleHour) * r * 0.46, Math.sin(timeStopState.handAngleHour) * r * 0.46);
+      ctx.stroke();
+
+      // Kim phút
+      ctx.strokeStyle = isStopped ? "#fef08a" : "#e0f2fe";
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(-Math.cos(timeStopState.handAngleMinute) * r * 0.12, -Math.sin(timeStopState.handAngleMinute) * r * 0.12);
+      ctx.lineTo(Math.cos(timeStopState.handAngleMinute) * r * 0.74, Math.sin(timeStopState.handAngleMinute) * r * 0.74);
+      ctx.stroke();
+
+      // Trục tâm đồng hồ phát sáng
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(0, 0, 2.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function renderTimeStopAirEffects(ctx) {
+      if (timeStopState.resumeFlashTimer > 0) {
+        const a = Math.max(0, timeStopState.resumeFlashTimer / 0.28);
+        ctx.save();
+        ctx.strokeStyle = `rgba(186, 230, 253, ${a * 0.8})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(timeStopState.originX, timeStopState.originY, (1 - a) * 140 + 18, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (!timeStopState.active) return;
+
+      // Bước 3: Viền sóng mất màu lan tròn rực rỡ trên mặt trận sóng
+      if (timestopFxConfig.step3Enabled && timeStopState.waveRadius < 680) {
+        const wr = timeStopState.waveRadius;
+        ctx.save();
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.85)";
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.arc(timeStopState.originX, timeStopState.originY, wr, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(timeStopState.originX, timeStopState.originY, Math.max(1, wr - 2.2), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Bước 4: Bụi, đá, mảnh vụn đứng yên lơ lửng giữa không trung & lấp lánh
+      if (timestopFxConfig.step4Enabled) {
+        const rate = Math.max(0.03, timestopFxConfig.glitterRate || 0.12);
+        const speedMul = (0.12 / rate) * 3.8;
+        const gClk = timeStopState.glitterClock * speedMul;
+
+        for (const d of timeStopState.suspendedDebris) {
+          const py = d.y - d.z;
+          ctx.save();
+          // Bóng nhỏ dưới mặt đất thể hiện vật đang lơ lửng trên không
+          ctx.fillStyle = "rgba(15, 23, 42, 0.36)";
+          ctx.beginPath();
+          ctx.ellipse(d.x, d.y + 1, d.size * 0.7, d.size * 0.35, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.translate(d.x, py);
+          ctx.rotate(d.rot);
+          ctx.fillStyle = d.color;
+          if (d.kind === "shard") {
+            ctx.beginPath();
+            ctx.moveTo(0, -d.size);
+            ctx.lineTo(d.size * 0.7, 0);
+            ctx.lineTo(0, d.size);
+            ctx.lineTo(-d.size * 0.7, 0);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size);
+          }
+
+          // Tia lấp lánh (sparkle glint)
+          const glint = Math.sin(gClk * d.sparkleFreq + d.sparklePhase);
+          if (glint > 0.55) {
+            const gAlpha = Math.min(1, (glint - 0.55) / 0.45);
+            const arm = d.size * (1.1 + gAlpha * 0.8);
+            ctx.rotate(-d.rot);
+            ctx.fillStyle = `rgba(255, 255, 255, ${gAlpha})`;
+            ctx.fillRect(-arm, -0.4, arm * 2, 0.8);
+            ctx.fillRect(-0.4, -arm, 0.8, arm * 2);
+          }
+          ctx.restore();
+        }
+      }
+
+      // Bước 5: Vẽ dấu vết chém ngưng đọng & bộ đếm dồn đòn trên đầu quái bị đánh
+      if (timestopFxConfig.step5Enabled) {
+        for (const mob of currentMobs) {
+          const q = mob.timeStopQueue;
+          if (!q || q.hitCount <= 0) continue;
+          const mCx = mob.x + mob.width / 2;
+          const mCy = mob.y + mob.height / 2;
+
+          ctx.save();
+          // Vết cắt ánh sáng đóng băng tại vị trí đòn đánh
+          for (const sl of q.slashes) {
+            ctx.save();
+            ctx.translate(mCx + sl.ox, mCy + sl.oy);
+            ctx.rotate(sl.angle);
+            ctx.strokeStyle = sl.color;
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(-sl.len, 0);
+            ctx.lineTo(sl.len, 0);
+            ctx.stroke();
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 0.7;
+            ctx.beginPath();
+            ctx.moveTo(-sl.len * 0.7, 0);
+            ctx.lineTo(sl.len * 0.7, 0);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // Huy hiệu Dồn Đòn trên đầu mục tiêu
+          const badgeY = mob.y - 11;
+          ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+          ctx.fillRect(mCx - 14, badgeY - 5, 28, 7.5);
+          ctx.strokeStyle = "#38bdf8";
+          ctx.lineWidth = 0.7;
+          ctx.strokeRect(mCx - 14, badgeY - 5, 28, 7.5);
+          ctx.fillStyle = "#fde047";
+          ctx.font = "bold 5.5px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(`⏳-${q.totalDamage}`, mCx, badgeY + 0.5);
+          ctx.restore();
+        }
       }
     }
 
@@ -3160,6 +4115,19 @@
         hasSettings: true,
         desc: "5 bước: Sóng uốn lượn 3 thân gỗ → Đất nứt bụi đá → Lá mọc bung nở → Quấn chặt siết mục tiêu → Hoa nở phấn ngủ",
         icon: "assets/items/skills/spell_wood.png"
+      },
+      spell_timestop: {
+        id: "spell_timestop",
+        name: "Ngọc Dừng Thời Gian",
+        shortName: "Dừng TG",
+        badge: "⏳",
+        color: "#38bdf8",
+        glow: "#bae6fd",
+        cooldown: 1.50,
+        damage: 15,
+        hasSettings: true,
+        desc: "5 bước: Vòng đồng hồ loang sáng → Chậm dần (0.5s) → Mất màu thế giới & giữ màu bản thân → Lơ lửng mảnh vụn giữa không trung → Dồn đòn đánh chờ nổ tung & văng đi",
+        icon: "assets/items/skills/spell_timestop.png"
       }
     };
 
@@ -3183,6 +4151,16 @@
         glow: "#86efac",
         basicDesc: "Cọc Rễ Gai (Gây Độc & Đâm Rễ Lan)",
         desc: "Khảm 3 Ngọc Mộc Độn: Đánh thường mọc rễ gai gai góc đâm xuyên mục tiêu gây độc và trói chân!"
+      },
+      spell_timestop: {
+        spellId: "spell_timestop",
+        label: "⏳ Cộng Hưởng: Trụ Thời Gian Vĩnh Cửu",
+        shortCap: "Đánh ⏳",
+        badge: "⏳",
+        color: "#38bdf8",
+        glow: "#bae6fd",
+        basicDesc: "Đòn Đánh Ngưng Đọng (Gây Tê Liệt & Tích Tụ Sát Thương)",
+        desc: "Khảm 3 Ngọc Dừng Thời Gian: Đánh thường tích tụ sát thương ngưng đọng và phóng nổ thời gian khi kích hoạt!"
       }
     };
 
@@ -3330,6 +4308,22 @@
         ],
         description: SPELLS_DATABASE.spell_wood.desc,
         icon: SPELLS_DATABASE.spell_wood.icon
+      },
+      "spell_timestop": {
+        id: "spell_timestop",
+        name: SPELLS_DATABASE.spell_timestop.name,
+        category: "spell",
+        spellId: "spell_timestop",
+        rarity: "legendary",
+        maxStack: 1,
+        value: 160,
+        damage: 15,
+        perks: [
+          "✦ Lắp vào Phần 1 (Chiêu Thức Z / X / C) của Đũa Phép",
+          "✦ Dừng thời gian 5 bước: Vòng đồng hồ, chậm dần, mất màu, lơ lửng & dồn đòn nổ tung"
+        ],
+        description: SPELLS_DATABASE.spell_timestop.desc,
+        icon: SPELLS_DATABASE.spell_timestop.icon
       },
       "gem_damage": {
         id: "gem_damage",
@@ -4089,7 +5083,7 @@
       durability: 200,
       maxDurability: 200,
       wandData: {
-        slots: ['spell_gravity', null, null],
+        slots: ['spell_gravity', 'spell_wood', 'spell_timestop'],
         gemSlots: [null, null, null]
       }
     };
@@ -4112,7 +5106,7 @@
     playerInventory[15] = { id: 'chest', name: 'Rương Đồ', quantity: 1 };
     playerInventory[16] = { id: 'iron_chest', name: 'Giáp Sắt', quantity: 1, durability: 240, maxDurability: 240 };
     playerInventory[17] = { id: 'iron_legs', name: 'Quần Sắt', quantity: 1, durability: 200, maxDurability: 200 };
-    playerInventory[18] = { id: 'iron_boots', name: 'Giày Sắt', quantity: 1, durability: 180, maxDurability: 180 };
+    playerInventory[18] = { id: 'spell_timestop', name: SPELLS_DATABASE.spell_timestop.name, quantity: 1 };
     playerInventory[19] = { id: 'spell_wood', name: SPELLS_DATABASE.spell_wood.name, quantity: 1 };
     playerInventory[20] = { id: 'diamond_helmet', name: 'Nón Kim Cương', quantity: 1, durability: 350, maxDurability: 350 };
     playerInventory[21] = { id: 'diamond_chest', name: 'Giáp Kim Cương', quantity: 1, durability: 500, maxDurability: 500 };
@@ -9733,6 +10727,8 @@
 
     function loadMap(mapId, newPlayerPos = null) {
       resetFishingState();
+      if (timeStopState.active) detonateAndResumeTimeStop(true);
+      timeStopState.resumeFlashTimer = 0;
       if (isChestOpen()) toggleChestUI(false);
       wandAltarTriggerLock = false;
       currentMap = mapId;
@@ -9803,6 +10799,43 @@
 
       for (let mIdx = currentMobs.length - 1; mIdx >= 0; mIdx--) {
         const mob = currentMobs[mIdx];
+        // Vật lý văng ra sau khi hết Dừng Thời Gian hoặc bị đẩy mạnh
+        if (mob.knockbackTimer > 0) {
+          mob.knockbackTimer = Math.max(0, mob.knockbackTimer - deltaTime);
+          const stepX = (mob.knockbackVx || 0) * deltaTime;
+          const stepY = (mob.knockbackVy || 0) * deltaTime;
+          const steps = Math.max(1, Math.ceil(Math.hypot(stepX, stepY) / 4));
+          const subX = stepX / steps;
+          const subY = stepY / steps;
+          for (let s = 0; s < steps; s++) {
+            if (subX !== 0 && !checkMobCollision({ x: mob.x + subX, y: mob.y, width: mob.width, height: mob.height })) {
+              mob.x += subX;
+            } else {
+              mob.knockbackVx = 0;
+            }
+            if (subY !== 0 && !checkMobCollision({ x: mob.x, y: mob.y + subY, width: mob.width, height: mob.height })) {
+              mob.y += subY;
+            } else {
+              mob.knockbackVy = 0;
+            }
+          }
+          const damp = Math.pow(0.06, deltaTime);
+          mob.knockbackVx *= damp;
+          mob.knockbackVy *= damp;
+          if (deltaTime > 0 && Math.random() < 0.6) {
+            combatParticles.push({
+              x: mob.x + mob.width / 2,
+              y: mob.y + mob.height - 2,
+              vx: (Math.random() - 0.5) * 14,
+              vy: -8 - Math.random() * 12,
+              size: 1.5,
+              color: "#cbd5e1",
+              life: 0.2,
+              maxLife: 0.2,
+              isSpark: true
+            });
+          }
+        }
         // Giảm thời gian chớp đỏ bị thương
         if (mob.hurtFlashTimer > 0) {
           mob.hurtFlashTimer -= deltaTime;
@@ -10612,6 +11645,12 @@
         playSpellCastSound("spell_wood");
         return;
       }
+      if (spellId === "spell_timestop") {
+        spawnMagicCastVfx(tipX, tipY, castAngle, "#38bdf8", "#bae6fd", 12);
+        castTimestopSpell(castAngle, clickWorldPos, gemBonuses);
+        playSpellCastSound("spell_timestop");
+        return;
+      }
 
       // Đòn đánh thường mặc định của Đũa Phép (Cầu Năng Lượng Tím + chỉ số Ngọc khảm)
       castDefaultWandBasicOrb(tipX, tipY, castAngle, gemBonuses);
@@ -10810,6 +11849,29 @@
         playSpellCastSound("spell_wood");
         return;
       }
+      if (rId === "spell_timestop") {
+        const speed = 275;
+        activeProjectiles.push({
+          x: tipX, y: tipY,
+          vx: cosA * speed, vy: sinA * speed,
+          angle: castAngle,
+          damage: 5 + (gb.damageBonus || 0),
+          traveled: 0, maxRange: 265,
+          width: 12, height: 12,
+          trailTimer: 0,
+          isMagicOrb: true,
+          resonanceType: "spell_timestop",
+          critChance: gb.critChance || 0,
+          gemBurn: (gb.burnStacks || 0) > 0,
+          gemBurnSpread: Boolean(gb.burnSpread),
+          gemFrost: (gb.frostStacks || 0) > 0,
+          gemFrostSpread: Boolean(gb.frostSpread),
+          gemVampire: gb.vampirePct || 0
+        });
+        spawnMagicCastVfx(tipX, tipY, castAngle, "#38bdf8", "#fde047", 12);
+        playSpellCastSound("spell_timestop");
+        return;
+      }
 
       castDefaultWandBasicOrb(tipX, tipY, castAngle, gemBonuses);
     }
@@ -10996,7 +12058,6 @@
         }
         const baseDmg = defaultStats.player.attackDamage || 2;
         const totalDamage = baseDmg + weaponBonus;
-        mob.hp -= totalDamage;
 
         // Tính hướng chém từ Player tới quái vật
         const mobCenterX = mob.x + mob.width / 2;
@@ -11010,52 +12071,56 @@
           else if (player.direction === 'up') slashAngle = -Math.PI / 2;
         }
 
-        // 1. HIT FLASH: Quái chuyển trắng hoàn toàn 2-3 frame (theo cấu hình)
-        if (combatFxConfig.hitFlash) {
-          mob.hurtFlashTimer = combatFxConfig.hitFlashDuration || 0.065;
-        }
+        const hitRes = applyMobDamageWithTimeStop(mob, totalDamage, {
+          angle: slashAngle,
+          color: weaponBonus > 0 ? "#fbbf24" : "#f87171",
+          floatingText: `-${totalDamage} HP ⚔️`,
+          flashDur: combatFxConfig.hitFlashDuration || 0.065
+        });
 
-        // 2. IMPACT SOUND: Âm thanh va chạm đúng frame chém, pitch ngẫu nhiên
-        playImpactSound(mob.hp <= 0);
-
-        // 3. HIT PARTICLES: Tia lửa tại điểm chạm văng theo hướng chém
+        // TIA LỬA tại điểm chạm văng theo hướng chém
         const contactX = (playerCenterX + mobCenterX) / 2;
         const contactY = (playerCenterY + mobCenterY) / 2;
         spawnHitSparks(contactX, contactY, slashAngle);
 
-        // 4. KNOCKBACK: Đẩy quái lùi theo hướng đòn, nhân vật bật lại nhẹ (Recoil)
-        if (combatFxConfig.knockback) {
-          const kbDist = combatFxConfig.knockbackDistance || 14;
-          const pushX = mob.x + Math.cos(slashAngle) * kbDist;
-          const pushY = mob.y + Math.sin(slashAngle) * kbDist;
-          const pushBox = { x: pushX, y: pushY, width: mob.width, height: mob.height };
-          if (!checkMobCollision(pushBox)) {
-            mob.x = pushX;
-            mob.y = pushY;
-          }
+        if (!hitRes.queued) {
+          // IMPACT SOUND: Âm thanh va chạm đúng frame chém, pitch ngẫu nhiên
+          playImpactSound(hitRes.died);
 
-          // Nhân vật bật lùi nhẹ theo hướng ngược lại
-          const recoilDist = combatFxConfig.playerRecoil || 4;
-          if (recoilDist > 0) {
-            const recoilX = player.x - Math.cos(slashAngle) * recoilDist;
-            const recoilY = player.y - Math.sin(slashAngle) * recoilDist;
-            const recoilBox = { x: recoilX, y: recoilY, width: player.width, height: player.height };
-            if (!willPlayerCollide(recoilBox)) {
-              player.x = recoilX;
-              player.y = recoilY;
+          // KNOCKBACK: Đẩy quái lùi theo hướng đòn, nhân vật bật lại nhẹ (Recoil)
+          if (combatFxConfig.knockback) {
+            const kbDist = combatFxConfig.knockbackDistance || 14;
+            const pushX = mob.x + Math.cos(slashAngle) * kbDist;
+            const pushY = mob.y + Math.sin(slashAngle) * kbDist;
+            const pushBox = { x: pushX, y: pushY, width: mob.width, height: mob.height };
+            if (!checkMobCollision(pushBox)) {
+              mob.x = pushX;
+              mob.y = pushY;
+            }
+
+            // Nhân vật bật lùi nhẹ theo hướng ngược lại
+            const recoilDist = combatFxConfig.playerRecoil || 4;
+            if (recoilDist > 0) {
+              const recoilX = player.x - Math.cos(slashAngle) * recoilDist;
+              const recoilY = player.y - Math.sin(slashAngle) * recoilDist;
+              const recoilBox = { x: recoilX, y: recoilY, width: player.width, height: player.height };
+              if (!willPlayerCollide(recoilBox)) {
+                player.x = recoilX;
+                player.y = recoilY;
+              }
             }
           }
-        }
 
-        // 5. SCREEN SHAKE + HIT-STOP: Rung camera nhẹ, dừng game lúc chạm
-        triggerHitJuice(combatFxConfig.shakeIntensity || 3, combatFxConfig.hitStopDuration ? combatFxConfig.hitStopDuration * 1000 : 60);
+          // SCREEN SHAKE + HIT-STOP: Rung camera nhẹ, dừng game lúc chạm
+          triggerHitJuice(combatFxConfig.shakeIntensity || 3, combatFxConfig.hitStopDuration ? combatFxConfig.hitStopDuration * 1000 : 60);
 
-        addFloatingText(`-${totalDamage} HP ⚔️`, mob.x - 4, mob.y - 10, weaponBonus > 0 ? "#fbbf24" : "#f87171");
+          addFloatingText(`-${totalDamage} HP ⚔️`, mob.x - 4, mob.y - 10, weaponBonus > 0 ? "#fbbf24" : "#f87171");
 
-        // 6. Khi quái hết máu:
-        if (mob.hp <= 0) {
-          currentMobs.splice(nearestMobIndex, 1);
-          handleMobDeath(mob, mobCenterX, mobCenterY);
+          // Khi quái hết máu:
+          if (hitRes.died) {
+            currentMobs.splice(nearestMobIndex, 1);
+            handleMobDeath(mob, mobCenterX, mobCenterY);
+          }
         }
         return;
       }
@@ -11709,6 +12774,9 @@
         return;
       }
 
+      updateTimeStopEffect(deltaTime);
+      const worldDt = deltaTime * getTimeStopWorldScale();
+
       if (portalCooldown > 0) {
         portalCooldown -= deltaTime;
       }
@@ -12097,29 +13165,67 @@
             const my = mob.y + mob.height / 2;
             const d = Math.hypot(mx - ix, my - iy);
             if (d <= 36) {
-              if (d > 4) {
-                const pullA = Math.atan2(iy - my, ix - mx);
-                const pullDist = Math.min(11, d * 0.55);
-                const px = mob.x + Math.cos(pullA) * pullDist;
-                const py = mob.y + Math.sin(pullA) * pullDist;
-                if (!checkMobCollision({ x: px, y: py, width: mob.width, height: mob.height })) {
-                  mob.x = px; mob.y = py;
+              const isTsFreeze = Boolean(timeStopState.active && timestopFxConfig.step5Enabled);
+              if (!isTsFreeze) {
+                if (d > 4) {
+                  const pullA = Math.atan2(iy - my, ix - mx);
+                  const pullDist = Math.min(11, d * 0.55);
+                  const px = mob.x + Math.cos(pullA) * pullDist;
+                  const py = mob.y + Math.sin(pullA) * pullDist;
+                  if (!checkMobCollision({ x: px, y: py, width: mob.width, height: mob.height })) {
+                    mob.x = px; mob.y = py;
+                  }
+                }
+                mob.gravitySquash = { elapsed: 0, duration: 0.24, targetScaleY: 0.65, targetScaleX: 1.3 };
+              }
+              if (mob !== primaryMob) {
+                const hitRes = applyMobDamageWithTimeStop(mob, 3, {
+                  angle: Math.atan2(my - iy, mx - ix),
+                  color: "#e879f9",
+                  floatingText: "-3 HP 🌌",
+                  flashDur: 0.05,
+                  burnTimer: proj.gemBurn ? 2.6 : 0,
+                  burnSpread: proj.gemBurnSpread,
+                  slowTimer: proj.gemFrost ? 2.6 : 0
+                });
+                if (!hitRes.queued) {
+                  addFloatingText("-3 HP 🌌", mob.x - 4, mob.y - 10, "#e879f9", false);
+                  if (hitRes.died) {
+                    currentMobs.splice(mIdx, 1);
+                    handleMobDeath(mob, mx, my);
+                  }
                 }
               }
-              mob.gravitySquash = { elapsed: 0, duration: 0.24, targetScaleY: 0.65, targetScaleX: 1.3 };
-              if (mob !== primaryMob) {
-                mob.hp -= 3;
-                if (combatFxConfig.hitFlash) mob.hurtFlashTimer = 0.05;
-                if (proj.gemBurn) {
-                  mob.burnTimer = Math.max(mob.burnTimer || 0, 2.6);
-                  mob.burnTickTimer = Math.min(mob.burnTickTimer || 0.55, 0.55);
-                  if (proj.gemBurnSpread) mob.burnSpread = true;
-                }
-                if (proj.gemFrost) {
-                  mob.slowTimer = Math.max(mob.slowTimer || 0, 2.6);
-                }
-                addFloatingText("-3 HP 🌌", mob.x - 4, mob.y - 10, "#e879f9", false);
-                if (mob.hp <= 0) {
+            }
+          }
+          return false;
+        }
+        if (rType === "spell_timestop") {
+          spawnMagicHitBurst(ix, iy, proj.angle, "#38bdf8", "#fde047", 18);
+          groundShockwaves.push({
+            x: ix, y: iy, radius: 6, maxRadius: 38,
+            life: 0.26, maxLife: 0.26,
+            color: "#38bdf8", coreColor: "#fef08a"
+          });
+          for (let mIdx = currentMobs.length - 1; mIdx >= 0; mIdx--) {
+            const mob = currentMobs[mIdx];
+            if (mob === primaryMob || mob.hp <= 0) continue;
+            const mx = mob.x + mob.width / 2;
+            const my = mob.y + mob.height / 2;
+            const d = Math.hypot(mx - ix, my - iy);
+            if (d <= 38) {
+              const hitRes = applyMobDamageWithTimeStop(mob, 4, {
+                angle: Math.atan2(my - iy, mx - ix),
+                color: "#38bdf8",
+                floatingText: "-4 HP ⏳",
+                flashDur: 0.05,
+                burnTimer: proj.gemBurn ? 2.6 : 0,
+                burnSpread: proj.gemBurnSpread,
+                slowTimer: 2.2
+              });
+              if (!hitRes.queued) {
+                addFloatingText("-4 HP ⏳", mob.x - 4, mob.y - 10, "#38bdf8", false);
+                if (hitRes.died) {
                   currentMobs.splice(mIdx, 1);
                   handleMobDeath(mob, mx, my);
                 }
@@ -12150,7 +13256,9 @@
               ? (Math.random() > 0.4 ? "#f97316" : (Math.random() > 0.5 ? "#fde047" : "#c084fc"))
               : (proj.gemFrost
                 ? (Math.random() > 0.4 ? "#38bdf8" : "#e0f2fe")
-                : (Math.random() > 0.35 ? "#c084fc" : (Math.random() > 0.5 ? "#7dd3fc" : "#ffffff")));
+                : (proj.resonanceType === "spell_timestop"
+                  ? (Math.random() > 0.4 ? "#38bdf8" : "#fde047")
+                  : (Math.random() > 0.35 ? "#c084fc" : (Math.random() > 0.5 ? "#7dd3fc" : "#ffffff"))));
             combatParticles.push({
               x: proj.x + Math.cos(perpAngle) * jitter - Math.cos(proj.angle) * 2,
               y: proj.y + Math.sin(perpAngle) * jitter - Math.sin(proj.angle) * 2,
@@ -12185,22 +13293,34 @@
 
             const isCrit = Boolean(proj.critChance && Math.random() < proj.critChance);
             const finalDamage = isCrit ? Math.max(1, Math.round(proj.damage * 1.75)) : proj.damage;
-            mob.hp -= finalDamage;
-            playImpactSound(mob.hp <= 0);
-
-            if (combatFxConfig.hitFlash) {
-              mob.hurtFlashTimer = combatFxConfig.hitFlashDuration || 0.065;
-            }
-
             const mobCenterX = mob.x + mob.width / 2;
             const mobCenterY = mob.y + mob.height / 2;
+            const hitTag = isCrit ? " HP 💥" : (proj.isMagicOrb ? " HP ✨" : " HP 🏹");
+            const hitColor = isCrit ? "#fde047" : (proj.resonanceType === "spell_timestop" ? "#38bdf8" : (proj.isMagicOrb ? "#e879f9" : "#38bdf8"));
 
-            // Hiệu ứng Ngọc Viêm Hỏa & Cộng hưởng 3 viên Cháy Lan AoE
-            if (proj.gemBurn) {
-              mob.burnTimer = Math.max(mob.burnTimer || 0, 3.0);
-              mob.burnTickTimer = Math.min(mob.burnTickTimer || 0.55, 0.55);
-              if (proj.gemBurnSpread) {
-                mob.burnSpread = true;
+            const hitRes = applyMobDamageWithTimeStop(mob, finalDamage, {
+              angle: proj.angle,
+              color: hitColor,
+              floatingText: "-" + finalDamage + hitTag,
+              isCrit,
+              flashDur: combatFxConfig.hitFlashDuration || 0.065,
+              burnTimer: proj.gemBurn ? 3.0 : 0,
+              burnSpread: proj.gemBurnSpread,
+              slowTimer: proj.gemFrost ? (proj.gemFrostSpread ? 3.4 : 2.2) : 0,
+              vampireHeal: (proj.gemVampire && proj.gemVampire > 0) ? Math.max(1, Math.round(finalDamage * proj.gemVampire)) : 0
+            });
+
+            if (proj.isMagicOrb) {
+              spawnMagicHitBurst(mobCenterX, mobCenterY, proj.angle);
+            } else {
+              spawnHitSparks(mobCenterX, mobCenterY, proj.angle);
+            }
+
+            if (!hitRes.queued) {
+              playImpactSound(hitRes.died);
+
+              // Cộng hưởng 3 viên Cháy Lan AoE
+              if (proj.gemBurn && proj.gemBurnSpread) {
                 groundShockwaves.push({
                   x: mobCenterX, y: mobCenterY, radius: 6, maxRadius: 34,
                   life: 0.22, maxLife: 0.22,
@@ -12217,12 +13337,9 @@
                   }
                 }
               }
-            }
 
-            // Hiệu ứng Ngọc Băng Sương & Cộng hưởng 3 viên Sóng Băng Lan
-            if (proj.gemFrost) {
-              mob.slowTimer = Math.max(mob.slowTimer || 0, proj.gemFrostSpread ? 3.4 : 2.2);
-              if (proj.gemFrostSpread) {
+              // Cộng hưởng 3 viên Sóng Băng Lan
+              if (proj.gemFrost && proj.gemFrostSpread) {
                 groundShockwaves.push({
                   x: mobCenterX, y: mobCenterY, radius: 6, maxRadius: 34,
                   life: 0.22, maxLife: 0.22,
@@ -12237,44 +13354,29 @@
                   }
                 }
               }
-            }
 
-            // Hiệu ứng Ngọc Hút Máu
-            if (proj.gemVampire && proj.gemVampire > 0 && player.hp < player.maxHp) {
-              const healAmt = Math.max(1, Math.round(finalDamage * proj.gemVampire));
-              player.hp = Math.min(player.maxHp, player.hp + healAmt);
-              addFloatingText(`+${healAmt} HP 🩸`, player.x - 4, player.y - 14, "#f472b6", false);
-              updateStatsHUD();
-            }
+              triggerHitJuice(combatFxConfig.shakeIntensity || 3, 50);
+              addFloatingText("-" + finalDamage + hitTag, mob.x - 4, mob.y - 10, hitColor, isCrit);
 
-            if (proj.isMagicOrb) {
-              spawnMagicHitBurst(mobCenterX, mobCenterY, proj.angle);
-            } else {
-              spawnHitSparks(mobCenterX, mobCenterY, proj.angle);
-            }
-            triggerHitJuice(combatFxConfig.shakeIntensity || 3, 50);
-            const hitTag = isCrit ? " HP 💥" : (proj.isMagicOrb ? " HP ✨" : " HP 🏹");
-            const hitColor = isCrit ? "#fde047" : (proj.isMagicOrb ? "#e879f9" : "#38bdf8");
-            addFloatingText("-" + finalDamage + hitTag, mob.x - 4, mob.y - 10, hitColor, isCrit);
-
-            // Knockback quái lui lại
-            if (combatFxConfig.knockback) {
-              const kbDist = 18;
-              const pushX = mob.x + Math.cos(proj.angle) * kbDist;
-              const pushY = mob.y + Math.sin(proj.angle) * kbDist;
-              if (!checkMobCollision({ x: pushX, y: pushY, width: mob.width, height: mob.height })) {
-                mob.x = pushX;
-                mob.y = pushY;
+              // Knockback quái lui lại
+              if (combatFxConfig.knockback) {
+                const kbDist = 18;
+                const pushX = mob.x + Math.cos(proj.angle) * kbDist;
+                const pushY = mob.y + Math.sin(proj.angle) * kbDist;
+                if (!checkMobCollision({ x: pushX, y: pushY, width: mob.width, height: mob.height })) {
+                  mob.x = pushX;
+                  mob.y = pushY;
+                }
               }
-            }
 
-            // Quái chết
-            if (mob.hp <= 0) {
-              currentMobs.splice(mIdx, 1);
-              handleMobDeath(mob, mobCenterX, mobCenterY);
-              // Tỉ lệ 75% rơi lại mũi tên (chỉ áp dụng cho cung tên vật lý)
-              if (!isSpellProj && Math.random() < 0.75) {
-                spawnGroundItem({ id: "arrow", name: "Mũi Tên", quantity: 1, icon: "assets/items/tools_weapons/arrow.png" }, mobCenterX, mobCenterY);
+              // Quái chết
+              if (hitRes.died) {
+                currentMobs.splice(mIdx, 1);
+                handleMobDeath(mob, mobCenterX, mobCenterY);
+                // Tỉ lệ 75% rơi lại mũi tên (chỉ áp dụng cho cung tên vật lý)
+                if (!isSpellProj && Math.random() < 0.75) {
+                  spawnGroundItem({ id: "arrow", name: "Mũi Tên", quantity: 1, icon: "assets/items/tools_weapons/arrow.png" }, mobCenterX, mobCenterY);
+                }
               }
             }
 
@@ -12301,7 +13403,7 @@
             if (objBox && checkAABB(pBox, objBox)) {
               hitObstacle = true;
               playImpactSound(false);
-              if (proj.resonanceType === "spell_gravity") {
+              if (proj.resonanceType === "spell_gravity" || proj.resonanceType === "spell_timestop") {
                 detonateResonanceImpact(proj, proj.x, proj.y, null);
               } else if (proj.isMagicOrb) {
                 spawnMagicHitBurst(proj.x, proj.y, proj.angle);
@@ -12318,7 +13420,7 @@
         // Tự hủy khi bắn trúng quái, trúng chướng ngại vật hoặc bay quá tầm tối đa
         if (hitMob || hitObstacle || proj.traveled >= proj.maxRange) {
           if (!hitMob && !hitObstacle && proj.traveled >= proj.maxRange) {
-            if (proj.resonanceType === "spell_gravity") {
+            if (proj.resonanceType === "spell_gravity" || proj.resonanceType === "spell_timestop") {
               detonateResonanceImpact(proj, proj.x, proj.y, null);
             } else if (proj.isMagicOrb) {
               spawnMagicHitBurst(proj.x, proj.y, proj.angle);
@@ -12447,11 +13549,11 @@
         }
       }
 
-      // AI Heo Rừng di chuyển
-      updateMobsAI(deltaTime);
-
-      // Cập nhật dịch chuyển ngẫu nhiên của các vật thể tự nhiên (cây, đá) sau mỗi 10 giây
-      updateHarvestablesRespawn(deltaTime);
+      // AI Heo Rừng & tài nguyên (đứng yên khi thời gian dừng hẳn)
+      if (worldDt > 0) {
+        updateMobsAI(worldDt);
+        updateHarvestablesRespawn(worldDt);
+      }
 
       // Cổng dịch chuyển (kèm cooldown chống loop dịch chuyển)
       if (currentMap === "forest" && mapConfigs.forest.portalToLake && portalCooldown <= 0 && checkAABB(player, mapConfigs.forest.portalToLake)) {
@@ -12471,9 +13573,11 @@
         addFloatingText(`⚡ ĐÃ ĐẾN: ${mapName}!`, player.x - 20, player.y - 10, "#fde047");
       }
 
-      // Cập nhật hệ thống hạt Particle (tia lửa chém & mảnh nổ death pop)
-      updateCombatParticles(deltaTime);
-      updateGravityAndSpellEffects(deltaTime);
+      // Cập nhật hệ thống hạt Particle & hiệu ứng phép theo dòng thời gian
+      if (worldDt > 0) {
+        updateCombatParticles(worldDt);
+        updateGravityAndSpellEffects(worldDt);
+      }
 
       // Cập nhật Screen Shake
       if (screenShakeTimer > 0) {
@@ -12644,9 +13748,14 @@
         ctx.restore();
       }
 
-      // Hiệu ứng mặt đất của Phép Trọng Lực & Mộc Độn
+      // Hiệu ứng mặt đất của Phép Trọng Lực, Mộc Độn & Dừng Thời Gian
+      const isTimeStopColorLayerActive = Boolean((timeStopState.active || timeStopState.resumeFlashTimer > 0) && timestopFxConfig.step3Enabled);
+      const casterDrawFns = [];
       renderGravityGroundEffects(ctx);
       renderWoodGroundEffects(ctx);
+      if (!isTimeStopColorLayerActive) {
+        renderTimeStopGroundEffects(ctx);
+      }
 
       // --- VẼ CÁC THỰC THỂ CÓ ĐỘ SÂU THEO TRỤC Y (Y-SORTING LAYER LOGIC) ---
       // Gom tất cả các đối tượng: Vật thể (Cây, Đá, Lò rèn), Heo Rừng và Player vào danh sách renderable
@@ -12995,9 +14104,7 @@
 
       // 3. Thêm Nhân Vật (Player)
       const playerSortY = player.y + player.height;
-      renderables.push({
-        sortY: playerSortY,
-        draw: () => {
+      const drawPlayerEntity = () => {
           ctx.save();
           // Hiệu ứng chớp đỏ thuần túy khi bị thương (không lòe loẹt, không sáng quá lâu)
           if (player.hurtFlashTimer > 0) {
@@ -13078,8 +14185,15 @@
             ctx.fillRect(player.x + 11, player.y + 4, 2, 2);
           }
           ctx.restore();
-        }
-      });
+      };
+      if (isTimeStopColorLayerActive) {
+        casterDrawFns.push(drawPlayerEntity);
+      } else {
+        renderables.push({
+          sortY: playerSortY,
+          draw: drawPlayerEntity
+        });
+      }
 
       // Sắp xếp thứ tự vẽ theo Y (Y-Sorting): Thực thể nào có chân ở trên (Y nhỏ) vẽ trước, ở dưới (Y lớn) vẽ đè lên
       if (currentMap === "home") {
@@ -13398,9 +14512,7 @@
         const aimSin = Math.sin(wandCastAngle);
         const wandSortY = (aimSin < -0.2) ? (playerSortY - 2) : (playerSortY + 2);
 
-        renderables.push({
-          sortY: wandSortY,
-          draw: () => {
+        const drawWandEntity = () => {
             const walkBobs = [-2, -1, 0, -2, -1, 0];
             const bobY = (player.action === 'walk') ? walkBobs[player.frameX % 6] : 0;
             const { handX, handY, cosA, sinA } = getWandHandAnchor(wandCastAngle, bobY);
@@ -13501,8 +14613,16 @@
               ctx.drawImage(images.magic_wand, -2, -14, 16, 16);
             }
             ctx.restore();
-          }
-        });
+        };
+        if (isTimeStopColorLayerActive) {
+          if (aimSin < -0.2) casterDrawFns.unshift(drawWandEntity);
+          else casterDrawFns.push(drawWandEntity);
+        } else {
+          renderables.push({
+            sortY: wandSortY,
+            draw: drawWandEntity
+          });
+        }
       }
 
       // --- VẼ CẦN CÂU 8 HƯỚNG, DÂY CƯỚC & PHAO CÂU TRÊN MẶT NƯỚC ---
@@ -13672,7 +14792,11 @@
               ? { tail1: "rgba(14, 165, 233, 0)", tail2: "rgba(56, 189, 248, 0.65)", tail3: "rgba(224, 242, 254, 0.95)", aura: "rgba(56, 189, 248, 0.48)", ring: "rgba(186, 230, 253, 0.85)", core: "#e0f2fe" }
               : (rType === "spell_gravity"
                 ? { tail1: "rgba(88, 28, 135, 0)", tail2: "rgba(147, 51, 234, 0.68)", tail3: "rgba(240, 171, 252, 0.95)", aura: "rgba(126, 34, 206, 0.6)", ring: "rgba(216, 180, 254, 0.85)", core: "#f0abfc" }
-                : { tail1: "rgba(168, 85, 247, 0)", tail2: "rgba(192, 132, 252, 0.55)", tail3: "rgba(245, 208, 254, 0.9)", aura: "rgba(168, 85, 247, 0.48)", ring: "rgba(56, 189, 248, 0.75)", core: "#f5d0fe" }));
+                : (rType === "spell_timestop"
+                  ? { tail1: "rgba(14, 165, 233, 0)", tail2: "rgba(56, 189, 248, 0.72)", tail3: "rgba(253, 224, 71, 0.95)", aura: "rgba(56, 189, 248, 0.56)", ring: "rgba(254, 240, 138, 0.88)", core: "#bae6fd" }
+                  : (rType === "spell_wood"
+                    ? { tail1: "rgba(20, 83, 45, 0)", tail2: "rgba(34, 197, 94, 0.68)", tail3: "rgba(134, 239, 172, 0.95)", aura: "rgba(22, 163, 74, 0.55)", ring: "rgba(187, 247, 208, 0.85)", core: "#86efac" }
+                    : { tail1: "rgba(168, 85, 247, 0)", tail2: "rgba(192, 132, 252, 0.55)", tail3: "rgba(245, 208, 254, 0.9)", aura: "rgba(168, 85, 247, 0.48)", ring: "rgba(56, 189, 248, 0.75)", core: "#f5d0fe" }))));
 
           const tailGrad = ctx.createLinearGradient(-11, 0, 4, 0);
           tailGrad.addColorStop(0, orbColors.tail1);
@@ -13719,9 +14843,12 @@
         ctx.restore();
       }
 
-      // Hiệu ứng cột sáng tím & Mộc Độn
+      // Hiệu ứng cột sáng tím, Mộc Độn & Dừng Thời Gian
       renderGravityAirEffects(ctx);
       renderWoodAirEffects(ctx);
+      if (!isTimeStopColorLayerActive) {
+        renderTimeStopAirEffects(ctx);
+      }
 
       
       // --- VẼ THANH HIỆU ỨNG GỒNG LỰC CUNG TRÊN ĐẦU NHÂN VẬT ---
@@ -13833,6 +14960,15 @@
           ctx.strokeRect(p.x, p.y, p.size, p.size);
         }
         ctx.restore();
+      }
+
+      if (isTimeStopColorLayerActive) {
+        applyTimeStopGrayscaleWave(ctx, activeZoom, snapPx);
+        renderTimeStopGroundEffects(ctx);
+        for (const drawFn of casterDrawFns) {
+          drawFn();
+        }
+        renderTimeStopAirEffects(ctx);
       }
 
       // Chữ bay (trong không gian World zoom 3x)
