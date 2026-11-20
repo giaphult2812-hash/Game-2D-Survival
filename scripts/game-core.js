@@ -11303,11 +11303,12 @@
     });
 
     function isTilePlaceable(tx, ty) {
-      const pTileX = Math.round(player.x / TILE_SIZE) * TILE_SIZE;
-      const pTileY = Math.round(player.y / TILE_SIZE) * TILE_SIZE;
-      if (Math.abs(tx - pTileX) > TILE_SIZE * 2 || Math.abs(ty - pTileY) > TILE_SIZE * 2) return false;
+      const dist = Math.hypot((tx + 8) - (player.x + 8), (ty + 8) - (player.y + 8));
+      if (dist > TILE_SIZE * 2.6) return false;
       const box = { x: tx, y: ty, width: TILE_SIZE, height: TILE_SIZE };
-      if (checkAABB(box, player)) return false;
+      // Dùng hitbox thu gọn (10x10) ở tâm nhân vật để không chặn nhầm các ô liền kề/góc chéo
+      const pInner = { x: player.x + 3, y: player.y + 4, width: 10, height: 10 };
+      if (checkAABB(box, pInner)) return false;
       if (!isBoxOnWalkableGround(box)) return false;
       if (currentMap === "lake" && lakeLandGrid) {
         const gx = Math.floor(tx / TILE_SIZE), gy = Math.floor(ty / TILE_SIZE);
@@ -14817,32 +14818,18 @@
         });
       }
 
-      // --- HIỂN THỊ Ô ĐẶT ĐỒ PHÁT SÁNG TRONG BÁN KÍNH 2 Ô QUANH NHÂN VẬT ---
+      // --- VIỀN TRẮNG Ô CHUỘT ĐANG TRỎ KHI CẦM ĐỒ ĐẶT ---
       const heldPlaceItem = playerInventory[activeHotbarIndex];
       const heldPlaceData = heldPlaceItem ? (getItemData(heldPlaceItem) || heldPlaceItem) : null;
       if (heldPlaceData && (heldPlaceData.category === 'placeable' || heldPlaceItem.id === 'crafting_table' || heldPlaceItem.id === 'chest') && player.action !== 'die') {
-        const pTileX = Math.round(player.x / TILE_SIZE) * TILE_SIZE;
-        const pTileY = Math.round(player.y / TILE_SIZE) * TILE_SIZE;
-        for (let dy = -2; dy <= 2; dy++) {
-          for (let dx = -2; dx <= 2; dx++) {
-            const tx = pTileX + dx * TILE_SIZE;
-            const ty = pTileY + dy * TILE_SIZE;
-            const valid = isTilePlaceable(tx, ty);
-            const isHovered = (tx === hoverTileX && ty === hoverTileY);
-            if (!valid && !isHovered) continue;
-
+        if (hoverTileX !== null && hoverTileY !== null) {
+          const dist = Math.hypot((hoverTileX + 8) - (player.x + 8), (hoverTileY + 8) - (player.y + 8));
+          if (dist <= TILE_SIZE * 2.6) {
+            const valid = isTilePlaceable(hoverTileX, hoverTileY);
             ctx.save();
-            if (isHovered) {
-              ctx.fillStyle = valid ? "rgba(74, 222, 128, 0.45)" : "rgba(239, 68, 68, 0.45)";
-              ctx.strokeStyle = valid ? "#4ade80" : "#ef4444";
-              ctx.lineWidth = 1.5;
-            } else {
-              ctx.fillStyle = "rgba(74, 222, 128, 0.16)";
-              ctx.strokeStyle = "rgba(74, 222, 128, 0.35)";
-              ctx.lineWidth = 0.75;
-            }
-            ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-            ctx.strokeRect(tx + 0.5, ty + 0.5, TILE_SIZE - 1, TILE_SIZE - 1);
+            ctx.strokeStyle = valid ? "#ffffff" : "rgba(239, 68, 68, 0.85)";
+            ctx.lineWidth = 1.25;
+            ctx.strokeRect(hoverTileX + 0.5, hoverTileY + 0.5, TILE_SIZE - 1, TILE_SIZE - 1);
             ctx.restore();
           }
         }
