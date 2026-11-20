@@ -4097,10 +4097,10 @@
         badge: "⬇",
         color: "#a855f7",
         glow: "#f0abfc",
-        cooldown: 0.92,
-        damage: 8,
+        cooldown: 4.5,
+        damage: 6,
         hasSettings: true,
-        desc: "5 bước: Vòng báo tím → Cột sáng đổ xuống → Đè bẹp/Tờ giấy → Đất lún nứt → Dừng 3 frame & lắc mạnh",
+        desc: "⬇ Trọng Lực (6 DMG · Hồi 4.5s): Tạo vùng trọng trường tím kéo và ép bẹp quái tại chỗ.",
         icon: "assets/items/skills/spell_gravity.png"
       },
       spell_wood: {
@@ -4110,10 +4110,10 @@
         badge: "🪵",
         color: "#22c55e",
         glow: "#86efac",
-        cooldown: 1.10,
-        damage: 10,
+        cooldown: 5.5,
+        damage: 5,
         hasSettings: true,
-        desc: "5 bước: Sóng uốn lượn 3 thân gỗ → Đất nứt bụi đá → Lá mọc bung nở → Quấn chặt siết mục tiêu → Hoa nở phấn ngủ",
+        desc: "🪵 Mộc Độn (5 DMG · Hồi 5.5s): Triệu hồi rễ cây trói chặt mục tiêu và tỏa phấn hoa gây ngủ.",
         icon: "assets/items/skills/spell_wood.png"
       },
       spell_timestop: {
@@ -4123,8 +4123,8 @@
         badge: "⏳",
         color: "#38bdf8",
         glow: "#bae6fd",
-        cooldown: 1.50,
-        damage: 15,
+        cooldown: 9.0,
+        damage: 10,
         hasSettings: true,
         desc: "5 bước: Vòng đồng hồ loang sáng → Chậm dần (0.5s) → Mất màu thế giới & giữ màu bản thân → Lơ lửng mảnh vụn giữa không trung → Dồn đòn đánh chờ nổ tung & văng đi",
         icon: "assets/items/skills/spell_timestop.png"
@@ -4285,10 +4285,11 @@
         rarity: "legendary",
         maxStack: 1,
         value: 140,
-        damage: 8,
+        damage: 6,
         perks: [
-          "✦ Lắp vào Phần 1 (Chiêu Thức Z / X / C) của Đũa Phép",
-          "✦ Đè bẹp mục tiêu với hiệu ứng 5 bước + Đè tờ giấy"
+          "⬇ Sát thương: 6 DMG · Hồi chiêu: 4.5s",
+          "✦ Lắp vào ô Chiêu Thức (Z / X / C) của Đũa Phép",
+          "✦ Ép bẹp & làm choáng mục tiêu trong vùng trọng lực"
         ],
         description: SPELLS_DATABASE.spell_gravity.desc,
         icon: SPELLS_DATABASE.spell_gravity.icon
@@ -4301,10 +4302,11 @@
         rarity: "legendary",
         maxStack: 1,
         value: 140,
-        damage: 10,
+        damage: 5,
         perks: [
-          "✦ Lắp vào Phần 1 (Chiêu Thức Z / X / C) của Đũa Phép",
-          "✦ Mộc Độn 5 bước: Sóng uốn lượn, nứt đất, bung lá, quấn chặt & hoa nở ngủ"
+          "🪵 Sát thương: 5 DMG · Hồi chiêu: 5.5s",
+          "✦ Lắp vào ô Chiêu Thức (Z / X / C) của Đũa Phép",
+          "✦ Trói chân bằng rễ cây & tỏa phấn hoa ru ngủ quái"
         ],
         description: SPELLS_DATABASE.spell_wood.desc,
         icon: SPELLS_DATABASE.spell_wood.icon
@@ -4317,10 +4319,11 @@
         rarity: "legendary",
         maxStack: 1,
         value: 160,
-        damage: 15,
+        damage: 10,
         perks: [
-          "✦ Lắp vào Phần 1 (Chiêu Thức Z / X / C) của Đũa Phép",
-          "✦ Dừng thời gian 5 bước: Vòng đồng hồ, chậm dần, mất màu, lơ lửng & dồn đòn nổ tung"
+          "⏳ Tuyệt kỹ: 10 DMG · Hồi chiêu: 9.0s",
+          "✦ Lắp vào ô Chiêu Thức (Z / X / C) của Đũa Phép",
+          "✦ Đóng băng thời gian toàn vùng & dồn sát thương kết liễuòn nổ tung"
         ],
         description: SPELLS_DATABASE.spell_timestop.desc,
         icon: SPELLS_DATABASE.spell_timestop.icon
@@ -12445,6 +12448,12 @@
 
       // NẾU ĐANG CẦM CUNG: Không gán attackCooldown, không hiện thanh hồi chiêu và không ép action 'attack'
       if (isBow) {
+        return true;
+      }
+
+      // NẾU ĐANG CẦM ĐỒ ĐẶT (Bàn Chế Tạo, Rương) HOẶC THỨC ĂN: Không chạy hoạt ảnh đánh kiếm
+      const curItemData = curItem ? (getItemData(curItem) || curItem) : null;
+      if (curItemData && (curItemData.category === 'placeable' || curItemData.category === 'consumable' || curItem.id === 'crafting_table' || curItem.id === 'chest')) {
         return true;
       }
 
