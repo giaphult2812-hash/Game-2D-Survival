@@ -4100,7 +4100,7 @@
         cooldown: 4.5,
         damage: 6,
         hasSettings: true,
-        desc: "⬇ Trọng Lực (6 DMG · Hồi 4.5s): Tạo vùng trọng trường tím kéo và ép bẹp quái tại chỗ.",
+        desc: "Tạo trường trọng lực kéo tụ và ép bẹp quái vật trong vùng chỉ định.",
         icon: "assets/items/skills/spell_gravity.png"
       },
       spell_wood: {
@@ -4113,7 +4113,7 @@
         cooldown: 5.5,
         damage: 5,
         hasSettings: true,
-        desc: "🪵 Mộc Độn (5 DMG · Hồi 5.5s): Triệu hồi rễ cây trói chặt mục tiêu và tỏa phấn hoa gây ngủ.",
+        desc: "Triệu hồi rễ cây cổ thụ trói chặt mục tiêu và tỏa phấn hoa gây ngủ.",
         icon: "assets/items/skills/spell_wood.png"
       },
       spell_timestop: {
@@ -4126,7 +4126,7 @@
         cooldown: 9.0,
         damage: 10,
         hasSettings: true,
-        desc: "5 bước: Vòng đồng hồ loang sáng → Chậm dần (0.5s) → Mất màu thế giới & giữ màu bản thân → Lơ lửng mảnh vụn giữa không trung → Dồn đòn đánh chờ nổ tung & văng đi",
+        desc: "Ngưng đọng thời gian toàn vùng, tích tụ đòn đánh và kích nổ khi hết hiệu lực.",
         icon: "assets/items/skills/spell_timestop.png"
       }
     };
@@ -4134,33 +4134,33 @@
     const WAND_RESONANCE_DATABASE = {
       spell_gravity: {
         spellId: "spell_gravity",
-        label: "🌌 Cộng Hưởng: Hố Đen Trọng Trường",
+        label: "🌌 Cộng Hưởng Trọng Trường",
         shortCap: "Đánh 🌌",
         badge: "🌌",
         color: "#c084fc",
         glow: "#f0abfc",
-        basicDesc: "Cầu Hố Đen (Hút Gom & Đè Diện Rộng)",
-        desc: "Khảm 3 Ngọc Trọng Lực: Đánh thường tạo hố trọng lực mini 36px kéo tụ quái, gây AoE & làm choáng nhẹ!"
+        basicDesc: "Cầu Hố Đen (Hút gom & nổ diện rộng)",
+        desc: "Đánh thường tạo hố đen mini kéo quái lại gần và gây sát thương lan."
       },
       spell_wood: {
         spellId: "spell_wood",
-        label: "🌲 Cộng Hưởng: Rừng Thiêng Xanh Thẳm",
+        label: "🌲 Cộng Hưởng Rừng Thiêng",
         shortCap: "Đánh 🌲",
         badge: "🌲",
         color: "#22c55e",
         glow: "#86efac",
-        basicDesc: "Cọc Rễ Gai (Gây Độc & Đâm Rễ Lan)",
-        desc: "Khảm 3 Ngọc Mộc Độn: Đánh thường mọc rễ gai gai góc đâm xuyên mục tiêu gây độc và trói chân!"
+        basicDesc: "Cọc Rễ Gai (Trói chân & gây độc)",
+        desc: "Đánh thường phóng rễ gai đâm xuyên mục tiêu, gây độc và giữ chân."
       },
       spell_timestop: {
         spellId: "spell_timestop",
-        label: "⏳ Cộng Hưởng: Trụ Thời Gian Vĩnh Cửu",
+        label: "⏳ Cộng Hưởng Thời Không",
         shortCap: "Đánh ⏳",
         badge: "⏳",
         color: "#38bdf8",
         glow: "#bae6fd",
-        basicDesc: "Đòn Đánh Ngưng Đọng (Gây Tê Liệt & Tích Tụ Sát Thương)",
-        desc: "Khảm 3 Ngọc Dừng Thời Gian: Đánh thường tích tụ sát thương ngưng đọng và phóng nổ thời gian khi kích hoạt!"
+        basicDesc: "Đạn Thời Không (Làm tê liệt & nổ chậm)",
+        desc: "Đánh thường làm chậm mục tiêu và tích tụ năng lượng phát nổ."
       }
     };
 
@@ -4270,11 +4270,10 @@
         durability: 200,
         maxDurability: 200,
         perks: [
-          "✦ Đánh thường: Cầu Năng Lượng Tím (Chuột trái / Nút Đánh Lớn)",
-          "✦ Phần 1 (Chiêu Thức [Z / X / C]): Khảm Ngọc Trọng Lực",
-          "✦ Phần 2 (Ngọc Khảm 3 ô): Tăng DMG, Thiêu Đốt, Làm Chậm, Hút Máu, Hồi Chiêu, Chí Mạng"
+          "✦ Khảm tối đa 3 Ngọc Chiêu Thức [Z / X / C]",
+          "✦ Khảm tối đa 3 Ngọc Bổ Trợ cường hóa đòn đánh"
         ],
-        description: "Đũa phép tùy biến tách biệt Phần Chiêu Thức và Phần Ngọc Khảm chỉ số",
+        description: "Vũ khí ma pháp tầm xa, tùy biến linh hoạt chiêu thức và ngọc bổ trợ.",
         icon: "assets/items/tools_weapons/đũa phép.png"
       },
       "spell_gravity": {
@@ -4287,9 +4286,8 @@
         value: 140,
         damage: 6,
         perks: [
-          "⬇ Sát thương: 6 DMG · Hồi chiêu: 4.5s",
-          "✦ Lắp vào ô Chiêu Thức (Z / X / C) của Đũa Phép",
-          "✦ Ép bẹp & làm choáng mục tiêu trong vùng trọng lực"
+          "✦ Khảm vào ô Chiêu Thức [Z / X / C] của Đũa Phép",
+          "✦ Kéo tụ, ép bẹp và làm choáng quái vật trong vùng"
         ],
         description: SPELLS_DATABASE.spell_gravity.desc,
         icon: SPELLS_DATABASE.spell_gravity.icon
@@ -4304,9 +4302,8 @@
         value: 140,
         damage: 5,
         perks: [
-          "🪵 Sát thương: 5 DMG · Hồi chiêu: 5.5s",
-          "✦ Lắp vào ô Chiêu Thức (Z / X / C) của Đũa Phép",
-          "✦ Trói chân bằng rễ cây & tỏa phấn hoa ru ngủ quái"
+          "✦ Khảm vào ô Chiêu Thức [Z / X / C] của Đũa Phép",
+          "✦ Trói chân mục tiêu bằng rễ cây và tỏa phấn gây ngủ"
         ],
         description: SPELLS_DATABASE.spell_wood.desc,
         icon: SPELLS_DATABASE.spell_wood.icon
@@ -4321,9 +4318,8 @@
         value: 160,
         damage: 10,
         perks: [
-          "⏳ Tuyệt kỹ: 10 DMG · Hồi chiêu: 9.0s",
-          "✦ Lắp vào ô Chiêu Thức (Z / X / C) của Đũa Phép",
-          "✦ Đóng băng thời gian toàn vùng & dồn sát thương kết liễuòn nổ tung"
+          "✦ Khảm vào ô Chiêu Thức [Z / X / C] của Đũa Phép",
+          "✦ Đóng băng thời gian toàn vùng và dồn sát thương nổ"
         ],
         description: SPELLS_DATABASE.spell_timestop.desc,
         icon: SPELLS_DATABASE.spell_timestop.icon
@@ -4338,10 +4334,10 @@
         value: 45,
         damageBonus: 3,
         perks: [
-          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
-          "✦ Cộng +3 Sát thương cho đòn đánh & chiêu Trọng Lực (3 viên: +12 DMG)"
+          "✦ Khảm vào ô Ngọc Bổ Trợ của Đũa Phép",
+          "✦ Khảm đủ 3 viên: Tổng cộng +12 DMG toàn diện"
         ],
-        description: "Ngọc nội tại cường hóa sát thương, không phải chiêu thức",
+        description: "Tinh thể đỏ gia tăng trực tiếp uy lực cho đòn đánh và phép thuật.",
         icon: createGemIconSvgDataUri("#991b1b", "#ef4444", "#fca5a5", "#fecaca")
       },
       "gem_fire": {
@@ -4354,11 +4350,10 @@
         value: 80,
         effectType: "burn",
         perks: [
-          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
-          "✦ Đòn đánh gây Thiêu Đốt theo thời gian",
-          "✦ Khảm đủ 3 viên: Cháy Lan Diện Rộng sang quái xung quanh!"
+          "✦ Khảm vào ô Ngọc Bổ Trợ của Đũa Phép",
+          "✦ Khảm đủ 3 viên: Kích hoạt Cháy Lan sang quái lân cận"
         ],
-        description: "Ngọc nội tại truyền lửa thiêu đốt vào đòn đánh",
+        description: "Tinh thể lửa đốt cháy mục tiêu, rút máu liên tục theo thời gian.",
         icon: createGemIconSvgDataUri("#9a3412", "#f97316", "#fde047", "#fed7aa")
       },
       "gem_frost": {
@@ -4371,11 +4366,10 @@
         value: 75,
         effectType: "slow",
         perks: [
-          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
-          "✦ Đòn đánh làm chậm tốc độ chạy quái 50%",
-          "✦ Khảm đủ 3 viên: Sóng Băng làm chậm trên diện rộng!"
+          "✦ Khảm vào ô Ngọc Bổ Trợ của Đũa Phép",
+          "✦ Khảm đủ 3 viên: Tỏa Sóng Băng làm chậm diện rộng"
         ],
-        description: "Ngọc nội tại làm chậm mục tiêu bằng băng giá",
+        description: "Tinh thể băng giá làm tê cóng và giảm 50% tốc độ di chuyển của quái.",
         icon: createGemIconSvgDataUri("#075985", "#0ea5e9", "#bae6fd", "#e0f2fe")
       },
       "gem_vampire": {
@@ -4388,10 +4382,10 @@
         value: 120,
         effectType: "vampire",
         perks: [
-          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
-          "✦ Hồi phục 15% sát thương gây ra thành Máu (3 viên: 55%)"
+          "✦ Khảm vào ô Ngọc Bổ Trợ của Đũa Phép",
+          "✦ Khảm đủ 3 viên: Tăng hiệu suất hút máu lên 55%"
         ],
-        description: "Ngọc nội tại hấp thụ sinh lực khi gây sát thương",
+        description: "Tinh thể huyết ngọc chuyển hóa sát thương gây ra thành sinh lực.",
         icon: createGemIconSvgDataUri("#701a75", "#c026d3", "#f5d0fe", "#fbcfe8")
       },
       "gem_haste": {
@@ -4404,10 +4398,10 @@
         value: 85,
         cooldownReduction: 14,
         perks: [
-          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
-          "✦ Giảm 14% thời gian hồi chiêu & bắn đũa nhanh hơn mỗi viên"
+          "✦ Khảm vào ô Ngọc Bổ Trợ của Đũa Phép",
+          "✦ Tăng tốc độ xuất chiêu và bay của cầu năng lượng"
         ],
-        description: "Ngọc nội tại rút ngắn thời gian hồi chiêu và tăng tốc xuất chiêu",
+        description: "Tinh thể gió giúp rút ngắn thời gian hồi chiêu thức ma pháp.",
         icon: createGemIconSvgDataUri("#115e59", "#14b8a6", "#99f6e4", "#ccfbf1")
       },
       "gem_crit": {
@@ -4420,10 +4414,10 @@
         value: 110,
         critChanceBonus: 18,
         perks: [
-          "✦ Lắp vào Phần 2 (Ngọc Khảm) của Đũa Phép",
-          "✦ Tăng +18% tỉ lệ Chí Mạng (x1.75 sát thương) mỗi viên"
+          "✦ Khảm vào ô Ngọc Bổ Trợ của Đũa Phép",
+          "✦ Đòn chí mạng gây x1.75 sát thương nổ ánh kim"
         ],
-        description: "Ngọc nội tại gia tăng xác suất tung đòn chí mạng nổ vàng",
+        description: "Tinh thể sét gia tăng xác suất tung đòn chí mạng uy lực cao.",
         icon: createGemIconSvgDataUri("#854d0e", "#eab308", "#fef08a", "#fef9c3")
       },
       "fishing_rod": {
@@ -4437,9 +4431,10 @@
         durability: 100,
         maxDurability: 100,
         perks: [
-          "✦ Quăng cần xuống vùng nước (Nhà / Rừng / Hồ)",
-          "✦ Chờ phao giật & hiện [!] rồi bấm lại để kéo cá & kho báu"
+          "✦ Quăng phao xuống mặt nước (Nhà / Rừng / Hồ)",
+          "✦ Bấm thu cần ngay khi hiện dấu [!] để bắt cá & báu vật"
         ],
+        description: "Cần câu dẻo dai dùng để câu cá và vớt ngọc quý dưới hồ nước.",
         icon: "assets/items/tools_weapons/fishing_rod.svg"
       },
       // -------------------------------------------------------------
@@ -4449,75 +4444,87 @@
         id: "leather_helmet", name: "Nón Da", category: "armor", slotType: "helmet",
         rarity: "common", maxStack: 1, value: 8, armor: 5,
         speedBonus: 0, knockbackResist: 0, maxHpBonus: 0,
-        durability: 80, maxDurability: 80, icon: "assets/items/armor_equipment/nón da.png"
+        durability: 80, maxDurability: 80, description: "Nón da thú nhẹ nhàng, bảo vệ phần đầu cơ bản.",
+        icon: "assets/items/armor_equipment/nón da.png"
       },
       "leather_chest": {
         id: "leather_chest", name: "Giáp Da", category: "armor", slotType: "chest",
         rarity: "common", maxStack: 1, value: 16, armor: 12,
         speedBonus: 0, knockbackResist: 0, maxHpBonus: 0,
-        durability: 120, maxDurability: 120, icon: "assets/items/armor_equipment/giáp da.png"
+        durability: 120, maxDurability: 120, description: "Áo giáp da thuộc dẻo dai, giảm sát thương đòn cắn.",
+        icon: "assets/items/armor_equipment/giáp da.png"
       },
       "leather_legs": {
         id: "leather_legs", name: "Quần Da", category: "armor", slotType: "legs",
         rarity: "common", maxStack: 1, value: 12, armor: 8,
         speedBonus: 0.04, knockbackResist: 0, maxHpBonus: 0,
-        durability: 100, maxDurability: 100, icon: "assets/items/armor_equipment/quần da.png"
+        durability: 100, maxDurability: 100, description: "Quần da linh hoạt, hỗ trợ di chuyển nhanh nhẹn.",
+        icon: "assets/items/armor_equipment/quần da.png"
       },
       "leather_boots": {
         id: "leather_boots", name: "Giày Da", category: "armor", slotType: "boots",
         rarity: "common", maxStack: 1, value: 10, armor: 5,
         speedBonus: 0.08, knockbackResist: 0, maxHpBonus: 0,
-        durability: 90, maxDurability: 90, icon: "assets/items/armor_equipment/giày da.png"
+        durability: 90, maxDurability: 90, description: "Giày da êm ái giúp tăng tốc độ bước chạy.",
+        icon: "assets/items/armor_equipment/giày da.png"
       },
 
       "iron_helmet": {
         id: "iron_helmet", name: "Nón Sắt", category: "armor", slotType: "helmet",
         rarity: "uncommon", maxStack: 1, value: 20, armor: 10,
         speedBonus: 0, knockbackResist: 0.15, maxHpBonus: 0,
-        durability: 160, maxDurability: 160, icon: "assets/items/armor_equipment/nón sắt.png"
+        durability: 160, maxDurability: 160, description: "Mũ sắt rèn chắc chắn, giảm chấn động khi bị tấn công.",
+        icon: "assets/items/armor_equipment/nón sắt.png"
       },
       "iron_chest": {
         id: "iron_chest", name: "Giáp Sắt", category: "armor", slotType: "chest",
         rarity: "uncommon", maxStack: 1, value: 36, armor: 24,
         speedBonus: 0, knockbackResist: 0.35, maxHpBonus: 0,
-        durability: 240, maxDurability: 240, icon: "assets/items/armor_equipment/giáp sắt.png"
+        durability: 240, maxDurability: 240, description: "Giáp ngực sắt dày dặn, chống chịu tốt trước quái thú.",
+        icon: "assets/items/armor_equipment/giáp sắt.png"
       },
       "iron_legs": {
         id: "iron_legs", name: "Quần Sắt", category: "armor", slotType: "legs",
         rarity: "uncommon", maxStack: 1, value: 28, armor: 16,
         speedBonus: 0, knockbackResist: 0.20, maxHpBonus: 0,
-        durability: 200, maxDurability: 200, icon: "assets/items/armor_equipment/quần sắt.png"
+        durability: 200, maxDurability: 200, description: "Quần giáp sắt bảo vệ đôi chân và hạn chế bị đẩy lùi.",
+        icon: "assets/items/armor_equipment/quần sắt.png"
       },
       "iron_boots": {
         id: "iron_boots", name: "Giày Sắt", category: "armor", slotType: "boots",
         rarity: "uncommon", maxStack: 1, value: 22, armor: 10,
         speedBonus: 0, knockbackResist: 0.15, maxHpBonus: 0,
-        durability: 180, maxDurability: 180, icon: "assets/items/armor_equipment/giày sắt.png"
+        durability: 180, maxDurability: 180, description: "Ủng sắt nặng đầm giúp đứng vững trước lực húc.",
+        icon: "assets/items/armor_equipment/giày sắt.png"
       },
 
       "gold_helmet": {
         id: "gold_helmet", name: "Nón Vàng", category: "armor", slotType: "helmet",
         rarity: "rare", maxStack: 1, value: 45, armor: 12,
         speedBonus: 0, knockbackResist: 0, maxHpBonus: 0,
-        durability: 140, maxDurability: 140, icon: "assets/items/armor_equipment/nón vàng.png"
+        durability: 140, maxDurability: 140, description: "Mũ giáp mạ vàng hoàng gia, chế tác tinh xảo.",
+        icon: "assets/items/armor_equipment/nón vàng.png"
       },
       "gold_chest": {
         id: "gold_chest", name: "Giáp Vàng", category: "armor", slotType: "chest",
         rarity: "rare", maxStack: 1, value: 75, armor: 28,
         speedBonus: 0, knockbackResist: 0, maxHpBonus: 0,
-        durability: 200, maxDurability: 200, icon: "assets/items/armor_equipment/giáp vàng.png"
+        durability: 200, maxDurability: 200, description: "Giáp ngực ánh kim rực rỡ với khả năng phòng vệ cao.",
+        icon: "assets/items/armor_equipment/giáp vàng.png"
       },
       "gold_legs": {
         id: "gold_legs", name: "Quần Vàng", category: "armor", slotType: "legs",
         rarity: "rare", maxStack: 1, value: 55, armor: 18,
         speedBonus: 0, knockbackResist: 0, maxHpBonus: 0,
-        durability: 170, maxDurability: 170, icon: "assets/items/armor_equipment/quần vàng.png"
+        durability: 170, maxDurability: 170, description: "Quần giáp vàng sang trọng, cân bằng giữa giáp và độ bền.",
+        icon: "assets/items/armor_equipment/quần vàng.png"
       },
       "gold_boots": {
         id: "gold_boots", name: "Giày Vàng", category: "armor", slotType: "boots",
         rarity: "rare", maxStack: 1, value: 48, armor: 12,
         speedBonus: 0, knockbackResist: 0, maxHpBonus: 0,
-        durability: 150, maxDurability: 150, icon: "assets/items/armor_equipment/giày vàng.png"
+        durability: 150, maxDurability: 150, description: "Ủng vàng bóng bẩy, bảo vệ tốt bàn chân người mặc.",
+        icon: "assets/items/armor_equipment/giày vàng.png"
       },
 
       "diamond_helmet": {
@@ -4525,26 +4532,30 @@
         rarity: "epic", maxStack: 1, value: 90, armor: 18,
         speedBonus: 0, knockbackResist: 0, maxHpBonus: 10,
         perks: ["✦ Hồi giáp nhanh ngoài giao tranh (+6/s sau 2.5s)"],
-        durability: 350, maxDurability: 350, icon: "assets/items/armor_equipment/nón kim cương.png"
+        durability: 350, maxDurability: 350, description: "Mũ tinh thể kim cương tự động tái tạo lá chắn giáp.",
+        icon: "assets/items/armor_equipment/nón kim cương.png"
       },
       "diamond_chest": {
         id: "diamond_chest", name: "Giáp Kim Cương", category: "armor", slotType: "chest",
         rarity: "epic", maxStack: 1, value: 160, armor: 35,
         speedBonus: 0, knockbackResist: 0.25, maxHpBonus: 20,
         perks: ["✦ Giảm thẳng 5 sát thương nhận vào"],
-        durability: 500, maxDurability: 500, icon: "assets/items/armor_equipment/giáp kim cương.png"
+        durability: 500, maxDurability: 500, description: "Giáp ngực kim cương bất hoại, triệt tiêu sát thương trực diện.",
+        icon: "assets/items/armor_equipment/giáp kim cương.png"
       },
       "diamond_legs": {
         id: "diamond_legs", name: "Quần Kim Cương", category: "armor", slotType: "legs",
         rarity: "epic", maxStack: 1, value: 120, armor: 25,
         speedBonus: 0, knockbackResist: 0.15, maxHpBonus: 10,
-        durability: 420, maxDurability: 420, icon: "assets/items/armor_equipment/quần kim cương.png"
+        durability: 420, maxDurability: 420, description: "Quần giáp kim cương siêu bền, gia tăng sinh lực tối đa.",
+        icon: "assets/items/armor_equipment/quần kim cương.png"
       },
       "diamond_boots": {
         id: "diamond_boots", name: "Giày Kim Cương", category: "armor", slotType: "boots",
         rarity: "epic", maxStack: 1, value: 100, armor: 18,
         speedBonus: 0.05, knockbackResist: 0, maxHpBonus: 10,
-        durability: 380, maxDurability: 380, icon: "assets/items/armor_equipment/giày kim cương.png"
+        durability: 380, maxDurability: 380, description: "Ủng kim cương nhẹ tựa gió, vừa tăng máu vừa tăng tốc chạy.",
+        icon: "assets/items/armor_equipment/giày kim cương.png"
       },
 
       // -------------------------------------------------------------
@@ -4560,6 +4571,7 @@
         damage: 4,
         durability: 45,
         maxDurability: 45,
+        description: "Kiếm gỗ cơ bản dễ chế tạo cho người mới sinh tồn.",
         icon: "assets/items/tools_weapons/wood_sword.png"
       },
       "wood_axe": {
@@ -4573,6 +4585,7 @@
         durability: 50,
         maxDurability: 50,
         woodcuttingSpeed: 1.5,
+        description: "Rìu gỗ sơ khởi dùng để đốn củi và tự vệ.",
         icon: "assets/items/tools_weapons/wood_axe.png"
       },
       "wood_pickaxe": {
@@ -4586,6 +4599,7 @@
         durability: 40,
         maxDurability: 40,
         miningSpeed: 1.2,
+        description: "Cúp gỗ dùng để khai thác đá cuội và than.",
         icon: "assets/items/tools_weapons/wood_pickaxe.png"
       },
       "wooden_pickaxe": {
@@ -4599,6 +4613,7 @@
         durability: 40,
         maxDurability: 40,
         miningSpeed: 1.2,
+        description: "Cúp gỗ dùng để khai thác đá cuội và than.",
         icon: "assets/items/tools_weapons/wooden_pickaxe.png"
       },
       "stone_sword": {
@@ -4611,6 +4626,7 @@
         damage: 8,
         durability: 85,
         maxDurability: 85,
+        description: "Kiếm đá sắc cạnh, sát thương ổn định hơn kiếm gỗ.",
         icon: "assets/items/tools_weapons/stone_sword.png"
       },
       "stone_axe": {
@@ -4624,6 +4640,7 @@
         durability: 90,
         maxDurability: 90,
         woodcuttingSpeed: 2.5,
+        description: "Rìu đá cứng cáp giúp đốn cây nhanh hơn.",
         icon: "assets/items/tools_weapons/stone_axe.png"
       },
       "stone_pickaxe": {
@@ -4637,6 +4654,7 @@
         durability: 90,
         maxDurability: 90,
         miningSpeed: 2.0,
+        description: "Cúp đá bền bỉ, khai thác được các mạch quặng sắt.",
         icon: "assets/items/tools_weapons/stone_pickaxe.png"
       },
       "iron_sword": {
@@ -4649,6 +4667,7 @@
         damage: 15,
         durability: 160,
         maxDurability: 160,
+        description: "Kiếm sắt rèn kỹ, vũ khí cận chiến chủ lực tầm trung.",
         icon: "assets/items/tools_weapons/iron_sword.png"
       },
       "iron_axe": {
@@ -4662,6 +4681,7 @@
         durability: 160,
         maxDurability: 160,
         woodcuttingSpeed: 4.0,
+        description: "Rìu sắt sắc bén đốn hạ thân cây chỉ trong chớp mắt.",
         icon: "assets/items/tools_weapons/iron_axe.png"
       },
       "iron_pickaxe": {
@@ -4675,6 +4695,7 @@
         durability: 160,
         maxDurability: 160,
         miningSpeed: 3.5,
+        description: "Cúp sắt chuyên dụng để đào quặng vàng và đá cứng.",
         icon: "assets/items/tools_weapons/iron_pickaxe.png"
       },
       "gold_sword": {
@@ -4687,6 +4708,7 @@
         damage: 18,
         durability: 95,
         maxDurability: 95,
+        description: "Kiếm vàng sắc lẹm với lực chém mạnh mẽ.",
         icon: "assets/items/tools_weapons/gold_sword.png"
       },
       "gold_axe": {
@@ -4700,6 +4722,7 @@
         durability: 95,
         maxDurability: 95,
         woodcuttingSpeed: 5.0,
+        description: "Rìu vàng tốc độ chặt cực nhanh nhưng độ bền vừa phải.",
         icon: "assets/items/tools_weapons/gold_axe.png"
       },
       "gold_pickaxe": {
@@ -4713,6 +4736,7 @@
         durability: 95,
         maxDurability: 95,
         miningSpeed: 4.5,
+        description: "Cúp vàng đào khoáng sản siêu tốc.",
         icon: "assets/items/tools_weapons/gold_pickaxe.png"
       },
       "diamond_sword": {
@@ -4725,6 +4749,7 @@
         damage: 26,
         durability: 350,
         maxDurability: 350,
+        description: "Thanh kiếm kim cương tối thượng với sát thương hủy diệt.",
         icon: "assets/items/tools_weapons/diamond_sword.png"
       },
       "diamond_axe": {
@@ -4738,6 +4763,7 @@
         durability: 350,
         maxDurability: 350,
         woodcuttingSpeed: 6.5,
+        description: "Rìu kim cương sắc bén bậc nhất, độ bền vượt trội.",
         icon: "assets/items/tools_weapons/diamond_axe.png"
       },
       "diamond_pickaxe": {
@@ -4751,6 +4777,7 @@
         durability: 350,
         maxDurability: 350,
         miningSpeed: 6.0,
+        description: "Cúp kim cương phá vỡ mọi loại đá và quặng nhanh nhất.",
         icon: "assets/items/tools_weapons/diamond_pickaxe.png"
       },
       "hunting_bow": {
@@ -4767,6 +4794,7 @@
         ],
         durability: 90,
         maxDurability: 90,
+        description: "Cung săn tầm xa, giữ phím để tụ lực bắn tên xuyên phá.",
         icon: "assets/items/tools_weapons/hunting_bow.png"
       },
       "arrow": {
@@ -4776,7 +4804,7 @@
         rarity: "common",
         maxStack: 64,
         value: 2,
-        description: "Đạn dùng để bắn từ Cung Săn Bắn",
+        description: "Mũi tên đầu sắt dùng làm đạn cho Cung Săn Bắn.",
         icon: "assets/items/tools_weapons/arrow.png"
       },
 
@@ -4902,7 +4930,7 @@
         rarity: "common",
         maxStack: 64,
         value: 3,
-        description: "Thịt gà sống (hồi 4 HP). Nướng ở Lửa Trại sẽ hồi nhiều máu hơn!",
+        description: "Thịt gà tươi sống. Có thể nướng chín tại Lửa Trại.",
         healAmount: 4,
         icon: "assets/items/consumables/chicken_unripe.png"
       },
@@ -4913,7 +4941,7 @@
         rarity: "common",
         maxStack: 64,
         value: 4,
-        description: "Thịt heo sống (hồi 5 HP). Nướng ở Lửa Trại sẽ hồi nhiều máu hơn!",
+        description: "Thịt heo rừng tươi sống. Nướng tại Lửa Trại để hồi nhiều máu hơn.",
         healAmount: 5,
         icon: "assets/items/consumables/boar_unripe.png"
       },
@@ -4924,7 +4952,7 @@
         rarity: "uncommon",
         maxStack: 64,
         value: 8,
-        description: "Thịt gà nướng thơm lừng (hồi 18 HP)",
+        description: "Thịt gà nướng chín vàng thơm lừng, phục hồi tốt thể lực.",
         healAmount: 18,
         icon: "assets/items/consumables/chicken_ripe.png"
       },
@@ -4935,7 +4963,7 @@
         rarity: "uncommon",
         maxStack: 64,
         value: 10,
-        description: "Thịt heo nướng vàng ruộm (hồi 25 HP)",
+        description: "Thịt heo rừng nướng chín đậm vị, hồi phục lượng lớn máu.",
         healAmount: 25,
         icon: "assets/items/consumables/boar_ripe.png"
       },
@@ -4970,7 +4998,7 @@
         rarity: "common",
         maxStack: 64,
         value: 3,
-        description: "Táo đỏ giòn ngọt, hồi 15 HP",
+        description: "Quả táo rừng tươi mọng giúp giải cơn đói nhanh chóng.",
         healAmount: 15,
         icon: "assets/items/consumables/apple.svg"
       },
@@ -4981,7 +5009,7 @@
         rarity: "uncommon",
         maxStack: 64,
         value: 6,
-        description: "Thịt đùi nướng thơm phức, hồi 35 HP",
+        description: "Đùi thịt nướng thơm phức, bổ sung nhiều sinh lực.",
         healAmount: 35,
         icon: "assets/items/consumables/boar_ripe.png"
       },
@@ -4992,7 +5020,7 @@
         rarity: "common",
         maxStack: 64,
         value: 3,
-        description: "Thịt sống săn từ lợn rừng",
+        description: "Thịt sống thu được từ thú rừng, nên nướng chín trước khi ăn.",
         healAmount: 10,
         icon: "assets/items/consumables/boar_unripe.png"
       },
@@ -5003,7 +5031,7 @@
         rarity: "common",
         maxStack: 64,
         value: 6,
-        description: "Cá tươi vừa câu dưới nước (hồi 12 HP). Nướng ở Lửa Trại sẽ hồi nhiều máu hơn!",
+        description: "Cá tươi vừa câu dưới hồ. Đem nướng ở Lửa Trại sẽ ngon hơn.",
         healAmount: 12,
         icon: "assets/items/consumables/raw_fish.svg"
       },
@@ -5014,7 +5042,7 @@
         rarity: "uncommon",
         maxStack: 64,
         value: 14,
-        description: "Cá nướng vàng giòn thơm phức (hồi 28 HP)",
+        description: "Cá nướng chín giòn thơm phức, hồi phục dồi dào sinh lực.",
         healAmount: 28,
         icon: "assets/items/consumables/cooked_fish.svg"
       },
@@ -5025,7 +5053,7 @@
         rarity: "rare",
         maxStack: 64,
         value: 45,
-        description: "Loài cá vàng hiếm dưới hồ sâu, hồi phục cực mạnh (45 HP)",
+        description: "Loài cá vàng quý hiếm dưới đáy hồ, đại bổ sinh lực.",
         healAmount: 45,
         icon: "assets/items/consumables/golden_fish.svg"
       },
@@ -5041,6 +5069,7 @@
         maxStack: 16,
         value: 12,
         perks: ["✦ Mở chế tạo 3×3 & Lò Rèn nâng cấp"],
+        description: "Đặt xuống đất để mở bàn chế tạo 3×3 và Lò Rèn trang bị.",
         icon: "assets/items/placeables/crafting_table.svg"
       },
       "chest": {
@@ -7070,21 +7099,21 @@
         const rarityStyle = TOOLTIP_RARITY_STYLES[data.rarity] || TOOLTIP_RARITY_STYLES.common;
 
         tooltipEl.style.borderColor = rarityStyle.border;
-        tooltipEl.style.boxShadow = `0 12px 28px rgba(0, 0, 0, 0.88), 0 0 18px ${rarityStyle.glow}, inset 0 1px 0 rgba(255, 255, 255, 0.08)`;
+        tooltipEl.style.boxShadow = `0 14px 32px rgba(0, 0, 0, 0.9), 0 0 16px ${rarityStyle.glow}, inset 0 1px 0 rgba(255, 255, 255, 0.1)`;
         tooltipTitle.textContent = data.name || item.name || "Vật phẩm";
         tooltipTitle.style.color = rarityStyle.title;
 
-        // Phân loại nhãn Badge rõ ràng theo loại trang bị
+        // Nhãn phân loại ngắn gọn, đồng bộ
         let badgeText = "VẬT PHẨM";
         let badgeColor = "#38bdf8";
         if (data.category === "weapon") {
           if (data.id === "hunting_bow") { badgeText = "🏹 CUNG TẦM XA"; badgeColor = "#fb923c"; }
-          else if (data.id === "magic_wand") { badgeText = "🪄 ĐŨA PHÉP TÙY BIẾN"; badgeColor = "#e879f9"; }
+          else if (data.id === "magic_wand") { badgeText = "🪄 ĐŨA PHÉP"; badgeColor = "#e879f9"; }
           else { badgeText = "⚔️ VŨ KHÍ"; badgeColor = "#fb7185"; }
         } else if (data.category === "spell") {
-          badgeText = "🔮 NGỌC CHIÊU THỨC"; badgeColor = "#c084fc";
+          badgeText = "🔮 CHIÊU THỨC"; badgeColor = "#c084fc";
         } else if (data.category === "gem") {
-          badgeText = "💎 NGỌC KHẢM CHỈ SỐ"; badgeColor = "#22d3ee";
+          badgeText = "💎 NGỌC BỔ TRỢ"; badgeColor = "#22d3ee";
         } else if (data.category === "armor") {
           badgeColor = "#38bdf8";
           if (data.slotType === "helmet") badgeText = "🛡️ NÓN GIÁP";
@@ -7099,9 +7128,9 @@
           else if (data.toolType === "fishing_rod") { badgeText = "🎣 CẦN CÂU"; badgeColor = "#38bdf8"; }
           else badgeText = "🛠️ CÔNG CỤ";
         } else if (data.category === "consumable") {
-          badgeText = "🍖 HỒI PHỤC"; badgeColor = "#4ade80";
+          badgeText = "🍖 THỨC ĂN"; badgeColor = "#4ade80";
         } else if (data.category === "ammo") {
-          badgeText = "🎯 ĐẠN CUNG"; badgeColor = "#38bdf8";
+          badgeText = "🎯 ĐẠN TÊN"; badgeColor = "#38bdf8";
         } else if (data.category === "resource") {
           badgeText = "📦 NGUYÊN LIỆU"; badgeColor = "#94a3b8";
         } else if (data.category === "placeable" || data.category === "building") {
@@ -7112,98 +7141,117 @@
           tooltipBadge.textContent = badgeText;
           tooltipBadge.style.color = badgeColor;
           tooltipBadge.style.borderColor = badgeColor + "55";
-          tooltipBadge.style.background = badgeColor + "18";
+          tooltipBadge.style.background = badgeColor + "1a";
         }
 
-        // Chỉ số chính rõ ràng, không thêm chi tiết thừa
+        // Bảng chỉ số gọn gàng
         if (tooltipStats) {
           let statsHtml = "";
           if (data.rangedDamage) {
-            statsHtml += `<div class="tooltip-stat-row"><span>🏹 Sát thương:</span><span class="tooltip-stat-val dmg">${data.rangedDamage}</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>🏹 Sát thương</span><span class="tooltip-stat-val dmg">${data.rangedDamage}</span></div>`;
           }
           if (data.damage) {
-            statsHtml += `<div class="tooltip-stat-row"><span>⚔️ Sát thương:</span><span class="tooltip-stat-val dmg">+${data.damage} DMG</span></div>`;
+            let dmgVal = data.damage;
+            if (data.id === "magic_wand") {
+              const gemB = getWandGemBonuses({ id: "magic_wand", wandData: ensureWandData({ id: "magic_wand", wandData: item.wandData }) });
+              if (gemB.damageBonus > 0) dmgVal = `${data.damage + gemB.damageBonus} (${data.damage}+${gemB.damageBonus})`;
+            }
+            statsHtml += `<div class="tooltip-stat-row"><span>⚔️ Sát thương</span><span class="tooltip-stat-val dmg">+${dmgVal} DMG</span></div>`;
+          }
+          if (data.category === "spell" && data.spellId && SPELLS_DATABASE[data.spellId]) {
+            statsHtml += `<div class="tooltip-stat-row"><span>⏱️ Hồi chiêu</span><span class="tooltip-stat-val spd">${SPELLS_DATABASE[data.spellId].cooldown}s</span></div>`;
           }
           if (data.damageBonus) {
-            statsHtml += `<div class="tooltip-stat-row"><span>⚔️ Cộng sát thương:</span><span class="tooltip-stat-val dmg">+${data.damageBonus} DMG</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>⚔️ Cường hóa</span><span class="tooltip-stat-val dmg">+${data.damageBonus} DMG / viên</span></div>`;
           }
           if (data.cooldownReduction) {
-            statsHtml += `<div class="tooltip-stat-row"><span>💨 Giảm hồi chiêu:</span><span class="tooltip-stat-val spd">-${data.cooldownReduction}%</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>💨 Giảm hồi chiêu</span><span class="tooltip-stat-val spd">-${data.cooldownReduction}% / viên</span></div>`;
           }
           if (data.critChanceBonus) {
-            statsHtml += `<div class="tooltip-stat-row"><span>💥 Tỉ lệ Chí Mạng:</span><span class="tooltip-stat-val dmg">+${data.critChanceBonus}%</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>💥 Tỉ lệ chí mạng</span><span class="tooltip-stat-val dmg">+${data.critChanceBonus}% / viên</span></div>`;
           }
           if (data.effectType === "burn") {
-            statsHtml += `<div class="tooltip-stat-row"><span>🔥 Hiệu ứng:</span><span class="tooltip-stat-val dmg">Thiêu đốt / 3x Cháy Lan</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>🔥 Hiệu ứng</span><span class="tooltip-stat-val dmg">Thiêu đốt theo giây</span></div>`;
           } else if (data.effectType === "slow") {
-            statsHtml += `<div class="tooltip-stat-row"><span>❄️ Hiệu ứng:</span><span class="tooltip-stat-val armor">Làm chậm / 3x Sóng Băng</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>❄️ Hiệu ứng</span><span class="tooltip-stat-val armor">Làm chậm -50%</span></div>`;
           } else if (data.effectType === "vampire") {
-            statsHtml += `<div class="tooltip-stat-row"><span>🩸 Hiệu ứng:</span><span class="tooltip-stat-val hp">Hút +15% Máu (3x: 55%)</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>🩸 Hiệu ứng</span><span class="tooltip-stat-val hp">Hút +15% Máu</span></div>`;
           }
           if (data.id === "chest") {
-            statsHtml += `<div class="tooltip-stat-row"><span>📦 Sức chứa:</span><span class="tooltip-stat-val spd">27 Ô lưu trữ</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>📦 Sức chứa</span><span class="tooltip-stat-val spd">27 Ô đồ</span></div>`;
           }
           if (data.armor) {
-            statsHtml += `<div class="tooltip-stat-row"><span>🛡️ Giáp:</span><span class="tooltip-stat-val armor">+${data.armor}</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>🛡️ Giáp phòng thủ</span><span class="tooltip-stat-val armor">+${data.armor} Giáp</span></div>`;
           }
           if (data.maxHpBonus) {
-            statsHtml += `<div class="tooltip-stat-row"><span>❤️ Máu tối đa:</span><span class="tooltip-stat-val hp">+${data.maxHpBonus} HP</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>❤️ Máu tối đa</span><span class="tooltip-stat-val hp">+${data.maxHpBonus} HP</span></div>`;
           }
           if (data.healAmount) {
-            statsHtml += `<div class="tooltip-stat-row"><span>❤️ Hồi phục:</span><span class="tooltip-stat-val hp">+${data.healAmount} HP</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>❤️ Hồi máu</span><span class="tooltip-stat-val hp">+${data.healAmount} HP</span></div>`;
+          }
+          if (data.hungerRestore) {
+            statsHtml += `<div class="tooltip-stat-row"><span>🍖 Độ no</span><span class="tooltip-stat-val spd">+${data.hungerRestore} Đùi gà</span></div>`;
           }
           if (data.speedBonus) {
-            statsHtml += `<div class="tooltip-stat-row"><span>👟 Tốc chạy:</span><span class="tooltip-stat-val spd">+${Math.round(data.speedBonus * 100)}%</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>👟 Tốc độ chạy</span><span class="tooltip-stat-val spd">+${Math.round(data.speedBonus * 100)}%</span></div>`;
           }
           if (data.knockbackResist) {
-            statsHtml += `<div class="tooltip-stat-row"><span>🪨 Kháng đẩy lùi:</span><span class="tooltip-stat-val res">+${Math.round(data.knockbackResist * 100)}%</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>🪨 Kháng đẩy lùi</span><span class="tooltip-stat-val res">+${Math.round(data.knockbackResist * 100)}%</span></div>`;
           }
           if (data.woodcuttingSpeed) {
             const chopDur = getToolHarvestDurationLabel(data.id, true);
-            statsHtml += `<div class="tooltip-stat-row"><span>🪓 Chặt cây:</span><span class="tooltip-stat-val spd">${chopDur} (x${data.woodcuttingSpeed})</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>🪓 Tốc độ chặt</span><span class="tooltip-stat-val spd">${chopDur} (x${data.woodcuttingSpeed})</span></div>`;
           }
           if (data.miningSpeed) {
             const mineDur = getToolHarvestDurationLabel(data.id, false);
-            statsHtml += `<div class="tooltip-stat-row"><span>⛏️ Đào đá:</span><span class="tooltip-stat-val spd">${mineDur} (x${data.miningSpeed})</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>⛏️ Tốc độ đào</span><span class="tooltip-stat-val spd">${mineDur} (x${data.miningSpeed})</span></div>`;
           }
           if (item.durability !== undefined || data.durability !== undefined) {
             const curDur = item.durability !== undefined ? item.durability : data.durability;
             const maxDur = item.maxDurability || data.maxDurability || curDur;
             const pct = Math.round((curDur / maxDur) * 100);
             const durColor = pct > 50 ? "#4ade80" : (pct > 25 ? "#facc15" : "#ef4444");
-            statsHtml += `<div class="tooltip-stat-row"><span>🔧 Độ bền:</span><span class="tooltip-stat-val" style="color: ${durColor};">${curDur}/${maxDur} (${pct}%)</span></div>`;
+            statsHtml += `<div class="tooltip-stat-row"><span>🔧 Độ bền</span><span class="tooltip-stat-val" style="color: ${durColor};">${curDur}/${maxDur} (${pct}%)</span></div>`;
           }
 
           tooltipStats.innerHTML = statsHtml;
           tooltipStats.style.display = statsHtml ? "flex" : "none";
         }
 
-        // Tính năng đặc biệt nổi bật (chỉ hiện khi trang bị thực sự có cơ chế riêng)
-        let perks = Array.isArray(data.perks) ? [...data.perks] : [];
+        // Danh sách tính năng / nội tại gọn gàng, không lặp lại chỉ số
+        let perks = [];
         if (data.id === "magic_wand") {
           const wd = ensureWandData({ id: "magic_wand", wandData: item.wandData });
           const res = getWandResonance({ id: "magic_wand", wandData: wd });
           const gemB = getWandGemBonuses({ id: "magic_wand", wandData: wd });
+          const keys = ["Z", "X", "C"];
           const socketedNames = wd.slots.map((sid, idx) => {
             const sp = sid ? SPELLS_DATABASE[sid] : null;
-            return sp ? `C${idx + 1}: ${sp.badge} ${sp.shortName}` : `C${idx + 1}: (Trống)`;
-          }).join(" • ");
-          const gemNames = wd.gemSlots.map((gid, idx) => {
-            const gd = gid ? ITEMS_DATABASE[gid] : null;
-            return gd ? `G${idx + 1}: ${gd.name}` : `G${idx + 1}: (Trống)`;
-          }).join(" • ");
-          if (res) {
-            perks.unshift(`${res.label} — ${res.desc}`);
+            return sp ? `[${keys[idx]}] ${sp.badge} ${sp.shortName}` : `[${keys[idx]}] Trống`;
+          }).join(" · ");
+          const gemCounts = {};
+          for (const gid of wd.gemSlots) {
+            if (gid && ITEMS_DATABASE[gid]) {
+              const shortGem = ITEMS_DATABASE[gid].name.replace("Ngọc ", "");
+              gemCounts[shortGem] = (gemCounts[shortGem] || 0) + 1;
+            }
           }
+          const gemSummary = Object.keys(gemCounts).length > 0
+            ? Object.entries(gemCounts).map(([k, v]) => `${k} ×${v}`).join(" · ")
+            : "Chưa khảm";
+
+          perks.push(`🔮 Chiêu: ${socketedNames}`);
+          perks.push(`💎 Ngọc: ${gemSummary}`);
           if (gemB.summaryParts.length > 0) {
-            perks.unshift(`💎 Chỉ số Ngọc: ${gemB.summaryParts.join(" • ")}`);
+            perks.push(`✨ Bổ trợ: ${gemB.summaryParts.join(" · ")}`);
           }
-          perks.unshift(
-            `✨ Đánh thường: ${res ? res.basicDesc : "Cầu Năng Lượng Tím"}${gemB.damageBonus ? ` (${4 + gemB.damageBonus} DMG)` : ""}`,
-            `🔮 Phần 1 (Chiêu): ${socketedNames}`,
-            `💎 Phần 2 (Ngọc): ${gemNames}`
-          );
+          if (res) {
+            perks.push(`${res.label}: ${res.basicDesc}`);
+          }
+        } else if (Array.isArray(data.perks)) {
+          perks = [...data.perks];
         }
+
         if (tooltipPerks) {
           if (perks.length > 0) {
             tooltipPerks.innerHTML = perks
@@ -7216,25 +7264,19 @@
           }
         }
 
-        // Ẩn dòng mô tả phụ trên trang bị/vũ khí/công cụ/thức ăn vì chỉ số & tính năng đã ghi rõ
+        // Hiển thị dòng mô tả đồng bộ ở chân tooltip cho tất cả vật phẩm
         if (tooltipDesc) {
-          const isGearOrStatItem = Boolean(
-            data.category !== "spell" &&
-            data.category !== "gem" &&
-            (data.damage || data.rangedDamage || data.woodcuttingSpeed ||
-            data.miningSpeed || data.armor || data.healAmount || perks.length > 0)
-          );
-          if (isGearOrStatItem || !data.description) {
-            tooltipDesc.style.display = "none";
-          } else {
+          if (data.description) {
             tooltipDesc.textContent = data.description;
             tooltipDesc.style.display = "block";
+          } else {
+            tooltipDesc.style.display = "none";
           }
         }
 
         tooltipEl.style.display = "block";
-        cachedTooltipW = tooltipEl.offsetWidth || 210;
-        cachedTooltipH = tooltipEl.offsetHeight || 90;
+        cachedTooltipW = tooltipEl.offsetWidth || 225;
+        cachedTooltipH = tooltipEl.offsetHeight || 95;
       }
 
       const ttWidth = cachedTooltipW;
@@ -7242,7 +7284,6 @@
       let posX;
       let posY;
       if (isTouch) {
-        // Đặt phía trên ngón tay để không bị tay che mất mô tả
         posX = x - ttWidth / 2;
         posY = y - ttHeight - 28;
         if (posY < 10) posY = y + 26;
