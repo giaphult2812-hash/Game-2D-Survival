@@ -3734,6 +3734,24 @@
     ];
     let marketTickTimer = 0;
 
+    
+    // Chạm trực tiếp vào NPC Thương Nhân trên điện thoại (trong bán kính 2 ô)
+    canvas.addEventListener("touchstart", (e) => {
+      if (currentMap !== "home" || !e.touches || e.touches.length === 0) return;
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const zoom = getCameraZoom();
+      const wx = (touch.clientX - rect.left) / zoom + camera.x;
+      const wy = (touch.clientY - rect.top) / zoom + camera.y;
+      const distClickNPC = Math.hypot(wx - (HOME_MERCHANT.x + 8), wy - (HOME_MERCHANT.y + 8));
+      const distPlayerNPC = Math.hypot((player.x + 8) - (HOME_MERCHANT.x + 8), (player.y + 8) - (HOME_MERCHANT.y + 8));
+      if (distClickNPC <= 30 && distPlayerNPC <= 42) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleNpcShopUI(true);
+      }
+    }, { passive: false });
+
     function toggleNpcShopUI(forceOpen = null) {
       const ui = document.getElementById("npc-shop-ui");
       if (!ui) return;
@@ -3764,58 +3782,92 @@
       renderNpcShopUI();
     }
 
+    let npcSellPage = 0;
+    let npcBuyPage = 0;
+    const SHOP_PAGE_SIZE = 5;
+
+    function changeShopPage(kind, delta) {
+      if (kind === 'sell') npcSellPage = Math.max(0, npcSellPage + delta);
+      else npcBuyPage = Math.max(0, npcBuyPage + delta);
+      renderNpcShopUI();
+    }
+
     function renderNpcShopUI() {
       const badge = document.getElementById("shopGoldBadge");
       if (badge) badge.textContent = `🪙 ${playerGold} Xu`;
 
-      // Tab 1: Sell list & Buy list
       const sellEl = document.getElementById("npcSellList");
       const buyEl = document.getElementById("npcBuyList");
+      const sellPager = document.getElementById("npcSellPager");
+      const buyPager = document.getElementById("npcBuyPager");
+
       if (sellEl) {
-        let sHtml = "";
+        const sellItems = [];
         for (let i = 0; i < playerInventory.length; i++) {
           const it = playerInventory[i];
-          if (!it || it.quantity <= 0) continue;
+          if (it && it.quantity > 0) sellItems.push({ idx: i, it });
+        }
+        const maxSellPage = Math.max(0, Math.ceil(sellItems.length / SHOP_PAGE_SIZE) - 1);
+        if (npcSellPage > maxSellPage) npcSellPage = maxSellPage;
+        const pageItems = sellItems.slice(npcSellPage * SHOP_PAGE_SIZE, (npcSellPage + 1) * SHOP_PAGE_SIZE);
+
+        if (sellPager) {
+          sellPager.innerHTML = sellItems.length > SHOP_PAGE_SIZE
+            ? `<button type="button" onclick="changeShopPage('sell',-1)" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:4px;padding:1px 6px;cursor:pointer;">◀</button><span>${npcSellPage + 1}/${maxSellPage + 1}</span><button type="button" onclick="changeShopPage('sell',1)" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:4px;padding:1px 6px;cursor:pointer;">▶</button>`
+            : '';
+        }
+
+        let sHtml = "";
+        for (const { idx, it } of pageItems) {
           const data = getItemData(it) || it;
           const unitVal = data.value || 1;
-          sHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.7);padding:6px 10px;border-radius:7px;border:1px solid rgba(148,163,184,0.15);">
+          sHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.75);padding:6px 9px;border-radius:8px;border:1px solid rgba(148,163,184,0.14);">
             <div style="display:flex;align-items:center;gap:8px;">
               <img src="${getItemIcon(it)}" style="width:24px;height:24px;image-rendering:pixelated;" />
               <div>
                 <div style="font-size:12px;font-weight:700;">${data.name} <span style="color:#94a3b8;">×${it.quantity}</span></div>
-                <div style="font-size:10.5px;color:#fde047;">Giá thu: ${unitVal} Xu / món</div>
+                <div style="font-size:10.5px;color:#fde047;">+${unitVal} Xu / món</div>
               </div>
             </div>
-            <div style="display:flex;gap:5px;">
-              <button type="button" onclick="sellItemToNPC(${i}, false)" style="background:#16a34a;color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;">Bán 1</button>
-              ${it.quantity > 1 ? `<button type="button" onclick="sellItemToNPC(${i}, true)" style="background:#0284c7;color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;">Bán Hết</button>` : ""}
+            <div style="display:flex;gap:4px;">
+              <button type="button" onclick="sellItemToNPC(${idx}, false)" style="background:#16a34a;color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;">Bán 1</button>
+              ${it.quantity > 1 ? `<button type="button" onclick="sellItemToNPC(${idx}, true)" style="background:#0284c7;color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;">Hết</button>` : ""}
             </div>
           </div>`;
         }
-        sellEl.innerHTML = sHtml || '<div style="font-size:11px;color:#64748b;">Túi đồ trống.</div>';
+        sellEl.innerHTML = sHtml || '<div style="font-size:11px;color:#64748b;padding:8px 0;">Túi đồ trống.</div>';
       }
 
       if (buyEl) {
+        const maxBuyPage = Math.max(0, Math.ceil(NPC_SHOP_CATALOG.length / SHOP_PAGE_SIZE) - 1);
+        if (npcBuyPage > maxBuyPage) npcBuyPage = maxBuyPage;
+        const pageBuy = NPC_SHOP_CATALOG.slice(npcBuyPage * SHOP_PAGE_SIZE, (npcBuyPage + 1) * SHOP_PAGE_SIZE);
+
+        if (buyPager) {
+          buyPager.innerHTML = NPC_SHOP_CATALOG.length > SHOP_PAGE_SIZE
+            ? `<button type="button" onclick="changeShopPage('buy',-1)" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:4px;padding:1px 6px;cursor:pointer;">◀</button><span>${npcBuyPage + 1}/${maxBuyPage + 1}</span><button type="button" onclick="changeShopPage('buy',1)" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:4px;padding:1px 6px;cursor:pointer;">▶</button>`
+            : '';
+        }
+
         let bHtml = "";
-        for (const entry of NPC_SHOP_CATALOG) {
+        for (const entry of pageBuy) {
           const data = ITEMS_DATABASE[entry.id];
           if (!data) continue;
           const canAfford = playerGold >= entry.price;
-          bHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.7);padding:6px 10px;border-radius:7px;border:1px solid rgba(148,163,184,0.15);">
+          bHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.75);padding:6px 9px;border-radius:8px;border:1px solid rgba(148,163,184,0.14);">
             <div style="display:flex;align-items:center;gap:8px;">
               <img src="${data.icon}" style="width:24px;height:24px;image-rendering:pixelated;" />
               <div>
                 <div style="font-size:12px;font-weight:700;">${data.name} ${entry.qty > 1 ? '×' + entry.qty : ''}</div>
-                <div style="font-size:10.5px;color:#94a3b8;">${data.description || ''}</div>
+                <div style="font-size:10px;color:#94a3b8;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${data.description || ''}</div>
               </div>
             </div>
-            <button type="button" onclick="buyItemFromNPC('${entry.id}')" style="background:${canAfford ? '#eab308' : '#334155'};color:${canAfford ? '#0f172a' : '#94a3b8'};border:none;border-radius:5px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">🪙 ${entry.price} Xu</button>
+            <button type="button" onclick="buyItemFromNPC('${entry.id}')" style="background:${canAfford ? '#eab308' : '#334155'};color:${canAfford ? '#0f172a' : '#94a3b8'};border:none;border-radius:5px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">🪙 ${entry.price}</button>
           </div>`;
         }
         buyEl.innerHTML = bHtml;
       }
 
-      // Tab 2: Market select & listings
       const selEl = document.getElementById("marketSellSelect");
       if (selEl) {
         let opts = "";
@@ -3831,11 +3883,11 @@
       const mkListEl = document.getElementById("marketListingsContainer");
       if (mkListEl) {
         let mHtml = "";
-        for (const mk of marketListings) {
+        for (const mk of marketListings.slice(0, 6)) {
           const data = ITEMS_DATABASE[mk.itemId];
           if (!data) continue;
           const canAfford = playerGold >= mk.price;
-          mHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.7);padding:6px 10px;border-radius:7px;border:1px solid ${mk.isPlayer ? 'rgba(234,179,8,0.4)' : 'rgba(56,189,248,0.2)'};">
+          mHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.75);padding:6px 10px;border-radius:8px;border:1px solid ${mk.isPlayer ? 'rgba(234,179,8,0.4)' : 'rgba(56,189,248,0.2)'};">
             <div style="display:flex;align-items:center;gap:8px;">
               <img src="${data.icon}" style="width:24px;height:24px;image-rendering:pixelated;" />
               <div>
@@ -3844,8 +3896,8 @@
               </div>
             </div>
             ${mk.isPlayer
-              ? `<button type="button" onclick="cancelMarketListing('${mk.id}')" style="background:#475569;color:#fff;border:none;border-radius:5px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;">Thu hồi (${mk.price} Xu)</button>`
-              : `<button type="button" onclick="buyFromMarket('${mk.id}')" style="background:${canAfford ? '#0284c7' : '#334155'};color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;">Mua 🪙 ${mk.price} Xu</button>`
+              ? `<button type="button" onclick="cancelMarketListing('${mk.id}')" style="background:#475569;color:#fff;border:none;border-radius:5px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;">Thu hồi</button>`
+              : `<button type="button" onclick="buyFromMarket('${mk.id}')" style="background:${canAfford ? '#0284c7' : '#334155'};color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;">🪙 ${mk.price}</button>`
             }
           </div>`;
         }
@@ -4234,7 +4286,7 @@
 
         const distClickNPC = Math.hypot(worldX - (HOME_MERCHANT.x + 8), worldY - (HOME_MERCHANT.y + 8));
         const distPlayerNPC = Math.hypot((player.x + 8) - (HOME_MERCHANT.x + 8), (player.y + 8) - (HOME_MERCHANT.y + 8));
-        if (distClickNPC <= 32) {
+        if (distClickNPC <= 28 && distPlayerNPC <= 40) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
@@ -15131,6 +15183,19 @@
           draw: () => {
             const mx = HOME_MERCHANT.x;
             const my = HOME_MERCHANT.y;
+            const distPlayerNPC = Math.hypot((player.x + 8) - (mx + 8), (player.y + 8) - (my + 8));
+            if (distPlayerNPC <= 40) {
+              const pulse = 0.45 + Math.sin(performance.now() * 0.008) * 0.25;
+              ctx.save();
+              ctx.strokeStyle = `rgba(253, 224, 71, ${pulse})`;
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.arc(mx + 8, my + 9, 12, 0, Math.PI * 2);
+              ctx.stroke();
+              ctx.fillStyle = `rgba(253, 224, 71, ${pulse * 0.25})`;
+              ctx.fill();
+              ctx.restore();
+            }
             const bob = Math.sin(performance.now() * 0.004) * 0.8;
             ctx.fillStyle = "rgba(0,0,0,0.35)";
             ctx.fillRect(mx + 2, my + 13, 12, 3);
