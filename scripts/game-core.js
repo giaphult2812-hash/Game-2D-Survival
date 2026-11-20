@@ -11290,15 +11290,53 @@
     // 6. LOGIC HÀNH ĐỘNG: KHAI THÁC & SĂN BẮN
     // -------------------------------------------------------------
     // Hàm đặt vật phẩm (Bàn Chế Tạo) xuống mặt đất ngay trước mặt người chơi
+        let hoverTileX = null;
+    let hoverTileY = null;
+
+    canvas.addEventListener("mousemove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const zoom = getCameraZoom();
+      const wx = (e.clientX - rect.left) / zoom + camera.x;
+      const wy = (e.clientY - rect.top) / zoom + camera.y;
+      hoverTileX = Math.floor(wx / TILE_SIZE) * TILE_SIZE;
+      hoverTileY = Math.floor(wy / TILE_SIZE) * TILE_SIZE;
+    });
+
+    function isTilePlaceable(tx, ty) {
+      const pTileX = Math.round(player.x / TILE_SIZE) * TILE_SIZE;
+      const pTileY = Math.round(player.y / TILE_SIZE) * TILE_SIZE;
+      if (Math.abs(tx - pTileX) > TILE_SIZE * 2 || Math.abs(ty - pTileY) > TILE_SIZE * 2) return false;
+      const box = { x: tx, y: ty, width: TILE_SIZE, height: TILE_SIZE };
+      if (checkAABB(box, player)) return false;
+      if (!isBoxOnWalkableGround(box)) return false;
+      if (currentMap === "lake" && lakeLandGrid) {
+        const gx = Math.floor(tx / TILE_SIZE), gy = Math.floor(ty / TILE_SIZE);
+        if (gy < 0 || gy >= lakeLandGrid.length || gx < 0 || gx >= lakeLandGrid[0].length || !lakeLandGrid[gy][gx]) return false;
+      }
+      if (currentMap === "home") {
+        const cfBox = { x: HOME_CAMPFIRE.x - 8, y: HOME_CAMPFIRE.y - 6, width: 16, height: 14 };
+        if (checkAABB(box, cfBox)) return false;
+      }
+      for (const obj of currentObjects) {
+        if (checkAABB(box, { x: obj.x, y: obj.y, width: obj.width || 16, height: obj.height || 16 })) return false;
+      }
+      return true;
+    }
+
     function tryPlaceCraftingTable(slotIdx) {
-      // Xác định vị trí đặt 16x16 ngay trước mặt nhân vật
+      // Ưu tiên đặt tại ô chuột đang trỏ nếu nằm trong bán kính 2 ô hợp lệ
       let placeX = Math.round(player.x / 16) * 16;
       let placeY = Math.round(player.y / 16) * 16;
 
-      if (playerFacing === 'right') placeX += 16;
-      else if (playerFacing === 'left') placeX -= 16;
-      else if (playerFacing === 'down') placeY += 16;
-      else if (playerFacing === 'up') placeY -= 16;
+      if (hoverTileX !== null && hoverTileY !== null && isTilePlaceable(hoverTileX, hoverTileY)) {
+        placeX = hoverTileX;
+        placeY = hoverTileY;
+      } else {
+        if (playerFacing === 'right') placeX += 16;
+        else if (playerFacing === 'left') placeX -= 16;
+        else if (playerFacing === 'down') placeY += 16;
+        else if (playerFacing === 'up') placeY -= 16;
+      }
 
       const placeBox = { x: placeX, y: placeY, width: 16, height: 16 };
 
@@ -14777,6 +14815,37 @@
             ctx.restore();
           }
         });
+      }
+
+      // --- HIỂN THỊ Ô ĐẶT ĐỒ PHÁT SÁNG TRONG BÁN KÍNH 2 Ô QUANH NHÂN VẬT ---
+      const heldPlaceItem = playerInventory[activeHotbarIndex];
+      const heldPlaceData = heldPlaceItem ? (getItemData(heldPlaceItem) || heldPlaceItem) : null;
+      if (heldPlaceData && (heldPlaceData.category === 'placeable' || heldPlaceItem.id === 'crafting_table' || heldPlaceItem.id === 'chest') && player.action !== 'die') {
+        const pTileX = Math.round(player.x / TILE_SIZE) * TILE_SIZE;
+        const pTileY = Math.round(player.y / TILE_SIZE) * TILE_SIZE;
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const tx = pTileX + dx * TILE_SIZE;
+            const ty = pTileY + dy * TILE_SIZE;
+            const valid = isTilePlaceable(tx, ty);
+            const isHovered = (tx === hoverTileX && ty === hoverTileY);
+            if (!valid && !isHovered) continue;
+
+            ctx.save();
+            if (isHovered) {
+              ctx.fillStyle = valid ? "rgba(74, 222, 128, 0.45)" : "rgba(239, 68, 68, 0.45)";
+              ctx.strokeStyle = valid ? "#4ade80" : "#ef4444";
+              ctx.lineWidth = 1.5;
+            } else {
+              ctx.fillStyle = "rgba(74, 222, 128, 0.16)";
+              ctx.strokeStyle = "rgba(74, 222, 128, 0.35)";
+              ctx.lineWidth = 0.75;
+            }
+            ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
+            ctx.strokeRect(tx + 0.5, ty + 0.5, TILE_SIZE - 1, TILE_SIZE - 1);
+            ctx.restore();
+          }
+        }
       }
 
       renderables.sort((a, b) => a.sortY - b.sortY);
