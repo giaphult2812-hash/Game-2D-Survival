@@ -13082,33 +13082,6 @@
       // Hồi máu khi đứng trong bán kính phát sáng của Lửa Trại ở map Nhà
       if (currentMap === "home" && player.action !== "die") {
         const distCamp = Math.hypot((player.x + 8) - HOME_CAMPFIRE.x, (player.y + 8) - HOME_CAMPFIRE.y);
-        renderables.push({
-          sortY: HOME_MERCHANT.y + 16,
-          draw: () => {
-            const mx = HOME_MERCHANT.x;
-            const my = HOME_MERCHANT.y;
-            const bob = Math.sin(performance.now() * 0.004) * 0.8;
-            ctx.fillStyle = "rgba(0,0,0,0.35)";
-            ctx.fillRect(mx + 2, my + 13, 12, 3);
-            ctx.fillStyle = "#581c87";
-            ctx.fillRect(mx + 3, my + 6 + bob, 10, 8);
-            ctx.fillStyle = "#eab308";
-            ctx.fillRect(mx + 6, my + 7 + bob, 4, 6);
-            ctx.fillStyle = "#fcd34d";
-            ctx.fillRect(mx + 4, my + 1 + bob, 8, 6);
-            ctx.fillStyle = "#7e22ce";
-            ctx.fillRect(mx + 3, my - 1 + bob, 10, 3);
-            ctx.save();
-            ctx.font = "bold 6px monospace";
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#fde047";
-            ctx.strokeStyle = "rgba(0,0,0,0.85)";
-            ctx.lineWidth = 2;
-            ctx.strokeText("💰 THƯƠNG NHÂN", mx + 8, my - 4 + bob);
-            ctx.fillText("💰 THƯƠNG NHÂN", mx + 8, my - 4 + bob);
-            ctx.restore();
-          }
-        });
         if (distCamp <= HOME_CAMPFIRE.lightRadius) {
           HOME_CAMPFIRE.healTimer += deltaTime;
           if (HOME_CAMPFIRE.healTimer >= 1.5) {
@@ -15147,6 +15120,36 @@
             ctx.restore();
           }
         }
+      }
+
+      if (currentMap === "home") {
+        renderables.push({
+          sortY: HOME_MERCHANT.y + 16,
+          draw: () => {
+            const mx = HOME_MERCHANT.x;
+            const my = HOME_MERCHANT.y;
+            const bob = Math.sin(performance.now() * 0.004) * 0.8;
+            ctx.fillStyle = "rgba(0,0,0,0.35)";
+            ctx.fillRect(mx + 2, my + 13, 12, 3);
+            ctx.fillStyle = "#581c87";
+            ctx.fillRect(mx + 3, my + 6 + bob, 10, 8);
+            ctx.fillStyle = "#eab308";
+            ctx.fillRect(mx + 6, my + 7 + bob, 4, 6);
+            ctx.fillStyle = "#fcd34d";
+            ctx.fillRect(mx + 4, my + 1 + bob, 8, 6);
+            ctx.fillStyle = "#7e22ce";
+            ctx.fillRect(mx + 3, my - 1 + bob, 10, 3);
+            ctx.save();
+            ctx.font = "bold 6px monospace";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#fde047";
+            ctx.strokeStyle = "rgba(0,0,0,0.85)";
+            ctx.lineWidth = 2;
+            ctx.strokeText("💰 THƯƠNG NHÂN", mx + 8, my - 4 + bob);
+            ctx.fillText("💰 THƯƠNG NHÂN", mx + 8, my - 4 + bob);
+            ctx.restore();
+          }
+        });
       }
 
       renderables.sort((a, b) => a.sortY - b.sortY);
