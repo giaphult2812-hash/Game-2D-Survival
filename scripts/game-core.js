@@ -86,7 +86,7 @@
       raw_fish: "assets/items/consumables/raw_fish.svg",
       cooked_fish: "assets/items/consumables/cooked_fish.svg",
       golden_fish: "assets/items/consumables/golden_fish.svg",
-      gold_nugget: "assets/items/resources/gold_nugget.svg",
+      gold_nugget: "assets/items/resources/gold_nugget.png",
       iron_ore: "assets/items/resources/iron_ore.svg",
       coal: "assets/items/resources/coal.svg",
       plant_fiber: "assets/items/resources/plant_fiber.svg",
@@ -5129,7 +5129,7 @@
         maxStack: 64,
         value: 18,
         description: "Mảnh vàng ròng óng ánh vớt được dưới nước",
-        icon: "assets/items/resources/gold_nugget.svg"
+        icon: "assets/items/resources/gold_nugget.png"
       },
       "diamond": {
         id: "diamond",
