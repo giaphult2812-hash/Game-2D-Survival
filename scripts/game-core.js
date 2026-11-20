@@ -12490,9 +12490,10 @@
         return true;
       }
 
-      // NẾU ĐANG CẦM ĐỒ ĐẶT (Bàn Chế Tạo, Rương) HOẶC THỨC ĂN: Không chạy hoạt ảnh đánh kiếm
+      // CHỈ VŨ KHÍ CẬN CHIẾN (weapon) & CÔNG CỤ (tool) MỚI CHẠY HOẠT ẢNH VUNG KIẾM
+      // Các vật phẩm khác (nguyên liệu, giáp, ngọc, chiêu thức, đạn, đồ đặt, thức ăn...) không chạy animation vung kiếm
       const curItemData = curItem ? (getItemData(curItem) || curItem) : null;
-      if (curItemData && (curItemData.category === 'placeable' || curItemData.category === 'consumable' || curItem.id === 'crafting_table' || curItem.id === 'chest')) {
+      if (curItemData && curItemData.category !== 'weapon' && curItemData.category !== 'tool') {
         return true;
       }
 
