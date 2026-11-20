@@ -661,46 +661,48 @@
   <script src="scripts/game-core.js"></script>
   <script src="scripts/mobile-controls.js"></script>
 
-  <!-- GIAO DIỆN NPC THƯƠNG NHÂN (2 CỬA HÀNG: NPC GIÁ CỐ ĐỊNH & CHỢ GIAO THƯƠNG) -->
-  <div id="npc-shop-ui" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(10,15,28,0.99) 100%); border:2px solid #eab308; border-radius:14px; padding:16px 20px; z-index:2200; color:#f8fafc; font-family:'Segoe UI',system-ui,sans-serif; box-shadow:0 22px 55px rgba(0,0,0,0.9); width:460px; max-width:94vw; max-height:84vh; display:none; flex-direction:column;">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(234,179,8,0.28); padding-bottom:10px; margin-bottom:12px;">
+  <!-- GIAO DIỆN NPC THƯƠNG NHÂN (2 CỬA HÀNG: 2 CỘT RỘNG RÃI, KHÔNG CUỘN DÀI) -->
+  <div id="npc-shop-ui" onwheel="event.stopPropagation()" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:linear-gradient(165deg, rgba(11,16,28,0.98) 0%, rgba(17,24,39,0.99) 100%); border:2px solid #eab308; border-radius:14px; padding:16px 20px; z-index:2200; color:#f8fafc; font-family:'Segoe UI',system-ui,sans-serif; box-shadow:0 24px 60px rgba(0,0,0,0.92); width:740px; max-width:95vw; max-height:86vh; flex-direction:column;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(234,179,8,0.25); padding-bottom:10px; margin-bottom:12px;">
       <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:20px;">💰</span>
-        <span style="font-size:15px; font-weight:700; color:#fde047;">THƯƠNG NHÂN THUNG LŨNG</span>
-        <span id="shopGoldBadge" style="font-size:12px; font-weight:700; background:rgba(234,179,8,0.18); border:1px solid rgba(234,179,8,0.45); color:#fef08a; padding:2px 9px; border-radius:999px;">🪙 50 Xu</span>
+        <span style="font-size:15px; font-weight:700; color:#fde047; letter-spacing:0.3px;">THƯƠNG NHÂN THUNG LŨNG</span>
+        <span id="shopGoldBadge" style="font-size:12px; font-weight:700; background:rgba(234,179,8,0.18); border:1px solid rgba(234,179,8,0.45); color:#fef08a; padding:2px 10px; border-radius:999px;">🪙 50 Xu</span>
       </div>
-      <button type="button" onclick="toggleNpcShopUI(false)" style="background:rgba(148,163,184,0.15); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1; border-radius:6px; padding:3px 9px; font-size:11px; cursor:pointer;">Đóng ✕</button>
+      <button type="button" onclick="toggleNpcShopUI(false)" style="background:rgba(148,163,184,0.15); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1; border-radius:6px; padding:4px 10px; font-size:11.5px; font-weight:600; cursor:pointer;">Đóng ✕</button>
     </div>
 
     <!-- 2 TAB CỬA HÀNG -->
     <div style="display:flex; gap:8px; margin-bottom:12px;">
-      <button type="button" id="tabBtnNpcShop" onclick="switchShopTab('npc')" style="flex:1; padding:8px 10px; border-radius:8px; border:1px solid #eab308; background:rgba(234,179,8,0.2); color:#fef08a; font-weight:700; font-size:12px; cursor:pointer;">🏪 Cửa Hàng NPC (Giá Cố Định)</button>
-      <button type="button" id="tabBtnMarketShop" onclick="switchShopTab('market')" style="flex:1; padding:8px 10px; border-radius:8px; border:1px solid rgba(148,163,184,0.3); background:rgba(30,41,59,0.6); color:#cbd5e1; font-weight:700; font-size:12px; cursor:pointer;">🤝 Chợ Giao Thương</button>
+      <button type="button" id="tabBtnNpcShop" onclick="switchShopTab('npc')" style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid #eab308; background:rgba(234,179,8,0.2); color:#fef08a; font-weight:700; font-size:12.5px; cursor:pointer;">🏪 Cửa Hàng NPC (Giá Cố Định)</button>
+      <button type="button" id="tabBtnMarketShop" onclick="switchShopTab('market')" style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid rgba(148,163,184,0.3); background:rgba(30,41,59,0.6); color:#cbd5e1; font-weight:700; font-size:12.5px; cursor:pointer;">🤝 Chợ Giao Thương</button>
     </div>
 
-    <!-- NỘI DUNG TAB 1: SHOP NPC GIÁ CỐ ĐỊNH -->
-    <div id="shopTabNpc" style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; max-height:56vh; padding-right:4px;">
-      <div style="font-size:11.5px; font-weight:700; color:#86efac;">📤 BÁN VẬT PHẨM TRONG TÚI ĐỂ LẤY XU:</div>
-      <div id="npcSellList" style="display:flex; flex-direction:column; gap:6px;"></div>
-
-      <div style="font-size:11.5px; font-weight:700; color:#7dd3fc; margin-top:6px; border-top:1px solid rgba(148,163,184,0.2); padding-top:8px;">🛒 MUA TỪ NPC (GIÁ NIÊM YẾT):</div>
-      <div id="npcBuyList" style="display:flex; flex-direction:column; gap:6px;"></div>
+    <!-- TAB 1: BỐ CỤC 2 CỘT SONG SONG (BÁN TRÁI - MUA PHẢI) -->
+    <div id="shopTabNpc" style="display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start;">
+      <div style="background:rgba(15,23,42,0.6); border:1px solid rgba(74,222,128,0.22); border-radius:10px; padding:10px;">
+        <div style="font-size:11.5px; font-weight:700; color:#86efac; margin-bottom:8px;">📤 BÁN VẬT PHẨM LẤY XU</div>
+        <div id="npcSellList" style="display:flex; flex-direction:column; gap:6px; max-height:52vh; overflow-y:auto; padding-right:4px;"></div>
+      </div>
+      <div style="background:rgba(15,23,42,0.6); border:1px solid rgba(56,189,248,0.22); border-radius:10px; padding:10px;">
+        <div style="font-size:11.5px; font-weight:700; color:#7dd3fc; margin-bottom:8px;">🛒 MUA TỪ NPC (GIÁ NIÊM YẾT)</div>
+        <div id="npcBuyList" style="display:flex; flex-direction:column; gap:6px; max-height:52vh; overflow-y:auto; padding-right:4px;"></div>
+      </div>
     </div>
 
-    <!-- NỘI DUNG TAB 2: CHỢ GIAO THƯƠNG -->
-    <div id="shopTabMarket" style="display:none; flex-direction:column; gap:10px; overflow-y:auto; max-height:56vh; padding-right:4px;">
+    <!-- TAB 2: CHỢ GIAO THƯƠNG -->
+    <div id="shopTabMarket" style="display:none; flex-direction:column; gap:10px;">
       <div style="background:rgba(30,41,59,0.65); border:1px solid rgba(148,163,184,0.2); border-radius:8px; padding:10px;">
         <div style="font-size:11.5px; font-weight:700; color:#fde047; margin-bottom:6px;">🏷️ ĐĂNG BÁN VẬT PHẨM LÊN CHỢ:</div>
-        <div style="display:flex; gap:6px; align-items:center;">
-          <select id="marketSellSelect" style="flex:1; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:6px; padding:5px 8px; font-size:12px;"></select>
-          <input id="marketSellPrice" type="number" min="1" value="20" placeholder="Giá Xu" style="width:76px; background:#0f172a; color:#fde047; border:1px solid #475569; border-radius:6px; padding:5px 8px; font-size:12px; font-weight:700;" />
-          <button type="button" onclick="listSelectedOnMarket()" style="background:#eab308; color:#0f172a; border:none; border-radius:6px; padding:6px 12px; font-weight:700; font-size:12px; cursor:pointer;">Đăng Bán</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <select id="marketSellSelect" style="flex:1; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:6px; padding:6px 8px; font-size:12px;"></select>
+          <input id="marketSellPrice" type="number" min="1" value="20" placeholder="Giá Xu" style="width:82px; background:#0f172a; color:#fde047; border:1px solid #475569; border-radius:6px; padding:6px 8px; font-size:12px; font-weight:700;" />
+          <button type="button" onclick="listSelectedOnMarket()" style="background:#eab308; color:#0f172a; border:none; border-radius:6px; padding:6px 14px; font-weight:700; font-size:12px; cursor:pointer;">Đăng Bán</button>
         </div>
       </div>
       <div style="font-size:11.5px; font-weight:700; color:#7dd3fc;">🛍️ SẠP CHỢ GIAO THƯƠNG:</div>
-      <div id="marketListingsContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
+      <div id="marketListingsContainer" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; max-height:44vh; overflow-y:auto; padding-right:4px;"></div>
     </div>
   </div>
-
 </body>
 </html>

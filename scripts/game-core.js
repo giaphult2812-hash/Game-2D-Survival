@@ -3751,7 +3751,7 @@
       const btnMk = document.getElementById("tabBtnMarketShop");
       if (!npcTab || !mkTab) return;
       if (tab === 'npc') {
-        npcTab.style.display = "flex";
+        npcTab.style.display = "grid";
         mkTab.style.display = "none";
         btnNpc.style.borderColor = "#eab308"; btnNpc.style.background = "rgba(234,179,8,0.2)"; btnNpc.style.color = "#fef08a";
         btnMk.style.borderColor = "rgba(148,163,184,0.3)"; btnMk.style.background = "rgba(30,41,59,0.6)"; btnMk.style.color = "#cbd5e1";
