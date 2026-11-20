@@ -10337,6 +10337,11 @@
           if (distClickAltar <= HOME_WAND_ALTAR.hoverRadius + 2) {
             return;
           }
+        
+          const distClickNPC2 = Math.hypot(worldX - (HOME_MERCHANT.x + 8), worldY - (HOME_MERCHANT.y + 8));
+          if (distClickNPC2 <= 34) {
+            return;
+          }
         }
         for (const obj of currentObjects) {
           if (obj.type === "crafting_table" || obj.type === "chest") {
@@ -10398,6 +10403,16 @@
           if (distAltar <= HOME_WAND_ALTAR.hoverRadius + 2) {
             wandAltarTriggerLock = true;
             openWandCustomizer(true);
+            return;
+          }
+          const distClickNPC3 = Math.hypot(worldX - (HOME_MERCHANT.x + 8), worldY - (HOME_MERCHANT.y + 8));
+          if (distClickNPC3 <= 34) {
+            const distPlayerNPC3 = Math.hypot((player.x + 8) - (HOME_MERCHANT.x + 8), (player.y + 8) - (HOME_MERCHANT.y + 8));
+            if (distPlayerNPC3 <= 52) {
+              toggleNpcShopUI(true);
+            } else {
+              addFloatingText("💬 Lại gần Thương Nhân hơn (2 ô)!", HOME_MERCHANT.x - 24, HOME_MERCHANT.y - 14, "#fde047");
+            }
             return;
           }
         }
