@@ -4234,7 +4234,7 @@
 
         const distClickNPC = Math.hypot(worldX - (HOME_MERCHANT.x + 8), worldY - (HOME_MERCHANT.y + 8));
         const distPlayerNPC = Math.hypot((player.x + 8) - (HOME_MERCHANT.x + 8), (player.y + 8) - (HOME_MERCHANT.y + 8));
-        if (distClickNPC <= 28 && distPlayerNPC <= 90) {
+        if (distClickNPC <= 32) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
