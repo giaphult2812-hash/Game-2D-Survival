@@ -4286,11 +4286,15 @@
 
         const distClickNPC = Math.hypot(worldX - (HOME_MERCHANT.x + 8), worldY - (HOME_MERCHANT.y + 8));
         const distPlayerNPC = Math.hypot((player.x + 8) - (HOME_MERCHANT.x + 8), (player.y + 8) - (HOME_MERCHANT.y + 8));
-        if (distClickNPC <= 34 && distPlayerNPC <= 52) {
+        if (distClickNPC <= 34) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
-          toggleNpcShopUI(true);
+          if (distPlayerNPC <= 52) {
+            toggleNpcShopUI(true);
+          } else {
+            addFloatingText("💬 Lại gần Thương Nhân hơn (2 ô)!", HOME_MERCHANT.x - 24, HOME_MERCHANT.y - 14, "#fde047");
+          }
           return;
         }
         const distClickCF = Math.hypot(worldX - HOME_CAMPFIRE.x, worldY - HOME_CAMPFIRE.y);
