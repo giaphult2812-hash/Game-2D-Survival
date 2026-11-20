@@ -3708,6 +3708,228 @@
     // -------------------------------------------------------------
     // HỆ THỐNG LỬA TRẠI (CAMPFIRE)
     // -------------------------------------------------------------
+    
+    // -------------------------------------------------------------
+    // HỆ THỐNG TIỀN TỆ (XU VÀNG), NPC THƯƠNG NHÂN & 2 CỬA HÀNG
+    // -------------------------------------------------------------
+    let playerGold = 50;
+    const HOME_MERCHANT = { x: 212, y: 236, width: 16, height: 16 };
+    let currentShopTab = 'npc';
+
+    const NPC_SHOP_CATALOG = [
+      { id: "arrow", price: 3, qty: 5 },
+      { id: "coal", price: 5, qty: 2 },
+      { id: "apple", price: 5, qty: 1 },
+      { id: "gem_damage", price: 65, qty: 1 },
+      { id: "gem_frost", price: 95, qty: 1 },
+      { id: "gem_vampire", price: 145, qty: 1 },
+      { id: "spell_gravity", price: 180, qty: 1 },
+      { id: "spell_timestop", price: 220, qty: 1 }
+    ];
+
+    let marketListings = [
+      { id: "mk_1", seller: "Thợ Săn An", itemId: "leather_hide", qty: 4, price: 14, isPlayer: false },
+      { id: "mk_2", seller: "Ngư Dân Bình", itemId: "golden_fish", qty: 1, price: 40, isPlayer: false },
+      { id: "mk_3", seller: "Pháp Sư Linh", itemId: "gem_haste", qty: 1, price: 95, isPlayer: false }
+    ];
+    let marketTickTimer = 0;
+
+    function toggleNpcShopUI(forceOpen = null) {
+      const ui = document.getElementById("npc-shop-ui");
+      if (!ui) return;
+      const isClosed = ui.style.display === "none" || ui.style.display === "";
+      const willOpen = forceOpen !== null ? forceOpen : isClosed;
+      ui.style.display = willOpen ? "flex" : "none";
+      if (willOpen) renderNpcShopUI();
+    }
+
+    function switchShopTab(tab) {
+      currentShopTab = tab;
+      const npcTab = document.getElementById("shopTabNpc");
+      const mkTab = document.getElementById("shopTabMarket");
+      const btnNpc = document.getElementById("tabBtnNpcShop");
+      const btnMk = document.getElementById("tabBtnMarketShop");
+      if (!npcTab || !mkTab) return;
+      if (tab === 'npc') {
+        npcTab.style.display = "flex";
+        mkTab.style.display = "none";
+        btnNpc.style.borderColor = "#eab308"; btnNpc.style.background = "rgba(234,179,8,0.2)"; btnNpc.style.color = "#fef08a";
+        btnMk.style.borderColor = "rgba(148,163,184,0.3)"; btnMk.style.background = "rgba(30,41,59,0.6)"; btnMk.style.color = "#cbd5e1";
+      } else {
+        npcTab.style.display = "none";
+        mkTab.style.display = "flex";
+        btnMk.style.borderColor = "#38bdf8"; btnMk.style.background = "rgba(56,189,248,0.2)"; btnMk.style.color = "#e0f2fe";
+        btnNpc.style.borderColor = "rgba(148,163,184,0.3)"; btnNpc.style.background = "rgba(30,41,59,0.6)"; btnNpc.style.color = "#cbd5e1";
+      }
+      renderNpcShopUI();
+    }
+
+    function renderNpcShopUI() {
+      const badge = document.getElementById("shopGoldBadge");
+      if (badge) badge.textContent = `🪙 ${playerGold} Xu`;
+
+      // Tab 1: Sell list & Buy list
+      const sellEl = document.getElementById("npcSellList");
+      const buyEl = document.getElementById("npcBuyList");
+      if (sellEl) {
+        let sHtml = "";
+        for (let i = 0; i < playerInventory.length; i++) {
+          const it = playerInventory[i];
+          if (!it || it.quantity <= 0) continue;
+          const data = getItemData(it) || it;
+          const unitVal = data.value || 1;
+          sHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.7);padding:6px 10px;border-radius:7px;border:1px solid rgba(148,163,184,0.15);">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <img src="${getItemIcon(it)}" style="width:24px;height:24px;image-rendering:pixelated;" />
+              <div>
+                <div style="font-size:12px;font-weight:700;">${data.name} <span style="color:#94a3b8;">×${it.quantity}</span></div>
+                <div style="font-size:10.5px;color:#fde047;">Giá thu: ${unitVal} Xu / món</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:5px;">
+              <button type="button" onclick="sellItemToNPC(${i}, false)" style="background:#16a34a;color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;">Bán 1</button>
+              ${it.quantity > 1 ? `<button type="button" onclick="sellItemToNPC(${i}, true)" style="background:#0284c7;color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;">Bán Hết</button>` : ""}
+            </div>
+          </div>`;
+        }
+        sellEl.innerHTML = sHtml || '<div style="font-size:11px;color:#64748b;">Túi đồ trống.</div>';
+      }
+
+      if (buyEl) {
+        let bHtml = "";
+        for (const entry of NPC_SHOP_CATALOG) {
+          const data = ITEMS_DATABASE[entry.id];
+          if (!data) continue;
+          const canAfford = playerGold >= entry.price;
+          bHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.7);padding:6px 10px;border-radius:7px;border:1px solid rgba(148,163,184,0.15);">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <img src="${data.icon}" style="width:24px;height:24px;image-rendering:pixelated;" />
+              <div>
+                <div style="font-size:12px;font-weight:700;">${data.name} ${entry.qty > 1 ? '×' + entry.qty : ''}</div>
+                <div style="font-size:10.5px;color:#94a3b8;">${data.description || ''}</div>
+              </div>
+            </div>
+            <button type="button" onclick="buyItemFromNPC('${entry.id}')" style="background:${canAfford ? '#eab308' : '#334155'};color:${canAfford ? '#0f172a' : '#94a3b8'};border:none;border-radius:5px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">🪙 ${entry.price} Xu</button>
+          </div>`;
+        }
+        buyEl.innerHTML = bHtml;
+      }
+
+      // Tab 2: Market select & listings
+      const selEl = document.getElementById("marketSellSelect");
+      if (selEl) {
+        let opts = "";
+        for (let i = 0; i < playerInventory.length; i++) {
+          const it = playerInventory[i];
+          if (!it || it.quantity <= 0) continue;
+          const data = getItemData(it) || it;
+          opts += `<option value="${i}">${data.name} (×${it.quantity})</option>`;
+        }
+        selEl.innerHTML = opts || '<option value="-1">Không có đồ</option>';
+      }
+
+      const mkListEl = document.getElementById("marketListingsContainer");
+      if (mkListEl) {
+        let mHtml = "";
+        for (const mk of marketListings) {
+          const data = ITEMS_DATABASE[mk.itemId];
+          if (!data) continue;
+          const canAfford = playerGold >= mk.price;
+          mHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.7);padding:6px 10px;border-radius:7px;border:1px solid ${mk.isPlayer ? 'rgba(234,179,8,0.4)' : 'rgba(56,189,248,0.2)'};">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <img src="${data.icon}" style="width:24px;height:24px;image-rendering:pixelated;" />
+              <div>
+                <div style="font-size:12px;font-weight:700;">${data.name} ×${mk.qty}</div>
+                <div style="font-size:10.5px;color:#94a3b8;">Người bán: <span style="color:${mk.isPlayer ? '#fde047' : '#7dd3fc'};">${mk.seller}</span></div>
+              </div>
+            </div>
+            ${mk.isPlayer
+              ? `<button type="button" onclick="cancelMarketListing('${mk.id}')" style="background:#475569;color:#fff;border:none;border-radius:5px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;">Thu hồi (${mk.price} Xu)</button>`
+              : `<button type="button" onclick="buyFromMarket('${mk.id}')" style="background:${canAfford ? '#0284c7' : '#334155'};color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;">Mua 🪙 ${mk.price} Xu</button>`
+            }
+          </div>`;
+        }
+        mkListEl.innerHTML = mHtml || '<div style="font-size:11px;color:#64748b;">Chợ hiện đang trống.</div>';
+      }
+    }
+
+    function sellItemToNPC(invIdx, sellAll) {
+      const it = playerInventory[invIdx];
+      if (!it || it.quantity <= 0) return;
+      const data = getItemData(it) || it;
+      const unitVal = data.value || 1;
+      const count = sellAll ? it.quantity : 1;
+      const earned = unitVal * count;
+      playerGold += earned;
+      it.quantity -= count;
+      if (it.quantity <= 0) playerInventory[invIdx] = null;
+      addFloatingText(`+${earned} Xu 🪙`, player.x, player.y - 12, "#fde047", true);
+      renderInventory();
+      renderNpcShopUI();
+    }
+
+    function buyItemFromNPC(itemId) {
+      const entry = NPC_SHOP_CATALOG.find(e => e.id === itemId);
+      if (!entry || playerGold < entry.price) {
+        addFloatingText("❌ Không đủ Xu!", player.x, player.y - 12, "#ef4444");
+        return;
+      }
+      playerGold -= entry.price;
+      addItemToInventory(entry.id, entry.qty);
+      addFloatingText(`-${entry.price} Xu 🪙`, player.x, player.y - 12, "#38bdf8", true);
+      renderInventory();
+      renderNpcShopUI();
+    }
+
+    function listSelectedOnMarket() {
+      const selEl = document.getElementById("marketSellSelect");
+      const priceEl = document.getElementById("marketSellPrice");
+      if (!selEl || !priceEl) return;
+      const idx = parseInt(selEl.value, 10);
+      const price = Math.max(1, parseInt(priceEl.value, 10) || 1);
+      const it = playerInventory[idx];
+      if (!it || it.quantity <= 0) return;
+
+      marketListings.unshift({
+        id: "mk_" + Date.now(),
+        seller: "Bạn (Người chơi)",
+        itemId: it.id,
+        qty: 1,
+        price: price,
+        isPlayer: true
+      });
+      it.quantity -= 1;
+      if (it.quantity <= 0) playerInventory[idx] = null;
+      renderInventory();
+      renderNpcShopUI();
+    }
+
+    function cancelMarketListing(listingId) {
+      const idx = marketListings.findIndex(m => m.id === listingId);
+      if (idx === -1) return;
+      const mk = marketListings[idx];
+      addItemToInventory(mk.itemId, mk.qty);
+      marketListings.splice(idx, 1);
+      renderInventory();
+      renderNpcShopUI();
+    }
+
+    function buyFromMarket(listingId) {
+      const idx = marketListings.findIndex(m => m.id === listingId);
+      if (idx === -1) return;
+      const mk = marketListings[idx];
+      if (playerGold < mk.price) {
+        addFloatingText("❌ Không đủ Xu!", player.x, player.y - 12, "#ef4444");
+        return;
+      }
+      playerGold -= mk.price;
+      addItemToInventory(mk.itemId, mk.qty);
+      marketListings.splice(idx, 1);
+      addFloatingText(`-${mk.price} Xu 🪙`, player.x, player.y - 12, "#38bdf8", true);
+      renderInventory();
+      renderNpcShopUI();
+    }
+
     const HOME_CAMPFIRE = {
       x: 248,
       y: 248,
@@ -11357,6 +11579,7 @@
       }
       if (currentMap === "home") {
         const cfBox = { x: HOME_CAMPFIRE.x - 8, y: HOME_CAMPFIRE.y - 6, width: 16, height: 14 };
+        if (checkAABB(playerFeetBox, HOME_MERCHANT)) return true;
         if (checkAABB(box, cfBox)) return false;
       }
       for (const obj of currentObjects) {
