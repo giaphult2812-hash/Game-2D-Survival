@@ -4232,6 +4232,12 @@
           return;
         }
 
+        const distClickNPC = Math.hypot(worldX - (HOME_MERCHANT.x + 8), worldY - (HOME_MERCHANT.y + 8));
+        const distPlayerNPC = Math.hypot((player.x + 8) - (HOME_MERCHANT.x + 8), (player.y + 8) - (HOME_MERCHANT.y + 8));
+        if (distClickNPC <= 18 && distPlayerNPC <= 54) {
+          toggleNpcShopUI(true);
+          return;
+        }
         const distClickCF = Math.hypot(worldX - HOME_CAMPFIRE.x, worldY - HOME_CAMPFIRE.y);
         const distPlayerCF = Math.hypot((player.x + 8) - HOME_CAMPFIRE.x, (player.y + 8) - HOME_CAMPFIRE.y);
         if (distClickCF <= 18 && distPlayerCF <= 46) {
@@ -13020,6 +13026,22 @@
     }
 
     function update(deltaTime) {
+      marketTickTimer += deltaTime;
+      if (marketTickTimer >= 8.0) {
+        marketTickTimer = 0;
+        const playerListingIdx = marketListings.findIndex(m => m.isPlayer);
+        if (playerListingIdx !== -1) {
+          const mk = marketListings[playerListingIdx];
+          const baseVal = (ITEMS_DATABASE[mk.itemId]?.value || 5) * mk.qty;
+          if (mk.price <= baseVal * 1.8) {
+            playerGold += mk.price;
+            marketListings.splice(playerListingIdx, 1);
+            addFloatingText(`🤝 Chợ đã bán: +${mk.price} Xu!`, player.x - 16, player.y - 16, "#fde047", true);
+            const shopUI = document.getElementById("npc-shop-ui");
+            if (shopUI && shopUI.style.display === "flex") renderNpcShopUI();
+          }
+        }
+      }
       // --- CẬP NHẬT LỬA TRẠI (NƯỚNG THỊT & CÁ + HÀO QUANG HỒI MÁU) ---
       if (HOME_CAMPFIRE.inputItem) {
         const cookMap = { "boar_unripe": "boar_ripe", "chicken_unripe": "chicken_ripe", "raw_fish": "cooked_fish" };
