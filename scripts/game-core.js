@@ -11304,7 +11304,7 @@
 
     function isTilePlaceable(tx, ty) {
       const dist = Math.hypot((tx + 8) - (player.x + 8), (ty + 8) - (player.y + 8));
-      if (dist > TILE_SIZE * 2.6) return false;
+      if (dist > TILE_SIZE * 1.55) return false;
       const box = { x: tx, y: ty, width: TILE_SIZE, height: TILE_SIZE };
       // Dùng hitbox thu gọn (10x10) ở tâm nhân vật để không chặn nhầm các ô liền kề/góc chéo
       const pInner = { x: player.x + 3, y: player.y + 4, width: 10, height: 10 };
@@ -14824,7 +14824,7 @@
       if (heldPlaceData && (heldPlaceData.category === 'placeable' || heldPlaceItem.id === 'crafting_table' || heldPlaceItem.id === 'chest') && player.action !== 'die') {
         if (hoverTileX !== null && hoverTileY !== null) {
           const dist = Math.hypot((hoverTileX + 8) - (player.x + 8), (hoverTileY + 8) - (player.y + 8));
-          if (dist <= TILE_SIZE * 2.6) {
+          if (dist <= TILE_SIZE * 1.55) {
             const valid = isTilePlaceable(hoverTileX, hoverTileY);
             ctx.save();
             ctx.strokeStyle = valid ? "#ffffff" : "rgba(239, 68, 68, 0.85)";
