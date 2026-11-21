@@ -3711,6 +3711,132 @@
     // HỆ THỐNG LỬA TRẠI (CAMPFIRE)
     // -------------------------------------------------------------
     
+
+    // -------------------------------------------------------------
+    // BƯỚC 1: HỆ THỐNG TÀI KHOẢN, LƯU TRỮ (SAVE/LOAD) & CHỢ REALTIME
+    // -------------------------------------------------------------
+    const STORAGE_PROFILE_KEY = "game2d_active_profile_v1";
+    const STORAGE_MARKET_KEY = "game2d_shared_market_v1";
+    const STORAGE_PAYOUTS_KEY = "game2d_market_payouts_v1";
+    const marketChannel = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("game2d_market_realtime") : null;
+
+    let currentPlayerProfile = { id: "p_" + Math.random().toString(36).slice(2, 8), name: "Lữ Khách" };
+
+    function initPlayerProfileAndSave() {
+      try {
+        const rawProf = localStorage.getItem(STORAGE_PROFILE_KEY);
+        if (rawProf) {
+          currentPlayerProfile = JSON.parse(rawProf);
+          loadPlayerSaveFromStorage();
+        } else {
+          const modal = document.getElementById("player-profile-modal");
+          if (modal) modal.style.display = "flex";
+        }
+      } catch (e) { console.warn("Profile init err:", e); }
+      claimPendingMarketPayouts();
+    }
+
+    function confirmPlayerProfile() {
+      const inp = document.getElementById("playerNameInput");
+      const name = (inp && inp.value.trim()) ? inp.value.trim().slice(0, 18) : "Lữ Khách";
+      currentPlayerProfile = { id: "p_" + Date.now().toString(36), name };
+      localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(currentPlayerProfile));
+      const modal = document.getElementById("player-profile-modal");
+      if (modal) modal.style.display = "none";
+      savePlayerToStorage();
+    }
+
+    function exportPlayerSaveData() {
+      return {
+        profile: currentPlayerProfile,
+        gold: playerGold,
+        hp: player.hp,
+        maxHp: player.maxHp,
+        armor: playerArmor,
+        inventory: playerInventory,
+        equipment: playerEquipment,
+        currentMap: currentMap,
+        x: Math.round(player.x),
+        y: Math.round(player.y),
+        updatedAt: Date.now()
+      };
+    }
+
+    function savePlayerToStorage() {
+      try {
+        if (!currentPlayerProfile || !currentPlayerProfile.id) return;
+        localStorage.setItem("game2d_save_" + currentPlayerProfile.id, JSON.stringify(exportPlayerSaveData()));
+      } catch (e) {}
+    }
+
+    function loadPlayerSaveFromStorage() {
+      try {
+        const raw = localStorage.getItem("game2d_save_" + currentPlayerProfile.id);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (typeof data.gold === "number") playerGold = data.gold;
+        if (Array.isArray(data.inventory)) {
+          for (let i = 0; i < 36; i++) playerInventory[i] = data.inventory[i] || null;
+        }
+        if (Array.isArray(data.equipment)) {
+          for (let i = 0; i < 4; i++) playerEquipment[i] = data.equipment[i] || null;
+        }
+        if (typeof recalculatePlayerArmorAndStats === "function") recalculatePlayerArmorAndStats();
+        if (typeof data.hp === "number") player.hp = Math.min(player.maxHp, Math.max(1, data.hp));
+        if (typeof data.armor === "number") playerArmor = Math.min(playerMaxArmor, Math.max(0, data.armor));
+        renderInventory();
+      } catch (e) { console.warn("Load save err:", e); }
+    }
+
+    function getSharedMarketListings() {
+      try {
+        const raw = localStorage.getItem(STORAGE_MARKET_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed.slice(0, 20);
+        }
+      } catch (e) {}
+      return marketListings;
+    }
+
+    function saveSharedMarketListings(list) {
+      const capped = list.slice(0, 20);
+      marketListings = capped;
+      try {
+        localStorage.setItem(STORAGE_MARKET_KEY, JSON.stringify(capped));
+        if (marketChannel) marketChannel.postMessage({ type: "market_sync", listings: capped });
+      } catch (e) {}
+    }
+
+    function claimPendingMarketPayouts() {
+      try {
+        const raw = localStorage.getItem(STORAGE_PAYOUTS_KEY);
+        if (!raw) return;
+        const payouts = JSON.parse(raw);
+        if (payouts[currentPlayerProfile.id] > 0) {
+          const earned = payouts[currentPlayerProfile.id];
+          playerGold += earned;
+          delete payouts[currentPlayerProfile.id];
+          localStorage.setItem(STORAGE_PAYOUTS_KEY, JSON.stringify(payouts));
+          addFloatingText(`🤝 +${earned} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
+          savePlayerToStorage();
+        }
+      } catch (e) {}
+    }
+
+    if (marketChannel) {
+      marketChannel.onmessage = (ev) => {
+        if (!ev.data) return;
+        if (ev.data.type === "market_sync") {
+          marketListings = getSharedMarketListings();
+          const shopUI = document.getElementById("npc-shop-ui");
+          if (shopUI && shopUI.style.display === "flex") renderNpcShopUI();
+        } else if (ev.data.type === "payout" && ev.data.sellerId === currentPlayerProfile.id) {
+          claimPendingMarketPayouts();
+        }
+      };
+    }
+
     // -------------------------------------------------------------
     // HỆ THỐNG TIỀN TỆ (XU VÀNG), NPC THƯƠNG NHÂN & 2 CỬA HÀNG
     // -------------------------------------------------------------
@@ -3737,6 +3863,376 @@
     let marketTickTimer = 0;
 
     
+    // Chạm trực tiếp vào NPC Thương Nhân trên điện thoại (trong bán kính 2 ô)
+    canvas.addEventListener("touchstart", (e) => {
+      if (currentMap !== "home" || !e.touches || e.touches.length === 0) return;
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const zoom = getCameraZoom();
+      const wx = (touch.clientX - rect.left) / zoom + camera.x;
+      const wy = (touch.clientY - rect.top) / zoom + camera.y;
+      const distClickNPC = Math.hypot(wx - (HOME_MERCHANT.x + 8), wy - (HOME_MERCHANT.y + 8));
+      const distPlayerNPC = Math.hypot((player.x + 8) - (HOME_MERCHANT.x + 8), (player.y + 8) - (HOME_MERCHANT.y + 8));
+      if (distClickNPC <= 30 && distPlayerNPC <= 42) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleNpcShopUI(true);
+      }
+    }, { passive: false });
+
+    
+    // -------------------------------------------------------------
+    // BẢNG CHỈ SỐ NHÂN VẬT (PLAYER INFO [I] / MOBILE INFO)
+    // -------------------------------------------------------------
+    function togglePlayerInfoUI(forceOpen = null) {
+      const ui = document.getElementById("player-info-ui");
+      if (!ui) return false;
+      const isClosed = ui.style.display === "none" || ui.style.display === "";
+      const willOpen = forceOpen !== null ? forceOpen : isClosed;
+      ui.style.display = willOpen ? "flex" : "none";
+      if (willOpen) renderPlayerInfoUI();
+      return willOpen;
+    }
+    window.togglePlayerInfoUI = togglePlayerInfoUI;
+
+    function renderPlayerInfoUI() {
+      const body = document.getElementById("playerInfoBody");
+      if (!body) return;
+
+      const held = playerInventory[activeHotbarIndex];
+      const heldData = held ? (getItemData(held) || held) : null;
+      const baseMeleeDmg = defaultStats.player.attackDamage || 1;
+      let curDmgLabel = `${baseMeleeDmg} DMG (Tay không)`;
+      if (heldData) {
+        if (heldData.id === "hunting_bow") curDmgLabel = heldData.rangedDamage || "5–10 DMG";
+        else if (heldData.id === "magic_wand") {
+          const gemB = getWandGemBonuses({ id: "magic_wand", wandData: ensureWandData(held) });
+          curDmgLabel = `${(heldData.damage || 4) + gemB.damageBonus} DMG (Đũa Phép)`;
+        } else if (heldData.damage) {
+          curDmgLabel = `${heldData.damage} DMG (${heldData.name})`;
+        }
+      }
+
+      // Tính bonus từ Đũa Phép (nếu đang cầm hoặc có trong túi)
+      let wandRef = (held && held.id === "magic_wand") ? held : playerInventory.find(it => it && it.id === "magic_wand");
+      const gemB = wandRef ? getWandGemBonuses({ id: "magic_wand", wandData: ensureWandData(wandRef) }) : {
+        damageBonus: 0, critChance: 0, cooldownMult: 1, vampirePct: 0, burnStacks: 0, frostStacks: 0
+      };
+      const cdReducePct = Math.round((1 - (gemB.cooldownMult || 1)) * 100);
+
+      const hungerMult = 1.0;
+      const actualSpeed = Math.round((player.speed || 60) * hungerMult);
+      const kbPct = Math.round((player.knockbackResist || 0) * 100);
+
+      const hungerStatus = "Bình thường";
+
+      const mapName = currentMap === "lake" ? "🏞️ Hồ" : (currentMap === "forest" ? "🌲 Rừng" : "🏠 Nhà");
+      const woodSpeed = heldData && heldData.woodcuttingSpeed ? `x${heldData.woodcuttingSpeed}` : "x1.0 (Tay)";
+      const mineSpeed = heldData && heldData.miningSpeed ? `x${heldData.miningSpeed}` : "x1.0 (Tay)";
+
+      const eqNames = ["Nón", "Áo", "Quần", "Giày"].map((lbl, idx) => {
+        const eq = playerEquipment[idx];
+        return eq ? `${lbl}: <span style="color:#7dd3fc;">${(getItemData(eq)||eq).name}</span>` : `${lbl}: <span style="color:#64748b;">Trống</span>`;
+      }).join("<br>");
+
+      const row = (k, v, col = "#f8fafc") =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(148,163,184,0.1);">
+          <span style="color:#94a3b8;">${k}</span>
+          <span style="font-weight:700;color:${col};">${v}</span>
+        </div>`;
+
+      body.innerHTML = `
+        <div style="background:rgba(15,23,42,0.65);border:1px solid rgba(148,163,184,0.18);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:11.5px;font-weight:700;color:#4ade80;margin-bottom:6px;">❤️ SINH TỒN & TÀI SẢN</div>
+          ${row("Máu (HP)", `${Math.round(player.hp)} / ${player.maxHp}`, "#fb7185")}
+          ${row("Giáp (Hấp thụ 70%)", `${Math.round(playerArmor)} / ${playerMaxArmor}`, "#38bdf8")}
+          ${row("Tài sản", `🪙 ${playerGold} Xu`, "#fde047")}
+          ${row("Khu vực", `${mapName} (${Math.round(player.x)}, ${Math.round(player.y)})`, "#cbd5e1")}
+        </div>
+
+        <div style="background:rgba(15,23,42,0.65);border:1px solid rgba(148,163,184,0.18);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:11.5px;font-weight:700;color:#fb7185;margin-bottom:6px;">⚔️ CHIẾN ĐẤU & DI CHUYỂN</div>
+          ${row("Sát thương cầm tay", curDmgLabel, "#fb7185")}
+          ${row("Tỉ lệ Chí Mạng", `${gemB.critChance || 0}%`, "#facc15")}
+          ${row("Giảm Hồi Chiêu", `-${cdReducePct}%`, "#2dd4bf")}
+          ${row("Hút Máu Phép", `${gemB.vampirePct || 0}%`, "#f472b6")}
+          ${row("Tốc độ di chuyển", `${actualSpeed} px/s`, "#fbbf24")}
+          ${row("Kháng đẩy lùi", `${kbPct}%`, "#c4b5fd")}
+          ${row("Chặt cây / Đào đá", `${woodSpeed} · ${mineSpeed}`, "#94a3b8")}
+        </div>
+
+        <div style="grid-column:1 / -1;background:rgba(15,23,42,0.65);border:1px solid rgba(148,163,184,0.18);border-radius:10px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div style="font-size:11.5px;line-height:1.5;">
+            <span style="font-weight:700;color:#38bdf8;">🛡️ TRANG BỊ ĐANG MẶC:</span><br>${eqNames}
+          </div>
+          <div style="font-size:11px;color:#94a3b8;text-align:right;">
+            <div>🔥 Thiêu đốt: <b style="color:#fb923c;">${gemB.burnStacks || 0} tầng</b></div>
+            <div>❄️ Làm chậm: <b style="color:#38bdf8;">${gemB.frostStacks || 0} tầng</b></div>
+            <div>⚔️ Cộng DMG Ngọc: <b style="color:#f87171;">+${gemB.damageBonus || 0}</b></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleNpcShopUI(forceOpen = null) {
+      const ui = document.getElementById("npc-shop-ui");
+      if (!ui) return;
+      const isClosed = ui.style.display === "none" || ui.style.display === "";
+      const willOpen = forceOpen !== null ? forceOpen : isClosed;
+      ui.style.display = willOpen ? "flex" : "none";
+      if (willOpen) { marketListings = getSharedMarketListings(); renderNpcShopUI(); }
+    }
+
+    function switchShopTab(tab) {
+      currentShopTab = tab;
+      const npcTab = document.getElementById("shopTabNpc");
+      const mkTab = document.getElementById("shopTabMarket");
+      const btnNpc = document.getElementById("tabBtnNpcShop");
+      const btnMk = document.getElementById("tabBtnMarketShop");
+      if (!npcTab || !mkTab) return;
+      if (tab === 'npc') {
+        npcTab.style.display = "grid";
+        mkTab.style.display = "none";
+        btnNpc.style.borderColor = "#eab308"; btnNpc.style.background = "rgba(234,179,8,0.2)"; btnNpc.style.color = "#fef08a";
+        btnMk.style.borderColor = "rgba(148,163,184,0.3)"; btnMk.style.background = "rgba(30,41,59,0.6)"; btnMk.style.color = "#cbd5e1";
+      } else {
+        npcTab.style.display = "none";
+        mkTab.style.display = "flex";
+        btnMk.style.borderColor = "#38bdf8"; btnMk.style.background = "rgba(56,189,248,0.2)"; btnMk.style.color = "#e0f2fe";
+        btnNpc.style.borderColor = "rgba(148,163,184,0.3)"; btnNpc.style.background = "rgba(30,41,59,0.6)"; btnNpc.style.color = "#cbd5e1";
+      }
+      renderNpcShopUI();
+    }
+
+    let npcSellPage = 0;
+    let npcBuyPage = 0;
+    const SHOP_PAGE_SIZE = 6;
+
+    function changeShopPage(kind, delta) {
+      if (kind === 'sell') npcSellPage = Math.max(0, npcSellPage + delta);
+      else npcBuyPage = Math.max(0, npcBuyPage + delta);
+      renderNpcShopUI();
+    }
+
+    function renderNpcShopUI() {
+      const badge = document.getElementById("shopGoldBadge");
+      if (badge) badge.textContent = `🪙 ${playerGold} Xu`;
+
+      const sellEl = document.getElementById("npcSellList");
+      const buyEl = document.getElementById("npcBuyList");
+      const sellPager = document.getElementById("npcSellPager");
+      const buyPager = document.getElementById("npcBuyPager");
+
+      if (sellEl) {
+        const sellItems = [];
+        for (let i = 0; i < playerInventory.length; i++) {
+          const it = playerInventory[i];
+          if (it && it.quantity > 0) sellItems.push({ idx: i, it });
+        }
+        const maxSellPage = Math.max(0, Math.ceil(sellItems.length / SHOP_PAGE_SIZE) - 1);
+        if (npcSellPage > maxSellPage) npcSellPage = maxSellPage;
+        const pageItems = sellItems.slice(npcSellPage * SHOP_PAGE_SIZE, (npcSellPage + 1) * SHOP_PAGE_SIZE);
+
+        if (sellPager) {
+          sellPager.innerHTML = sellItems.length > SHOP_PAGE_SIZE
+            ? `<button type="button" onclick="changeShopPage('sell',-1)" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:4px;padding:1px 6px;cursor:pointer;">◀</button><span>${npcSellPage + 1}/${maxSellPage + 1}</span><button type="button" onclick="changeShopPage('sell',1)" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:4px;padding:1px 6px;cursor:pointer;">▶</button>`
+            : '';
+        }
+
+        let sHtml = "";
+        for (const { idx, it } of pageItems) {
+          const data = getItemData(it) || it;
+          const unitVal = data.value || 1;
+          sHtml += `<div style="background:rgba(30,41,59,0.8);border:1px solid rgba(148,163,184,0.16);border-radius:8px;padding:7px;display:flex;flex-direction:column;gap:5px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <img src="${getItemIcon(it)}" style="width:24px;height:24px;image-rendering:pixelated;" />
+              <div style="min-width:0;">
+                <div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${data.name}</div>
+                <div style="font-size:10px;color:#fde047;">×${it.quantity} · +${unitVal} Xu</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:4px;">
+              <button type="button" onclick="sellItemToNPC(${idx}, false)" style="flex:1;background:#16a34a;color:#fff;border:none;border-radius:4px;padding:3px 0;font-size:10.5px;font-weight:700;cursor:pointer;">Bán 1</button>
+              ${it.quantity > 1 ? `<button type="button" onclick="sellItemToNPC(${idx}, true)" style="flex:1;background:#0284c7;color:#fff;border:none;border-radius:4px;padding:3px 0;font-size:10.5px;font-weight:700;cursor:pointer;">Hết</button>` : ""}
+            </div>
+          </div>`;
+        }
+        sellEl.innerHTML = sHtml || '<div style="font-size:11px;color:#64748b;padding:8px 0;">Túi đồ trống.</div>';
+      }
+
+      if (buyEl) {
+        const maxBuyPage = Math.max(0, Math.ceil(NPC_SHOP_CATALOG.length / SHOP_PAGE_SIZE) - 1);
+        if (npcBuyPage > maxBuyPage) npcBuyPage = maxBuyPage;
+        const pageBuy = NPC_SHOP_CATALOG.slice(npcBuyPage * SHOP_PAGE_SIZE, (npcBuyPage + 1) * SHOP_PAGE_SIZE);
+
+        if (buyPager) {
+          buyPager.innerHTML = NPC_SHOP_CATALOG.length > SHOP_PAGE_SIZE
+            ? `<button type="button" onclick="changeShopPage('buy',-1)" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:4px;padding:1px 6px;cursor:pointer;">◀</button><span>${npcBuyPage + 1}/${maxBuyPage + 1}</span><button type="button" onclick="changeShopPage('buy',1)" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:4px;padding:1px 6px;cursor:pointer;">▶</button>`
+            : '';
+        }
+
+        let bHtml = "";
+        for (const entry of pageBuy) {
+          const data = ITEMS_DATABASE[entry.id];
+          if (!data) continue;
+          const canAfford = playerGold >= entry.price;
+          bHtml += `<div style="background:rgba(30,41,59,0.8);border:1px solid rgba(148,163,184,0.16);border-radius:8px;padding:7px;display:flex;flex-direction:column;gap:5px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <img src="${data.icon}" style="width:24px;height:24px;image-rendering:pixelated;" />
+              <div style="min-width:0;">
+                <div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${data.name} ${entry.qty > 1 ? '×' + entry.qty : ''}</div>
+                <div style="font-size:10px;color:#38bdf8;">Giá cố định</div>
+              </div>
+            </div>
+            <button type="button" onclick="buyItemFromNPC('${entry.id}')" style="width:100%;background:${canAfford ? '#eab308' : '#334155'};color:${canAfford ? '#0f172a' : '#94a3b8'};border:none;border-radius:4px;padding:3px 0;font-size:10.5px;font-weight:700;cursor:pointer;">🪙 ${entry.price} Xu</button>
+          </div>`;
+        }
+        buyEl.innerHTML = bHtml;
+      }
+
+      const selEl = document.getElementById("marketSellSelect");
+      if (selEl) {
+        let opts = "";
+        for (let i = 0; i < playerInventory.length; i++) {
+          const it = playerInventory[i];
+          if (!it || it.quantity <= 0) continue;
+          const data = getItemData(it) || it;
+          opts += `<option value="${i}">${data.name} (×${it.quantity})</option>`;
+        }
+        selEl.innerHTML = opts || '<option value="-1">Không có đồ</option>';
+      }
+
+      const mkListEl = document.getElementById("marketListingsContainer");
+      if (mkListEl) {
+        let mHtml = "";
+        for (const mk of marketListings.slice(0, 6)) {
+          const data = ITEMS_DATABASE[mk.itemId];
+          if (!data) continue;
+          const canAfford = playerGold >= mk.price;
+          mHtml += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.75);padding:6px 10px;border-radius:8px;border:1px solid ${mk.isPlayer ? 'rgba(234,179,8,0.4)' : 'rgba(56,189,248,0.2)'};">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <img src="${data.icon}" style="width:24px;height:24px;image-rendering:pixelated;" />
+              <div>
+                <div style="font-size:12px;font-weight:700;">${data.name} ×${mk.qty}</div>
+                <div style="font-size:10.5px;color:#94a3b8;">Người bán: <span style="color:${mk.isPlayer ? '#fde047' : '#7dd3fc'};">${mk.seller}</span></div>
+              </div>
+            </div>
+            ${(mk.sellerId === currentPlayerProfile.id || (mk.isPlayer && !mk.sellerId))
+              ? `<button type="button" onclick="cancelMarketListing('${mk.id}')" style="background:#475569;color:#fff;border:none;border-radius:5px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;">Thu hồi</button>`
+              : `<button type="button" onclick="buyFromMarket('${mk.id}')" style="background:${canAfford ? '#0284c7' : '#334155'};color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;">🪙 ${mk.price}</button>`
+            }
+          </div>`;
+        }
+        mkListEl.innerHTML = mHtml || '<div style="font-size:11px;color:#64748b;">Chợ hiện đang trống.</div>';
+      }
+    }
+
+    function sellItemToNPC(invIdx, sellAll) {
+      const it = playerInventory[invIdx];
+      if (!it || it.quantity <= 0) return;
+      const data = getItemData(it) || it;
+      const unitVal = data.value || 1;
+      const count = sellAll ? it.quantity : 1;
+      const earned = unitVal * count;
+      playerGold += earned;
+      it.quantity -= count;
+      if (it.quantity <= 0) playerInventory[invIdx] = null;
+      addFloatingText(`+${earned} Xu 🪙`, player.x, player.y - 12, "#fde047", true);
+      renderInventory();
+      renderNpcShopUI();
+    }
+
+    function buyItemFromNPC(itemId) {
+      const entry = NPC_SHOP_CATALOG.find(e => e.id === itemId);
+      if (!entry || playerGold < entry.price) {
+        addFloatingText("❌ Không đủ Xu!", player.x, player.y - 12, "#ef4444");
+        return;
+      }
+      playerGold -= entry.price;
+      addItemToInventory(entry.id, entry.qty);
+      addFloatingText(`-${entry.price} Xu 🪙`, player.x, player.y - 12, "#38bdf8", true);
+      renderInventory();
+      renderNpcShopUI();
+    }
+
+    function listSelectedOnMarket() {
+      const selEl = document.getElementById("marketSellSelect");
+      const priceEl = document.getElementById("marketSellPrice");
+      if (!selEl || !priceEl) return;
+      const idx = parseInt(selEl.value, 10);
+      const price = Math.max(1, parseInt(priceEl.value, 10) || 1);
+      const it = playerInventory[idx];
+      if (!it || it.quantity <= 0) return;
+
+      const itemCopy = { ...it, quantity: 1 };
+      const list = getSharedMarketListings();
+      list.unshift({
+        id: "mk_" + Date.now() + "_" + Math.random().toString(36).slice(2, 5),
+        sellerId: currentPlayerProfile.id,
+        seller: currentPlayerProfile.name,
+        itemId: it.id,
+        itemData: itemCopy,
+        qty: 1,
+        price: price,
+        isPlayer: true
+      });
+      saveSharedMarketListings(list);
+
+      it.quantity -= 1;
+      if (it.quantity <= 0) playerInventory[idx] = null;
+      savePlayerToStorage();
+      renderInventory();
+      renderNpcShopUI();
+    }
+
+    function cancelMarketListing(listingId) {
+      const list = getSharedMarketListings();
+      const idx = list.findIndex(m => m.id === listingId);
+      if (idx === -1) return;
+      const mk = list[idx];
+      pickupItem(mk.itemData ? { ...mk.itemData } : { id: mk.itemId, name: ITEMS_DATABASE[mk.itemId]?.name || mk.itemId, quantity: mk.qty });
+      list.splice(idx, 1);
+      saveSharedMarketListings(list);
+      savePlayerToStorage();
+      renderInventory();
+      renderNpcShopUI();
+    }
+
+    function buyFromMarket(listingId) {
+      // Đọc lại danh sách mới nhất để chống mua trùng (Atomic check)
+      const list = getSharedMarketListings();
+      const idx = list.findIndex(m => m.id === listingId);
+      if (idx === -1) {
+        renderNpcShopUI();
+        return;
+      }
+      const mk = list[idx];
+      if (playerGold < mk.price) {
+        addFloatingText("❌ Không đủ Xu!", player.x, player.y - 12, "#ef4444");
+        return;
+      }
+      playerGold -= mk.price;
+      const boughtItem = mk.itemData ? { ...mk.itemData } : { id: mk.itemId, name: ITEMS_DATABASE[mk.itemId]?.name || mk.itemId, quantity: mk.qty };
+      pickupItem(boughtItem);
+      list.splice(idx, 1);
+      saveSharedMarketListings(list);
+
+      // Ghi nhận Xu cho người bán
+      if (mk.sellerId) {
+        try {
+          const payouts = JSON.parse(localStorage.getItem(STORAGE_PAYOUTS_KEY) || "{}");
+          payouts[mk.sellerId] = (payouts[mk.sellerId] || 0) + mk.price;
+          localStorage.setItem(STORAGE_PAYOUTS_KEY, JSON.stringify(payouts));
+          if (marketChannel) marketChannel.postMessage({ type: "payout", sellerId: mk.sellerId });
+        } catch (e) {}
+      }
+
+      savePlayerToStorage();
+      addFloatingText(`-${mk.price} Xu 🪙`, player.x, player.y - 12, "#38bdf8", true);
+      renderInventory();
+      renderNpcShopUI();
+    }
+
     // Chạm trực tiếp vào NPC Thương Nhân trên điện thoại (trong bán kính 2 ô)
     canvas.addEventListener("touchstart", (e) => {
       if (currentMap !== "home" || !e.touches || e.touches.length === 0) return;

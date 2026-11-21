@@ -719,5 +719,16 @@
     <div id="playerInfoBody" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
   </div>
 
+
+  <!-- MÀN HÌNH ĐẶT TÊN NHÂN VẬT (LẦN ĐẦU VÀO GAME) -->
+  <div id="player-profile-modal" style="display:none; position:fixed; inset:0; background:rgba(6,10,19,0.85); z-index:3000; align-items:center; justify-content:center; backdrop-filter:blur(6px); font-family:'Segoe UI',system-ui,sans-serif;">
+    <div style="background:linear-gradient(160deg, rgba(15,23,42,0.98) 0%, rgba(19,27,46,0.99) 100%); border:1.5px solid rgba(250,204,21,0.65); border-radius:16px; padding:22px 26px; width:340px; max-width:92vw; color:#f8fafc; box-shadow:0 24px 60px rgba(0,0,0,0.9);">
+      <div style="font-size:17px; font-weight:800; color:#fde047; margin-bottom:6px;">⚔️ TẠO NHÂN VẬT SINH TỒN</div>
+      <div style="font-size:12px; color:#94a3b8; margin-bottom:14px;">Tên của bạn sẽ dùng để lưu túi đồ và giao dịch trên Chợ Giao Thương.</div>
+      <input id="playerNameInput" type="text" maxlength="18" placeholder="Nhập tên nhân vật..." style="width:100%; box-sizing:border-box; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:8px; padding:9px 12px; font-size:13px; margin-bottom:12px; outline:none;" />
+      <button type="button" onclick="confirmPlayerProfile()" style="width:100%; background:#eab308; color:#0f172a; border:none; border-radius:8px; padding:9px 0; font-weight:800; font-size:13px; cursor:pointer;">Vào Game Ngay ▶</button>
+    </div>
+  </div>
+
 </body>
 </html>
