@@ -4644,6 +4644,89 @@
       return res;
     }
 
+    // -------------------------------------------------------------
+    // HỆ THỐNG ROLL CHỈ SỐ VŨ KHÍ ("NHÂN PHẨM") & DÒNG PHỤ CỘNG DỒN
+    // -------------------------------------------------------------
+    const WEAPON_ROLL_TABLE = {
+      wood_sword:     { dmgMin: 6,  dmgMax: 11, tier: 1 },
+      wood_axe:       { dmgMin: 4,  dmgMax: 8,  tier: 1 },
+      wood_pickaxe:   { dmgMin: 3,  dmgMax: 6,  tier: 1 },
+      wooden_pickaxe: { dmgMin: 3,  dmgMax: 6,  tier: 1 },
+      stone_sword:    { dmgMin: 11, dmgMax: 18, tier: 2 },
+      stone_axe:      { dmgMin: 9,  dmgMax: 14, tier: 2 },
+      stone_pickaxe:  { dmgMin: 6,  dmgMax: 10, tier: 2 },
+      iron_sword:     { dmgMin: 18, dmgMax: 27, tier: 3 },
+      iron_axe:       { dmgMin: 14, dmgMax: 21, tier: 3 },
+      iron_pickaxe:   { dmgMin: 10, dmgMax: 16, tier: 3 },
+      gold_sword:     { dmgMin: 24, dmgMax: 35, tier: 4 },
+      gold_axe:       { dmgMin: 19, dmgMax: 28, tier: 4 },
+      gold_pickaxe:   { dmgMin: 14, dmgMax: 21, tier: 4 },
+      diamond_sword:  { dmgMin: 34, dmgMax: 48, tier: 5 },
+      diamond_axe:    { dmgMin: 27, dmgMax: 38, tier: 5 },
+      diamond_pickaxe:{ dmgMin: 20, dmgMax: 30, tier: 5 },
+      hunting_bow:    { dmgMin: 18, dmgMax: 30, tier: 2, isBow: true },
+      magic_wand:     { dmgMin: 4,  dmgMax: 10, tier: 4 }
+    };
+
+    function rollWeaponInstance(item) {
+      if (!item || !item.id) return item;
+      const cfg = WEAPON_ROLL_TABLE[item.id];
+      if (!cfg) return item;
+      // Nếu đã roll rồi thì giữ nguyên
+      if (item.rollQuality) return item;
+
+      // Xác suất nhân phẩm: 55% Thường, 30% Khá, 12% Tinh Xảo, 3% Cực Phẩm
+      const luck = Math.random();
+      let frac = 0;
+      let quality = "Thường";
+      let qualityColor = "#cbd5e1";
+
+      if (luck >= 0.97) {
+        frac = 0.92 + Math.random() * 0.08;
+        quality = "Cực Phẩm";
+        qualityColor = "#fde047";
+      } else if (luck >= 0.85) {
+        frac = 0.72 + Math.random() * 0.20;
+        quality = "Tinh Xảo";
+        qualityColor = "#c084fc";
+      } else if (luck >= 0.55) {
+        frac = 0.42 + Math.random() * 0.30;
+        quality = "Khá";
+        qualityColor = "#38bdf8";
+      } else {
+        frac = Math.random() * 0.42;
+        quality = "Thường";
+        qualityColor = "#cbd5e1";
+      }
+
+      const rolledDmg = Math.round(cfg.dmgMin + (cfg.dmgMax - cfg.dmgMin) * frac);
+      item.damage = rolledDmg;
+      item.dmgMin = cfg.dmgMin;
+      item.dmgMax = cfg.dmgMax;
+      item.rollQuality = quality;
+      item.rollColor = qualityColor;
+
+      // Tỉ lệ nhỏ cộng thêm chỉ số phụ (Giáp, Máu, Tốc chạy): 28% ra 1 dòng, 8% ra 2 dòng
+      const affixRoll = Math.random();
+      const numAffixes = (affixRoll < 0.08) ? 2 : (affixRoll < 0.36 ? 1 : 0);
+      if (numAffixes > 0) {
+        const pool = ["armor", "hp", "speed"];
+        for (let k = 0; k < numAffixes && pool.length > 0; k++) {
+          const pickIdx = Math.floor(Math.random() * pool.length);
+          const stat = pool.splice(pickIdx, 1)[0];
+          const t = cfg.tier || 1;
+          if (stat === "armor") {
+            item.bonusArmor = Math.max(2, Math.round((1.5 + Math.random() * 2.0) * t));
+          } else if (stat === "hp") {
+            item.bonusHp = Math.max(5, Math.round((4 + Math.random() * 4) * t));
+          } else if (stat === "speed") {
+            item.bonusSpeed = Number((0.02 + Math.random() * 0.015 * t).toFixed(2));
+          }
+        }
+      }
+      return item;
+    }
+
     const ITEMS_DATABASE = {
       "magic_wand": {
         id: "magic_wand",
@@ -5507,7 +5590,7 @@
     };
     playerInventory[1] = { id: 'stone_rock', name: 'Đá Cuội', quantity: 32 };
     playerInventory[2] = { id: 'iron_ore', name: 'Quặng Sắt', quantity: 32 };
-    playerInventory[3] = { id: 'hunting_bow', name: 'Cung Săn', quantity: 1, durability: 120, maxDurability: 120 }; // Phím 4: Cung Săn
+    playerInventory[3] = rollWeaponInstance({ id: 'hunting_bow', name: 'Cung Săn Bắn', quantity: 1, durability: 120, maxDurability: 120 }); // Phím 4: Cung Săn
     playerInventory[4] = { id: 'arrow', name: 'Mũi Tên', quantity: 64 };                                             // Phím 5: Mũi Tên
     playerInventory[5] = { id: 'fishing_rod', name: 'Cần Câu', quantity: 1, durability: 100, maxDurability: 100 };  // Phím 6: Cần Câu
     playerInventory[6] = { id: 'iron_sword', name: 'Kiếm Sắt', quantity: 1, durability: 180, maxDurability: 180 };
@@ -7170,6 +7253,14 @@
         }
       }
 
+      // Cộng dồn chỉ số phụ từ Vũ khí / Công cụ đang cầm trên tay (Active Hotbar)
+      const heldNow = playerInventory[activeHotbarIndex];
+      if (heldNow) {
+        if (heldNow.bonusArmor) totalArmor += heldNow.bonusArmor;
+        if (heldNow.bonusHp) extraHp += heldNow.bonusHp;
+        if (heldNow.bonusSpeed) speedMult += heldNow.bonusSpeed;
+      }
+
       const prevMaxArmor = playerMaxArmor;
       const prevMaxHp = player.maxHp;
 
@@ -7532,13 +7623,28 @@
           if (data.rangedDamage) {
             statsHtml += `<div class="tooltip-stat-row"><span>🏹 Sát thương</span><span class="tooltip-stat-val dmg">${data.rangedDamage}</span></div>`;
           }
-          if (data.damage) {
-            let dmgVal = data.damage;
+          const rollCfg = WEAPON_ROLL_TABLE[data.id];
+          const actualDmg = (typeof item.damage === "number") ? item.damage : data.damage;
+          if (item.rollQuality) {
+            statsHtml += `<div class="tooltip-stat-row"><span>✨ Phẩm chất</span><span class="tooltip-stat-val" style="color:${item.rollColor || '#fde047'};">[${item.rollQuality}]</span></div>`;
+          }
+          if (actualDmg) {
+            let dmgLabel = `+${actualDmg} DMG`;
             if (data.id === "magic_wand") {
               const gemB = getWandGemBonuses({ id: "magic_wand", wandData: ensureWandData({ id: "magic_wand", wandData: item.wandData }) });
-              if (gemB.damageBonus > 0) dmgVal = `${data.damage + gemB.damageBonus} (${data.damage}+${gemB.damageBonus})`;
+              dmgLabel = `+${actualDmg + (gemB.damageBonus || 0)} DMG`;
             }
-            statsHtml += `<div class="tooltip-stat-row"><span>⚔️ Sát thương</span><span class="tooltip-stat-val dmg">+${dmgVal} DMG</span></div>`;
+            const rangeHint = rollCfg ? ` (${rollCfg.dmgMin}–${rollCfg.dmgMax})` : "";
+            statsHtml += `<div class="tooltip-stat-row"><span>⚔️ Sát thương</span><span class="tooltip-stat-val dmg">${dmgLabel}${rangeHint}</span></div>`;
+          }
+          if (item.bonusArmor) {
+            statsHtml += `<div class="tooltip-stat-row"><span>🛡️ Giáp cộng thêm</span><span class="tooltip-stat-val armor">+${item.bonusArmor} Giáp</span></div>`;
+          }
+          if (item.bonusHp) {
+            statsHtml += `<div class="tooltip-stat-row"><span>❤️ Máu cộng thêm</span><span class="tooltip-stat-val hp">+${item.bonusHp} HP</span></div>`;
+          }
+          if (item.bonusSpeed) {
+            statsHtml += `<div class="tooltip-stat-row"><span>👟 Tốc chạy cộng thêm</span><span class="tooltip-stat-val spd">+${Math.round(item.bonusSpeed * 100)}%</span></div>`;
           }
           if (data.category === "spell" && data.spellId && SPELLS_DATABASE[data.spellId]) {
             statsHtml += `<div class="tooltip-stat-row"><span>⏱️ Hồi chiêu</span><span class="tooltip-stat-val spd">${SPELLS_DATABASE[data.spellId].cooldown}s</span></div>`;
@@ -8022,7 +8128,7 @@
 
       const maxS = getItemMaxStack(pocketCraftResultItem);
       if (!cursorItem) {
-        cursorItem = { ...pocketCraftResultItem };
+        cursorItem = rollWeaponInstance({ ...pocketCraftResultItem });
       } else if (cursorItem.id === pocketCraftResultItem.id && cursorItem.name === pocketCraftResultItem.name && cursorItem.quantity + pocketCraftResultItem.quantity <= maxS) {
         cursorItem.quantity += pocketCraftResultItem.quantity;
       } else {
@@ -8055,7 +8161,7 @@
 
       const maxS = getItemMaxStack(workstationCraftResultItem);
       if (!cursorItem) {
-        cursorItem = { ...workstationCraftResultItem };
+        cursorItem = rollWeaponInstance({ ...workstationCraftResultItem });
       } else if (cursorItem.id === workstationCraftResultItem.id && cursorItem.name === workstationCraftResultItem.name && cursorItem.quantity + workstationCraftResultItem.quantity <= maxS) {
         cursorItem.quantity += workstationCraftResultItem.quantity;
       } else {
@@ -8169,6 +8275,7 @@
 
     // Render thanh Hotbar ngoài màn hình (0 đến 8)
     function renderHotbar() {
+      if (typeof recalculatePlayerArmorAndStats === "function" && !window._inRecalc) { window._inRecalc = true; try { recalculatePlayerArmorAndStats(); } finally { window._inRecalc = false; } }
       if (!hotbarUI) return;
       initInventoryDOM();
       for (let i = 0; i < 9; i++) {
@@ -9435,7 +9542,7 @@
         const isSuccess = Math.random() <= currentForgeRate;
 
         if (isSuccess) {
-          const product = { ...forgeResultItem };
+          const product = rollWeaponInstance({ ...forgeResultItem });
 
           // Tiêu hao cả 2 món vũ khí cũ
           forgeInventory[0] = null;
@@ -13534,7 +13641,8 @@
           pendingQuickBowShot = false;
 
           // Dưới 0.5s = 5 dmg; Từ 0.5s đến 1.5s = 10 dmg
-          const dmg = (chargeTime >= BOW_MIN_CHARGE) ? 24 : 12;
+          const bowBase = (activeItem && typeof activeItem.damage === "number") ? activeItem.damage : 24;
+          const dmg = (chargeTime >= BOW_MIN_CHARGE) ? bowBase : Math.max(8, Math.round(bowBase * 0.5));
           tryShootBow(activeItem, dmg, shotAngle);
         } else {
           pendingQuickBowShot = false;
@@ -15621,315 +15729,150 @@
 
     function renderPlayerHUD() {
       const mobile = isMobileMode();
-      const barX = mobile ? 12 : 16;
-      const barY = mobile ? 8 : 16;
-      const barWidth = mobile ? 126 : 176;
-      const barHeight = mobile ? 16 : 20;
+      const padX = mobile ? 10 : 14;
+      const padY = mobile ? 8 : 12;
+      const panelW = mobile ? 164 : 232;
+      const barW = panelW - 18;
+      const barX = padX + 9;
+      const hpBarH = mobile ? 18 : 22;
+      const armorBarH = mobile ? 14 : 18;
+      const hpBarY = padY + 9;
+      const armorBarY = hpBarY + hpBarH + 6;
+      const statsY = armorBarY + armorBarH + 7;
+      const statH = mobile ? 20 : 24;
+      const panelH = (statsY + statH + 8) - padY;
 
-      // --- 1. THANH MÁU (HP BAR) ---
+      // Khung thẻ thông tin nhân vật gọn đẹp, nền tối sang trọng
       drawRoundedBox(
         ctx,
-        barX - 2,
-        barY - 2,
-        barWidth + 4,
-        barHeight + 4,
-        mobile ? 5 : 7,
-        "rgba(11, 15, 23, 0.92)",
-        "rgba(70, 87, 117, 0.85)",
+        padX,
+        padY,
+        panelW,
+        panelH,
+        10,
+        "rgba(10, 15, 26, 0.88)",
+        "rgba(148, 163, 184, 0.28)",
         1.2
       );
 
-      ctx.fillStyle = "rgba(18, 24, 36, 0.92)";
-      ctx.fillRect(barX, barY, barWidth, barHeight);
-
-      // Thanh đệm vàng tụt chậm (Lerp Tween)
+      // --- 1. THANH MÁU (HP BAR - LỚN, RÕ RÀNG) ---
+      drawRoundedBox(ctx, barX, hpBarY, barW, hpBarH, 5, "rgba(18, 24, 38, 0.95)", "rgba(239, 68, 68, 0.45)", 1);
       const safeMaxHp = Math.max(1, player.maxHp);
       const ghostPct = Math.max(0, Math.min(1, player.displayHp / safeMaxHp));
       if (ghostPct > 0) {
         ctx.fillStyle = "#f59e0b";
-        ctx.fillRect(barX, barY, barWidth * ghostPct, barHeight);
+        ctx.fillRect(barX + 1, hpBarY + 1, (barW - 2) * ghostPct, hpBarH - 2);
       }
-
-      // Thanh máu đỏ thật + highlight cạnh trên
       const hpPct = Math.max(0, Math.min(1, player.hp / safeMaxHp));
       if (hpPct > 0) {
-        const hpFillW = barWidth * hpPct;
-        const hpGrad = ctx.createLinearGradient(barX, barY, barX, barY + barHeight);
-        hpGrad.addColorStop(0, hpPct <= 0.25 ? "#f87171" : "#ef4444");
-        hpGrad.addColorStop(1, hpPct <= 0.25 ? "#991b1b" : "#b91c1c");
+        const hpGrad = ctx.createLinearGradient(barX, hpBarY, barX, hpBarY + hpBarH);
+        hpGrad.addColorStop(0, "#f87171");
+        hpGrad.addColorStop(1, "#dc2626");
         ctx.fillStyle = hpGrad;
-        ctx.fillRect(barX, barY, hpFillW, barHeight);
-
-        ctx.fillStyle = "rgba(255, 255, 255, 0.22)";
-        ctx.fillRect(barX, barY, hpFillW, 2);
+        ctx.fillRect(barX + 1, hpBarY + 1, (barW - 2) * hpPct, hpBarH - 2);
       }
-
-      // Vạch chia 25% tinh tế
-      ctx.fillStyle = "rgba(11, 15, 23, 0.42)";
-      for (let q = 1; q < 4; q++) {
-        ctx.fillRect(Math.round(barX + (barWidth * q) / 4), barY, 1, barHeight);
-      }
-
-      drawHudHeartIcon(barX + (mobile ? 9 : 11), barY + barHeight / 2, mobile ? 9 : 11);
-
+      drawHudHeartIcon(barX + 12, hpBarY + hpBarH / 2, mobile ? 10 : 12);
       ctx.save();
-      ctx.font = mobile ? "700 10px 'Chakra Petch', monospace" : "700 11.5px 'Chakra Petch', monospace";
+      ctx.font = mobile ? "700 11px 'Segoe UI', system-ui, sans-serif" : "700 13px 'Segoe UI', system-ui, sans-serif";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = "#f8fafc";
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
-      ctx.lineWidth = 2.4;
-      const hpText = `HP ${Math.round(player.hp)} / ${player.maxHp}`;
-      const hpTextX = barX + (mobile ? 18 : 22);
-      const hpTextY = barY + barHeight / 2 + 0.5;
-      ctx.strokeText(hpText, hpTextX, hpTextY);
-      ctx.fillText(hpText, hpTextX, hpTextY);
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "rgba(0,0,0,0.85)";
+      ctx.shadowBlur = 3;
+      ctx.fillText(`${Math.round(player.hp)} / ${player.maxHp}`, barX + 24, hpBarY + hpBarH / 2 + 0.5);
       ctx.restore();
 
-      // --- 2. THANH GIÁP (ARMOR BAR) ---
-      if (playerMaxArmor > 0) {
-        const armorBarY = barY + barHeight + 5;
-        const armorBarHeight = mobile ? 12 : 14;
-        const armorBarX = barX;
-
-        const isBroken = playerArmor <= 0;
-        drawRoundedBox(
-          ctx,
-          armorBarX - 2,
-          armorBarY - 2,
-          barWidth + 4,
-          armorBarHeight + 4,
-          mobile ? 4 : 5,
-          "rgba(11, 15, 23, 0.90)",
-          isBroken ? "rgba(70, 87, 117, 0.6)" : "rgba(56, 189, 248, 0.55)",
-          1
-        );
-
-        ctx.fillStyle = "rgba(18, 24, 36, 0.92)";
-        ctx.fillRect(armorBarX, armorBarY, barWidth, armorBarHeight);
-
-        const ghostArmorPct = Math.max(0, Math.min(1, playerDisplayArmor / playerMaxArmor));
-        if (ghostArmorPct > 0) {
-          ctx.fillStyle = "#94a3b8";
-          ctx.fillRect(armorBarX, armorBarY, barWidth * ghostArmorPct, armorBarHeight);
-        }
-
-        const armorPct = Math.max(0, Math.min(1, playerArmor / playerMaxArmor));
-        if (armorPct > 0) {
-          const armorFillW = barWidth * armorPct;
-          const armorGrad = ctx.createLinearGradient(armorBarX, armorBarY, armorBarX, armorBarY + armorBarHeight);
-          armorGrad.addColorStop(0, "#38bdf8");
-          armorGrad.addColorStop(1, "#0369a1");
-          ctx.fillStyle = armorGrad;
-          ctx.fillRect(armorBarX, armorBarY, armorFillW, armorBarHeight);
-
-          ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
-          ctx.fillRect(armorBarX, armorBarY, armorFillW, 2);
-        }
-
-        ctx.fillStyle = "rgba(11, 15, 23, 0.42)";
-        for (let q = 1; q < 4; q++) {
-          ctx.fillRect(Math.round(armorBarX + (barWidth * q) / 4), armorBarY, 1, armorBarHeight);
-        }
-
-        drawHudShieldIcon(armorBarX + (mobile ? 8 : 10), armorBarY + armorBarHeight / 2, mobile ? 8 : 9.5);
-
-        ctx.save();
-        ctx.font = mobile ? "700 8.5px 'Chakra Petch', monospace" : "700 10px 'Chakra Petch', monospace";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = isBroken ? "#94a3b8" : "#e0f2fe";
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
-        ctx.lineWidth = 2.1;
-        const armorText = `${Math.round(playerArmor)} / ${playerMaxArmor}`;
-        const armorTextX = armorBarX + (mobile ? 16 : 20);
-        const armorTextY = armorBarY + armorBarHeight / 2 + 0.5;
-        ctx.strokeText(armorText, armorTextX, armorTextY);
-        ctx.fillText(armorText, armorTextX, armorTextY);
-        ctx.restore();
+      // --- 2. THANH GIÁP (ARMOR BAR - MẶC ĐỊNH 50 GIÁP) ---
+      const maxArm = Math.max(1, playerMaxArmor);
+      drawRoundedBox(ctx, barX, armorBarY, barW, armorBarH, 5, "rgba(18, 24, 38, 0.95)", "rgba(56, 189, 248, 0.45)", 1);
+      const ghostArmPct = Math.max(0, Math.min(1, playerDisplayArmor / maxArm));
+      if (ghostArmPct > 0) {
+        ctx.fillStyle = "#64748b";
+        ctx.fillRect(barX + 1, armorBarY + 1, (barW - 2) * ghostArmPct, armorBarH - 2);
       }
+      const armPct = Math.max(0, Math.min(1, playerArmor / maxArm));
+      if (armPct > 0) {
+        const armGrad = ctx.createLinearGradient(barX, armorBarY, barX, armorBarY + armorBarH);
+        armGrad.addColorStop(0, "#38bdf8");
+        armGrad.addColorStop(1, "#0284c7");
+        ctx.fillStyle = armGrad;
+        ctx.fillRect(barX + 1, armorBarY + 1, (barW - 2) * armPct, armorBarH - 2);
+      }
+      drawHudShieldIcon(barX + 12, armorBarY + armorBarH / 2, mobile ? 9 : 11);
+      ctx.save();
+      ctx.font = mobile ? "700 10.5px 'Segoe UI', system-ui, sans-serif" : "700 12px 'Segoe UI', system-ui, sans-serif";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#f0f9ff";
+      ctx.shadowColor = "rgba(0,0,0,0.85)";
+      ctx.shadowBlur = 3;
+      ctx.fillText(`${Math.round(playerArmor)} / ${playerMaxArmor}`, barX + 24, armorBarY + armorBarH / 2 + 0.5);
+      ctx.restore();
 
-      // --- HIỂN THỊ SÁT THƯƠNG HIỆN TẠI & TỐC CHẠY NGAY DƯỚI THANH GIÁP ---
-      const statsPillY = barY + barHeight + (playerMaxArmor > 0 ? (mobile ? 21 : 24) : 6);
+      // --- 3. HAI Ô SÁT THƯƠNG & TỐC CHẠY RÕ NÉT ---
       const curHeld = playerInventory[activeHotbarIndex];
       const curHeldData = curHeld ? (getItemData(curHeld) || curHeld) : null;
       const baseDmgNow = defaultStats.player.attackDamage || 10;
       let liveDmg = baseDmgNow;
-      if (curHeldData) {
-        if (curHeldData.id === "hunting_bow") liveDmg = 24;
-        else if (curHeldData.id === "magic_wand") {
+      if (curHeld) {
+        if (curHeld.id === "hunting_bow") liveDmg = (typeof curHeld.damage === "number") ? curHeld.damage : 24;
+        else if (curHeld.id === "magic_wand") {
+          const wdmg = (typeof curHeld.damage === "number") ? curHeld.damage : (curHeldData?.damage || 5);
           const gemB = getWandGemBonuses({ id: "magic_wand", wandData: ensureWandData({ id: "magic_wand", wandData: curHeld.wandData }) });
-          liveDmg = baseDmgNow + (curHeldData.damage || 5) + (gemB.damageBonus || 0);
-        } else if (curHeldData.damage) {
+          liveDmg = baseDmgNow + wdmg + (gemB.damageBonus || 0);
+        } else if (typeof curHeld.damage === "number") {
+          liveDmg = baseDmgNow + curHeld.damage;
+        } else if (curHeldData && curHeldData.damage) {
           liveDmg = baseDmgNow + curHeldData.damage;
         }
       }
       const liveSpeed = Math.round((player.speed || 65) * ((typeof playerHunger !== 'undefined' && playerHunger <= 0) ? 0.65 : 1.0));
-      const statBadgeTxt = `⚔️ DMG: ${liveDmg}   👟 TỐC: ${liveSpeed}`;
+
+      const halfW = (barW - 6) / 2;
+      drawRoundedBox(ctx, barX, statsY, halfW, statH, 5, "rgba(239, 68, 68, 0.14)", "rgba(248, 113, 113, 0.35)", 1);
+      drawRoundedBox(ctx, barX + halfW + 6, statsY, halfW, statH, 5, "rgba(34, 197, 94, 0.14)", "rgba(74, 222, 128, 0.35)", 1);
+
       ctx.save();
-      ctx.font = mobile ? "700 9px 'Chakra Petch', monospace" : "700 10.5px 'Chakra Petch', monospace";
-      const pillW = ctx.measureText(statBadgeTxt).width + 14;
-      const pillH = mobile ? 16 : 18;
-      drawRoundedBox(ctx, barX - 2, statsPillY, pillW, pillH, 4, "rgba(11, 15, 23, 0.90)", "rgba(148, 163, 184, 0.35)", 1);
-      ctx.fillStyle = "#fde68a";
+      ctx.font = mobile ? "700 10.5px 'Segoe UI', system-ui, sans-serif" : "700 12px 'Segoe UI', system-ui, sans-serif";
       ctx.textBaseline = "middle";
-      ctx.fillText(statBadgeTxt, barX + 5, statsPillY + pillH / 2 + 0.5);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fecaca";
+      ctx.fillText(`⚔️ ${liveDmg} DMG`, barX + halfW / 2, statsY + statH / 2 + 0.5);
+      ctx.fillStyle = "#bbf7d0";
+      ctx.fillText(`👟 ${liveSpeed} TỐC`, barX + halfW + 6 + halfW / 2, statsY + statH / 2 + 0.5);
       ctx.restore();
 
-      // Trên điện thoại: hiển thị nhãn khu vực gọn bên cạnh thanh HP
-      if (mobile) {
-        const mapLabel = currentMap === "lake" ? "HỒ" : (currentMap === "forest" ? "RỪNG" : "NHÀ");
-        const badgeX = barX + barWidth + 8;
+      // --- 4. THANH ĐÓI KIỂU MINECRAFT (10 ĐÙI GÀ NẰM DƯỚI KHUNG CHỈ SỐ) ---
+      const hungerY = padY + panelH + 6;
+      const iconStep = mobile ? 15 : 19;
+      for (let i = 0; i < 10; i++) {
+        const ix = barX + i * iconStep;
+        const thresholdFull = (i + 1) * 2;
+        const thresholdHalf = i * 2 + 1;
         ctx.save();
-        ctx.font = "700 10px 'Chakra Petch', monospace";
-        const tw = ctx.measureText(mapLabel).width;
-        const bw = tw + 12;
-        const borderCol = currentMap === "forest" ? "rgba(74, 222, 128, 0.5)" : (currentMap === "lake" ? "rgba(56, 189, 248, 0.5)" : "rgba(245, 158, 11, 0.5)");
-        const textCol = currentMap === "forest" ? "#86efac" : (currentMap === "lake" ? "#7dd3fc" : "#fde68a");
-        drawRoundedBox(ctx, badgeX, barY - 2, bw, barHeight + 4, 5, "rgba(11, 15, 23, 0.92)", borderCol, 1.1);
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = textCol;
-        ctx.fillText(mapLabel, badgeX + 6, barY + barHeight / 2 + 0.5);
+        ctx.font = mobile ? "13px sans-serif" : "15px sans-serif";
+        ctx.textBaseline = "top";
+        ctx.shadowColor = "rgba(0,0,0,0.9)";
+        ctx.shadowBlur = 2;
+        ctx.globalAlpha = (playerHunger >= thresholdFull) ? 1.0 : (playerHunger >= thresholdHalf ? 0.6 : 0.22);
+        ctx.fillText("🍖", ix, hungerY);
         ctx.restore();
       }
     }
 
     function renderInventoryHUD() {
-      const mobile = isMobileMode();
-      if (mobile) {
-        const hudText = `Gỗ ${inventory.wood}  ·  Đá ${inventory.stone}  ·  Thịt ${inventory.meat}`;
-        ctx.save();
-        ctx.font = "700 10.5px 'Chakra Petch', monospace";
-        const textWidth = ctx.measureText(hudText).width;
-        const paddingX = 9;
-        const boxWidth = textWidth + paddingX * 2;
-        const boxHeight = 24;
-        const narrow = canvas.width < 520;
-        const boxX = narrow ? 12 : Math.max(198, canvas.width - boxWidth - 150);
-        const boxY = narrow ? (playerMaxArmor > 0 ? 48 : 32) : 8;
-
-        drawRoundedBox(ctx, boxX, boxY, boxWidth, boxHeight, 5, "rgba(11, 15, 23, 0.9)", "rgba(70, 87, 117, 0.8)", 1);
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = "#e2e8f0";
-        ctx.fillText(hudText, boxX + paddingX, boxY + boxHeight / 2 + 0.5);
-        ctx.restore();
-        return;
-      }
-
-      const segments = [
-        { label: "Gỗ", val: inventory.wood, dot: "#d97706" },
-        { label: "Đá", val: inventory.stone, dot: "#94a3b8" },
-        { label: "Thịt", val: inventory.meat, dot: "#f87171" }
-      ];
-
+      // Đã xóa thanh đếm Gỗ/Đá/Thịt cũ; chỉ hiển thị Xu Vàng gọn gàng ở góc trên phải
+      const goldText = `🪙 ${playerGold} Xu`;
       ctx.save();
-      ctx.font = "700 12.5px 'Chakra Petch', monospace";
-      let contentW = 0;
-      const segMetrics = segments.map((s) => {
-        const txt = `${s.label} ${s.val}`;
-        const w = ctx.measureText(txt).width;
-        contentW += w + 11;
-        return { ...s, txt, w };
-      });
-      contentW += (segments.length - 1) * 14;
-
-      const paddingX = 13;
-      const boxWidth = Math.ceil(contentW + paddingX * 2);
-      const boxHeight = 34;
-      const boxX = Math.max(334, canvas.width - boxWidth - 122);
-      const boxY = 16;
-
-      drawRoundedBox(ctx, boxX, boxY, boxWidth, boxHeight, 8, "rgba(14, 19, 29, 0.92)", "rgba(70, 87, 117, 0.9)", 1.3);
-
-      let cursorX = boxX + paddingX;
-      const midY = boxY + boxHeight / 2 + 0.5;
+      ctx.font = "700 12.5px 'Segoe UI', system-ui, sans-serif";
+      const tw = ctx.measureText(goldText).width;
+      const bw = tw + 20;
+      const bh = 28;
+      const bx = Math.max(12, canvas.width - bw - 144);
+      const by = isMobileMode() ? 8 : 14;
+      drawRoundedBox(ctx, bx, by, bw, bh, 8, "rgba(10, 15, 26, 0.88)", "rgba(234, 179, 8, 0.48)", 1.2);
+      ctx.fillStyle = "#fde047";
       ctx.textBaseline = "middle";
-
-      segMetrics.forEach((seg, idx) => {
-        ctx.fillStyle = seg.dot;
-        ctx.beginPath();
-        ctx.arc(cursorX + 3, midY - 0.5, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "#e2e8f0";
-        ctx.fillText(seg.txt, cursorX + 10, midY);
-        cursorX += 10 + seg.w;
-
-        if (idx < segMetrics.length - 1) {
-          ctx.fillStyle = "rgba(148, 163, 184, 0.35)";
-          ctx.fillRect(cursorX + 7, boxY + 9, 1, boxHeight - 18);
-          cursorX += 15;
-        }
-      });
+      ctx.fillText(goldText, bx + 10, by + bh / 2 + 0.5);
       ctx.restore();
-    }
-
-    // -------------------------------------------------------------
-    // MINI-MAP OVERLAY (CẬP NHẬT THỜI GIAN THỰC Ở GÓC PHẢI TRÊN)
-    // -------------------------------------------------------------
-    const minimapTerrainCache = { home: null, forest: null, lake: null };
-    let lastMinimapTitle = "";
-    let lastMinimapCoords = "";
-
-    function getMinimapTerrainCache(mapId) {
-      if (minimapTerrainCache[mapId]) return minimapTerrainCache[mapId];
-      const mapData = mapId === "lake" ? lakeMapData : (mapId === "forest" ? forestMapData : homeMapData);
-      if (!mapData || !mapData.layerInstances) return null;
-
-      const size = 128;
-      const offscreen = document.createElement("canvas");
-      offscreen.width = size;
-      offscreen.height = size;
-      const octx = offscreen.getContext("2d");
-      const scale = size / MAP_SIZE;
-
-      octx.fillStyle = mapId === "lake"
-        ? "rgba(14, 116, 144, 0.42)"
-        : (mapId === "forest" ? "rgba(20, 83, 45, 0.55)" : "rgba(22, 101, 52, 0.48)");
-      octx.fillRect(0, 0, size, size);
-
-      const renderLayers = mapData.layerInstances.slice().reverse();
-      renderLayers.forEach((layer) => {
-        const id = (layer.__identifier || "").toLowerCase();
-        let fillColor = null;
-        if (id.includes("water")) fillColor = "rgba(14, 165, 233, 0.72)";
-        else if (id.includes("fence")) fillColor = "rgba(180, 83, 9, 0.85)";
-        else if (id.includes("rock")) fillColor = "rgba(100, 116, 139, 0.78)";
-        else if (id.includes("plain")) fillColor = "rgba(74, 222, 128, 0.3)";
-        else if (id.includes("jungle") || id.includes("ground")) fillColor = "rgba(34, 197, 94, 0.25)";
-        if (!fillColor) return;
-
-        octx.fillStyle = fillColor;
-        const gridSize = layer.__gridSize || TILE_SIZE;
-        const tileDrawSize = Math.max(1, Math.ceil(gridSize * scale));
-
-        if (layer.autoLayerTiles && layer.autoLayerTiles.length > 0) {
-          for (let i = 0; i < layer.autoLayerTiles.length; i++) {
-            const tile = layer.autoLayerTiles[i];
-            octx.fillRect(
-              Math.floor(tile.px[0] * scale),
-              Math.floor(tile.px[1] * scale),
-              tileDrawSize,
-              tileDrawSize
-            );
-          }
-        } else if (layer.intGridCsv && layer.intGridCsv.length > 0) {
-          const cWid = layer.__cWid || mapData.widthInTiles;
-          for (let i = 0; i < layer.intGridCsv.length; i++) {
-            if (layer.intGridCsv[i] > 0) {
-              const col = i % cWid;
-              const row = Math.floor(i / cWid);
-              octx.fillRect(
-                Math.floor(col * gridSize * scale),
-                Math.floor(row * gridSize * scale),
-                tileDrawSize,
-                tileDrawSize
-              );
-            }
-          }
-        }
-      });
-
-      minimapTerrainCache[mapId] = offscreen;
-      return offscreen;
     }
 
     function renderMinimap() {

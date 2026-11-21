@@ -3160,3 +3160,7 @@ body.chest-and-inv-open:not(.is-mobile-ui) #inventory-ui .slot {
     transform: translate(-50%, -50%);
   }
 }
+/* Ẩn nút Túi Đồ trên PC */
+body:not(.is-mobile-ui) #btnInventoryBtn {
+  display: none !important;
+}
