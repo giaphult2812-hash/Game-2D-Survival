@@ -15747,6 +15747,33 @@
         ctx.restore();
       }
 
+      // --- HIỂN THỊ SÁT THƯƠNG HIỆN TẠI & TỐC CHẠY NGAY DƯỚI THANH GIÁP ---
+      const statsPillY = barY + barHeight + (playerMaxArmor > 0 ? (mobile ? 21 : 24) : 6);
+      const curHeld = playerInventory[activeHotbarIndex];
+      const curHeldData = curHeld ? (getItemData(curHeld) || curHeld) : null;
+      const baseDmgNow = defaultStats.player.attackDamage || 10;
+      let liveDmg = baseDmgNow;
+      if (curHeldData) {
+        if (curHeldData.id === "hunting_bow") liveDmg = 24;
+        else if (curHeldData.id === "magic_wand") {
+          const gemB = getWandGemBonuses({ id: "magic_wand", wandData: ensureWandData({ id: "magic_wand", wandData: curHeld.wandData }) });
+          liveDmg = baseDmgNow + (curHeldData.damage || 5) + (gemB.damageBonus || 0);
+        } else if (curHeldData.damage) {
+          liveDmg = baseDmgNow + curHeldData.damage;
+        }
+      }
+      const liveSpeed = Math.round((player.speed || 65) * ((typeof playerHunger !== 'undefined' && playerHunger <= 0) ? 0.65 : 1.0));
+      const statBadgeTxt = `⚔️ DMG: ${liveDmg}   👟 TỐC: ${liveSpeed}`;
+      ctx.save();
+      ctx.font = mobile ? "700 9px 'Chakra Petch', monospace" : "700 10.5px 'Chakra Petch', monospace";
+      const pillW = ctx.measureText(statBadgeTxt).width + 14;
+      const pillH = mobile ? 16 : 18;
+      drawRoundedBox(ctx, barX - 2, statsPillY, pillW, pillH, 4, "rgba(11, 15, 23, 0.90)", "rgba(148, 163, 184, 0.35)", 1);
+      ctx.fillStyle = "#fde68a";
+      ctx.textBaseline = "middle";
+      ctx.fillText(statBadgeTxt, barX + 5, statsPillY + pillH / 2 + 0.5);
+      ctx.restore();
+
       // Trên điện thoại: hiển thị nhãn khu vực gọn bên cạnh thanh HP
       if (mobile) {
         const mapLabel = currentMap === "lake" ? "HỒ" : (currentMap === "forest" ? "RỪNG" : "NHÀ");
