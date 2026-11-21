@@ -8271,7 +8271,7 @@
 
     // Render thanh Hotbar ngoài màn hình (0 đến 8)
     function renderHotbar() {
-      if (typeof recalculatePlayerArmorAndStats === "function" && !window._inRecalc) { window._inRecalc = true; try { recalculatePlayerArmorAndStats(); } finally { window._inRecalc = false; } }
+      try { if (typeof player !== "undefined" && player && typeof recalculatePlayerArmorAndStats === "function" && !window._inRecalc) { window._inRecalc = true; try { recalculatePlayerArmorAndStats(); } finally { window._inRecalc = false; } } } catch (_e) {}
       if (!hotbarUI) return;
       initInventoryDOM();
       for (let i = 0; i < 9; i++) {
