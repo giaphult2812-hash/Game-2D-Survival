@@ -410,10 +410,12 @@
   // ------------------------------------------------------------
   // TOP HUD INFO & PORTRAIT DISMISS
   // ------------------------------------------------------------
-  if (btnMobileHudInfo && hudEl) {
+  if (btnMobileHudInfo) {
     btnMobileHudInfo.addEventListener("click", () => {
-      const open = hudEl.classList.toggle("mobile-hud-open");
-      btnMobileHudInfo.classList.toggle("active", open);
+      if (typeof window.togglePlayerInfoUI === "function") {
+        const isOpen = window.togglePlayerInfoUI();
+        btnMobileHudInfo.classList.toggle("active", Boolean(isOpen));
+      }
     });
   }
 
