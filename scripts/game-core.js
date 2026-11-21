@@ -427,23 +427,24 @@
     // 1. BỘ CHỈ SỐ MẶC ĐỊNH CHO TỪNG SINH VẬT
     const defaultStats = {
       player: {
-        maxHp: 50,           // Máu mặc định: 50
-        speed: 60,           // Tốc chạy mặc định: 60 px/s
-        attackDamage: 2,     // Sức mạnh đánh tay không: 2 DMG
-        attackAnimSpeed: 0.08, // Tốc độ chạy frame hoạt ảnh chém: 80ms
-        attackCooldown: 1.0  // Thời gian hồi chiêu giữa mỗi đòn chém: mặc định 1.0s
+        maxHp: 150,          // Máu mặc định: 150 HP (3 chữ số)
+        baseArmor: 50,       // Giáp mặc định: 50 Giáp
+        speed: 65,           // Tốc chạy mặc định: 65 px/s (2 chữ số)
+        attackDamage: 10,    // Sức mạnh đánh tay không: 10 DMG (2 chữ số)
+        attackAnimSpeed: 0.08,
+        attackCooldown: 1.0
       },
       boar: {
-        maxHp: 28,           // Máu mặc định: 28 HP (cân bằng theo từng bậc vũ khí)
-        speed: 40,           // Tốc độ chung: 40 px/s
-        attackDamage: 8,     // Sức mạnh húc: 8 DMG
-        attackInterval: 1.2  // Thời gian hồi chiêu húc: 1.2s
+        maxHp: 60,           // Máu mặc định: 60 HP
+        speed: 42,
+        attackDamage: 18,    // Sức mạnh húc: 18 DMG (cân bằng với 150 HP + 50 Giáp)
+        attackInterval: 1.2
       },
       chicken: {
-        maxHp: 10,           // Máu mặc định: 10 HP
-        speed: 32,           // Đi dạo chậm rãi
-        fleeSpeed: 65,       // Chạy trốn hoảng loạn
-        attackDamage: 0      // Gà không tấn công
+        maxHp: 25,           // Máu mặc định: 25 HP
+        speed: 34,
+        fleeSpeed: 68,
+        attackDamage: 0
       }
     };
 
@@ -3699,9 +3700,10 @@
     const playerEquipment = new Array(4).fill(null); // 0: Nón, 1: Áo, 2: Quần, 3: Giày
 
     // Chỉ số Giáp và Máu hiện tại
-    let playerArmor = 0;
-    let playerMaxArmor = 0;
-    let playerDisplayArmor = 0;
+    const BASE_PLAYER_ARMOR = 50;
+    let playerArmor = BASE_PLAYER_ARMOR;
+    let playerMaxArmor = BASE_PLAYER_ARMOR;
+    let playerDisplayArmor = BASE_PLAYER_ARMOR;
     let playerOutOfCombatTimer = 0;
 
     
@@ -4482,7 +4484,7 @@
         color: "#a855f7",
         glow: "#f0abfc",
         cooldown: 4.5,
-        damage: 6,
+        damage: 22,
         hasSettings: true,
         desc: "Tạo trường trọng lực kéo tụ và ép bẹp quái vật trong vùng chỉ định.",
         icon: "assets/items/skills/spell_gravity.png"
@@ -4495,7 +4497,7 @@
         color: "#22c55e",
         glow: "#86efac",
         cooldown: 5.5,
-        damage: 5,
+        damage: 18,
         hasSettings: true,
         desc: "Triệu hồi rễ cây cổ thụ trói chặt mục tiêu và tỏa phấn hoa gây ngủ.",
         icon: "assets/items/skills/spell_wood.png"
@@ -4508,7 +4510,7 @@
         color: "#38bdf8",
         glow: "#bae6fd",
         cooldown: 9.0,
-        damage: 10,
+        damage: 35,
         hasSettings: true,
         desc: "Ngưng đọng thời gian toàn vùng, tích tụ đòn đánh và kích nổ khi hết hiệu lực.",
         icon: "assets/items/skills/spell_timestop.png"
@@ -4650,7 +4652,7 @@
         rarity: "epic",
         maxStack: 1,
         value: 85,
-        damage: 4,
+        damage: 5,
         durability: 200,
         maxDurability: 200,
         perks: [
@@ -4668,7 +4670,7 @@
         rarity: "legendary",
         maxStack: 1,
         value: 140,
-        damage: 6,
+        damage: 22,
         perks: [
           "✦ Khảm vào ô Chiêu Thức [Z / X / C] của Đũa Phép",
           "✦ Kéo tụ, ép bẹp và làm choáng quái vật trong vùng"
@@ -4684,7 +4686,7 @@
         rarity: "legendary",
         maxStack: 1,
         value: 140,
-        damage: 5,
+        damage: 18,
         perks: [
           "✦ Khảm vào ô Chiêu Thức [Z / X / C] của Đũa Phép",
           "✦ Trói chân mục tiêu bằng rễ cây và tỏa phấn gây ngủ"
@@ -4700,7 +4702,7 @@
         rarity: "legendary",
         maxStack: 1,
         value: 160,
-        damage: 10,
+        damage: 35,
         perks: [
           "✦ Khảm vào ô Chiêu Thức [Z / X / C] của Đũa Phép",
           "✦ Đóng băng thời gian toàn vùng và dồn sát thương nổ"
@@ -4952,7 +4954,7 @@
         rarity: "common",
         maxStack: 1,
         value: 5,
-        damage: 4,
+        damage: 8,
         durability: 45,
         maxDurability: 45,
         description: "Kiếm gỗ cơ bản dễ chế tạo cho người mới sinh tồn.",
@@ -4965,7 +4967,7 @@
         rarity: "common",
         maxStack: 1,
         value: 5,
-        damage: 3,
+        damage: 6,
         durability: 50,
         maxDurability: 50,
         woodcuttingSpeed: 1.5,
@@ -4979,7 +4981,7 @@
         rarity: "common",
         maxStack: 1,
         value: 5,
-        damage: 2,
+        damage: 4,
         durability: 40,
         maxDurability: 40,
         miningSpeed: 1.2,
@@ -4993,7 +4995,7 @@
         rarity: "common",
         maxStack: 1,
         value: 5,
-        damage: 2,
+        damage: 4,
         durability: 40,
         maxDurability: 40,
         miningSpeed: 1.2,
@@ -5007,7 +5009,7 @@
         rarity: "uncommon",
         maxStack: 1,
         value: 15,
-        damage: 8,
+        damage: 14,
         durability: 85,
         maxDurability: 85,
         description: "Kiếm đá sắc cạnh, sát thương ổn định hơn kiếm gỗ.",
@@ -5020,7 +5022,7 @@
         rarity: "uncommon",
         maxStack: 1,
         value: 15,
-        damage: 6,
+        damage: 11,
         durability: 90,
         maxDurability: 90,
         woodcuttingSpeed: 2.5,
@@ -5034,7 +5036,7 @@
         rarity: "uncommon",
         maxStack: 1,
         value: 15,
-        damage: 5,
+        damage: 8,
         durability: 90,
         maxDurability: 90,
         miningSpeed: 2.0,
@@ -5048,7 +5050,7 @@
         rarity: "rare",
         maxStack: 1,
         value: 45,
-        damage: 15,
+        damage: 22,
         durability: 160,
         maxDurability: 160,
         description: "Kiếm sắt rèn kỹ, vũ khí cận chiến chủ lực tầm trung.",
@@ -5061,7 +5063,7 @@
         rarity: "rare",
         maxStack: 1,
         value: 45,
-        damage: 12,
+        damage: 17,
         durability: 160,
         maxDurability: 160,
         woodcuttingSpeed: 4.0,
@@ -5075,7 +5077,7 @@
         rarity: "rare",
         maxStack: 1,
         value: 45,
-        damage: 10,
+        damage: 13,
         durability: 160,
         maxDurability: 160,
         miningSpeed: 3.5,
@@ -5089,7 +5091,7 @@
         rarity: "epic",
         maxStack: 1,
         value: 80,
-        damage: 18,
+        damage: 28,
         durability: 95,
         maxDurability: 95,
         description: "Kiếm vàng sắc lẹm với lực chém mạnh mẽ.",
@@ -5102,7 +5104,7 @@
         rarity: "epic",
         maxStack: 1,
         value: 80,
-        damage: 14,
+        damage: 22,
         durability: 95,
         maxDurability: 95,
         woodcuttingSpeed: 5.0,
@@ -5116,7 +5118,7 @@
         rarity: "epic",
         maxStack: 1,
         value: 80,
-        damage: 12,
+        damage: 17,
         durability: 95,
         maxDurability: 95,
         miningSpeed: 4.5,
@@ -5130,7 +5132,7 @@
         rarity: "legendary",
         maxStack: 1,
         value: 200,
-        damage: 26,
+        damage: 40,
         durability: 350,
         maxDurability: 350,
         description: "Thanh kiếm kim cương tối thượng với sát thương hủy diệt.",
@@ -5143,7 +5145,7 @@
         rarity: "legendary",
         maxStack: 1,
         value: 200,
-        damage: 20,
+        damage: 32,
         durability: 350,
         maxDurability: 350,
         woodcuttingSpeed: 6.5,
@@ -5157,7 +5159,7 @@
         rarity: "legendary",
         maxStack: 1,
         value: 200,
-        damage: 18,
+        damage: 25,
         durability: 350,
         maxDurability: 350,
         miningSpeed: 6.0,
@@ -5171,7 +5173,7 @@
         rarity: "uncommon",
         maxStack: 1,
         value: 30,
-        rangedDamage: "5–10 DMG",
+        rangedDamage: "12–24 DMG",
         perks: [
           "✦ Tầm bắn 320px · Giữ phím ≥0.5s bắn 10 DMG (nhanh 5 DMG)",
           "✦ Cần có Mũi Tên trong túi · Giữ >1.5s sẽ gãy tên"
@@ -7171,7 +7173,7 @@
       const prevMaxArmor = playerMaxArmor;
       const prevMaxHp = player.maxHp;
 
-      playerMaxArmor = totalArmor;
+      playerMaxArmor = BASE_PLAYER_ARMOR + totalArmor;
       if (playerMaxArmor <= 0) {
         playerArmor = 0;
       } else if (prevMaxArmor <= 0) {
@@ -7213,7 +7215,7 @@
 
       // Cập nhật nhãn điểm giáp trong UI
       const badge = document.getElementById("equipArmorBadge");
-      if (badge) badge.textContent = "+" + playerMaxArmor + " Giáp";
+      if (badge) badge.textContent = playerMaxArmor + " Giáp";
 
       renderEquipmentSlots();
       renderPaperdoll();
@@ -13532,7 +13534,7 @@
           pendingQuickBowShot = false;
 
           // Dưới 0.5s = 5 dmg; Từ 0.5s đến 1.5s = 10 dmg
-          const dmg = (chargeTime >= BOW_MIN_CHARGE) ? 10 : 5;
+          const dmg = (chargeTime >= BOW_MIN_CHARGE) ? 24 : 12;
           tryShootBow(activeItem, dmg, shotAngle);
         } else {
           pendingQuickBowShot = false;
