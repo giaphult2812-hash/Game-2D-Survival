@@ -16305,3 +16305,7 @@
       ]);
       requestAnimationFrame(gameLoop);
     });
+
+    // Khởi tạo hồ sơ người chơi & tự động lưu mỗi 15 giây
+    initPlayerProfileAndSave();
+    setInterval(savePlayerToStorage, 15000);
