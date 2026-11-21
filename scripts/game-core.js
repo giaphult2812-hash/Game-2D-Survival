@@ -13675,6 +13675,17 @@
       const pCenterX = player.x + player.width / 2;
       const pCenterY = player.y + player.height / 2;
 
+          function canInventoryFitItem(item) {
+      if (!item) return false;
+      const maxS = (typeof getItemMaxStack === "function") ? getItemMaxStack(item) : 64;
+      for (let i = 0; i < playerInventory.length; i++) {
+        const s = playerInventory[i];
+        if (!s) return true;
+        if (s.id === item.id && s.name === item.name && s.quantity < maxS) return true;
+      }
+      return false;
+    }
+
       for (let gi = droppedItems.length - 1; gi >= 0; gi--) {
         const gItem = droppedItems[gi];
         gItem.bobTimer = (gItem.bobTimer || 0) + deltaTime * 4;
@@ -13696,7 +13707,7 @@
 
         // Tự động hút và nhặt vào túi đồ khi người chơi tiến gần trong bán kính 22px
         const distToPlayer = Math.hypot(pCenterX - (gItem.x + 4), pCenterY - (gItem.y + 4));
-        if (gItem.pickupCooldown <= 0 && distToPlayer <= 22) {
+        if (gItem.pickupCooldown <= 0 && distToPlayer <= 22 && canInventoryFitItem(gItem.item)) {
           // Nam châm hút nhẹ về phía người chơi
           const pullAngle = Math.atan2(pCenterY - (gItem.y + 4), pCenterX - (gItem.x + 4));
           gItem.x += Math.cos(pullAngle) * 90 * deltaTime;
