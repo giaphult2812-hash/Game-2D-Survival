@@ -4263,9 +4263,7 @@
 
     
 
-    let npcSellPage = 0;
-    let npcBuyPage = 0;
-    const SHOP_PAGE_SIZE = 6;
+    
 
     
 
