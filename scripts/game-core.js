@@ -3794,13 +3794,11 @@
       };
       const cdReducePct = Math.round((1 - (gemB.cooldownMult || 1)) * 100);
 
-      const hungerMult = (playerHunger <= 0) ? 0.65 : 1.0;
+      const hungerMult = 1.0;
       const actualSpeed = Math.round((player.speed || 60) * hungerMult);
       const kbPct = Math.round((player.knockbackResist || 0) * 100);
 
-      const hungerStatus = playerHunger <= 0
-        ? "Đói (-35% tốc, -1 HP/2s)"
-        : (playerHunger >= 14 ? "No đủ (Hồi HP ngoài giao tranh)" : "Bình thường");
+      const hungerStatus = "Bình thường";
 
       const mapName = currentMap === "lake" ? "🏞️ Hồ" : (currentMap === "forest" ? "🌲 Rừng" : "🏠 Nhà");
       const woodSpeed = heldData && heldData.woodcuttingSpeed ? `x${heldData.woodcuttingSpeed}` : "x1.0 (Tay)";
@@ -3822,8 +3820,6 @@
           <div style="font-size:11.5px;font-weight:700;color:#4ade80;margin-bottom:6px;">❤️ SINH TỒN & TÀI SẢN</div>
           ${row("Máu (HP)", `${Math.round(player.hp)} / ${player.maxHp}`, "#fb7185")}
           ${row("Giáp (Hấp thụ 70%)", `${Math.round(playerArmor)} / ${playerMaxArmor}`, "#38bdf8")}
-          ${row("Độ No (Đói)", `${Math.ceil(playerHunger)} / ${PLAYER_MAX_HUNGER}`, "#fbbf24")}
-          ${row("Trạng thái no", hungerStatus, playerHunger <= 0 ? "#ef4444" : "#86efac")}
           ${row("Tài sản", `🪙 ${playerGold} Xu`, "#fde047")}
           ${row("Khu vực", `${mapName} (${Math.round(player.x)}, ${Math.round(player.y)})`, "#cbd5e1")}
         </div>
@@ -15840,22 +15836,6 @@
       ctx.fillText(`👟 ${liveSpeed} TỐC`, barX + halfW + 6 + halfW / 2, statsY + statH / 2 + 0.5);
       ctx.restore();
 
-      // --- 4. THANH ĐÓI KIỂU MINECRAFT (10 ĐÙI GÀ NẰM DƯỚI KHUNG CHỈ SỐ) ---
-      const hungerY = padY + panelH + 6;
-      const iconStep = mobile ? 15 : 19;
-      for (let i = 0; i < 10; i++) {
-        const ix = barX + i * iconStep;
-        const thresholdFull = (i + 1) * 2;
-        const thresholdHalf = i * 2 + 1;
-        ctx.save();
-        ctx.font = mobile ? "13px sans-serif" : "15px sans-serif";
-        ctx.textBaseline = "top";
-        ctx.shadowColor = "rgba(0,0,0,0.9)";
-        ctx.shadowBlur = 2;
-        ctx.globalAlpha = (playerHunger >= thresholdFull) ? 1.0 : (playerHunger >= thresholdHalf ? 0.6 : 0.22);
-        ctx.fillText("🍖", ix, hungerY);
-        ctx.restore();
-      }
     }
 
     function renderInventoryHUD() {
