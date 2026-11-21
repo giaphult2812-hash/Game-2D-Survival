@@ -3815,6 +3815,24 @@
       }
     }
 
+    function updatePlayerAccountBtnLabel() {
+      const lbl = document.getElementById("playerAccountBtnLabel");
+      if (lbl) {
+        lbl.textContent = (currentPlayerProfile && currentPlayerProfile.name)
+          ? currentPlayerProfile.name
+          : "Đăng nhập";
+      }
+    }
+
+    function openPlayerProfileModal() {
+      const modal = document.getElementById("player-profile-modal");
+      const inp = document.getElementById("playerNameInput");
+      if (inp && currentPlayerProfile && currentPlayerProfile.name) {
+        inp.value = currentPlayerProfile.name;
+      }
+      if (modal) modal.style.display = "flex";
+    }
+
     function initPlayerProfileAndSave() {
       initFirebaseIfConfigured();
       try {
@@ -3828,6 +3846,7 @@
           if (modal) modal.style.display = "flex";
         }
       } catch (e) { console.warn("Profile init err:", e); }
+      updatePlayerAccountBtnLabel();
       claimPendingMarketPayouts();
     }
 
@@ -3838,6 +3857,7 @@
       localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(currentPlayerProfile));
       const modal = document.getElementById("player-profile-modal");
       if (modal) modal.style.display = "none";
+      updatePlayerAccountBtnLabel();
       savePlayerToStorage();
       syncPlayerToCloud();
     }
@@ -12269,7 +12289,7 @@
       }
       if (currentMap === "home") {
         const cfBox = { x: HOME_CAMPFIRE.x - 8, y: HOME_CAMPFIRE.y - 6, width: 16, height: 14 };
-        if (checkAABB(playerFeetBox, HOME_MERCHANT)) return true;
+        if (checkAABB(box, HOME_MERCHANT)) return false;
         if (checkAABB(box, cfBox)) return false;
       }
       for (const obj of currentObjects) {
