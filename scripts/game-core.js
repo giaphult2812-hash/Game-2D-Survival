@@ -6176,6 +6176,7 @@
       const angle = Math.random() * Math.PI * 2;
       const speed = Math.random() * 24 + 16;
       droppedItems.push({
+          mapId: currentMap,
         item: { ...itemData, ...(itemData.wandData ? { wandData: cloneWandData(itemData.wandData) } : {}) },
         x: x,
         y: y,
@@ -11817,7 +11818,7 @@
 
       // Sau 2.5s hồi sinh về Nhà đầy máu
       setTimeout(() => {
-        loadMap("home", { x: (MAP_SIZE - TILE_SIZE) / 2, y: (MAP_SIZE - TILE_SIZE) / 2 });
+        loadMap("home", { x: (MAP_SIZE - TILE_SIZE) / 2, y: (MAP_SIZE - TILE_SIZE) / 2 + 20 });
         player.hp = player.maxHp;
         player.displayHp = player.maxHp;
         playerArmor = playerMaxArmor;
@@ -13688,6 +13689,7 @@
 
       for (let gi = droppedItems.length - 1; gi >= 0; gi--) {
         const gItem = droppedItems[gi];
+        if (gItem.mapId && gItem.mapId !== currentMap) continue;
         gItem.bobTimer = (gItem.bobTimer || 0) + deltaTime * 4;
 
         // Ma sát giảm vận tốc văng ban đầu
