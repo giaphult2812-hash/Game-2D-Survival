@@ -4254,15 +4254,7 @@
     // -------------------------------------------------------------
     // BẢNG CHỈ SỐ NHÂN VẬT (PLAYER INFO [I] / MOBILE INFO)
     // -------------------------------------------------------------
-    function togglePlayerInfoUI(forceOpen = null) {
-      const ui = document.getElementById("player-info-ui");
-      if (!ui) return false;
-      const isClosed = ui.style.display === "none" || ui.style.display === "";
-      const willOpen = forceOpen !== null ? forceOpen : isClosed;
-      ui.style.display = willOpen ? "flex" : "none";
-      if (willOpen) renderPlayerInfoUI();
-      return willOpen;
-    }
+    
     window.togglePlayerInfoUI = togglePlayerInfoUI;
 
     function renderPlayerInfoUI() {
