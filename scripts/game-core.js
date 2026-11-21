@@ -3722,7 +3722,61 @@
 
     let currentPlayerProfile = { id: "p_" + Math.random().toString(36).slice(2, 8), name: "Lữ Khách" };
 
+    
+    // -------------------------------------------------------------
+    // BƯỚC 2: KẾT NỐI FIREBASE FIRESTORE (CLOUD SAVE + CHỢ REALTIME)
+    // -------------------------------------------------------------
+    let fbDb = null;
+    let fbMarketUnsub = null;
+
+    function initFirebaseIfConfigured() {
+      try {
+        const cfg = window.FIREBASE_CONFIG;
+        if (!cfg || !cfg.apiKey || cfg.apiKey === "YOUR_API_KEY" || typeof firebase === "undefined") {
+          return false;
+        }
+        if (!firebase.apps.length) firebase.initializeApp(cfg);
+        fbDb = firebase.firestore();
+        console.log("🔥 Firebase Firestore đã kết nối!");
+        return true;
+      } catch (e) {
+        console.warn("Firebase init skipped:", e);
+        return false;
+      }
+    }
+
+    async function syncPlayerToCloud() {
+      if (!fbDb || !currentPlayerProfile || !currentPlayerProfile.id) return;
+      try {
+        await fbDb.collection("players").doc(currentPlayerProfile.id).set(exportPlayerSaveData(), { merge: true });
+      } catch (e) { console.warn("Cloud save err:", e); }
+    }
+
+    function subscribeCloudMarket() {
+      if (!fbDb || fbMarketUnsub) return;
+      // Chỉ lắng nghe tối đa 20 món mới nhất & chỉ bật khi mở Shop để tiết kiệm quota miễn phí
+      fbMarketUnsub = fbDb.collection("market_listings")
+        .where("status", "==", "active")
+        .orderBy("createdAt", "desc")
+        .limit(20)
+        .onSnapshot((snap) => {
+          const cloudList = [];
+          snap.forEach((doc) => cloudList.push({ id: doc.id, ...doc.data() }));
+          marketListings = cloudList;
+          const shopUI = document.getElementById("npc-shop-ui");
+          if (shopUI && shopUI.style.display === "flex") renderNpcShopUI();
+        });
+    }
+
+    function unsubscribeCloudMarket() {
+      if (fbMarketUnsub) {
+        fbMarketUnsub();
+        fbMarketUnsub = null;
+      }
+    }
+
     function initPlayerProfileAndSave() {
+      initFirebaseIfConfigured();
       try {
         const rawProf = localStorage.getItem(STORAGE_PROFILE_KEY);
         if (rawProf) {
@@ -3980,7 +4034,7 @@
       const isClosed = ui.style.display === "none" || ui.style.display === "";
       const willOpen = forceOpen !== null ? forceOpen : isClosed;
       ui.style.display = willOpen ? "flex" : "none";
-      if (willOpen) { marketListings = getSharedMarketListings(); renderNpcShopUI(); }
+      if (willOpen) { if (fbDb) subscribeCloudMarket(); else marketListings = getSharedMarketListings(); renderNpcShopUI(); } else { unsubscribeCloudMarket(); }
     }
 
     function switchShopTab(tab) {
@@ -16309,3 +16363,4 @@
     // Khởi tạo hồ sơ người chơi & tự động lưu mỗi 15 giây
     initPlayerProfileAndSave();
     setInterval(savePlayerToStorage, 15000);
+    setInterval(syncPlayerToCloud, 120000);
