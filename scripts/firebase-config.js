@@ -1,12 +1,12 @@
 // =============================================================
 // CẤU HÌNH FIREBASE (MIỄN PHÍ - SPARK PLAN)
-// Thay thế các giá trị bên dưới bằng firebaseConfig từ Firebase Console của bạn
 // =============================================================
 window.FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBFlBUnLw-jWS1JKOeLb0uZdmyS1NyycYY",
+  authDomain: "svgame-c4f3c.firebaseapp.com",
+  projectId: "svgame-c4f3c",
+  storageBucket: "svgame-c4f3c.firebasestorage.app",
+  messagingSenderId: "37524069415",
+  appId: "1:37524069415:web:827b67fc257d4ae0350202",
+  measurementId: "G-LQL9GMVFSN"
 };
