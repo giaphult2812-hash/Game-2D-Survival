@@ -14487,6 +14487,7 @@
       
       // Vẽ vật phẩm rơi trên mặt đất (Pixel art bồng bềnh nhẹ nhàng - dùng Cache Image để chống lag)
       for (const gi of droppedItems) {
+        if (gi.mapId && gi.mapId !== currentMap) continue;
         const iconSrc = getItemIcon(gi.item);
         const floatY = Math.sin(gi.bobTimer) * 2;
 
@@ -15942,6 +15943,7 @@
       // 3. Vẽ vật phẩm rơi trên đất (nhỏ màu vàng sáng)
       for (let i = 0; i < droppedItems.length; i++) {
         const gi = droppedItems[i];
+        if (gi.mapId && gi.mapId !== currentMap) continue;
         mctx.fillStyle = "#fde047";
         mctx.fillRect(gi.x * scale - 1, gi.y * scale - 1, 2, 2);
       }
