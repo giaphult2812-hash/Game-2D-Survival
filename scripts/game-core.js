@@ -298,7 +298,9 @@
     }
 
     function drawMap(ctx, mapDataToDraw) {
-      const mapName = mapDataToDraw ? "custom" : currentMap;
+      const mapName = mapDataToDraw
+        ? (mapDataToDraw === lakeMapData ? "lake" : (mapDataToDraw === forestMapData ? "forest" : (mapDataToDraw === homeMapData ? "home" : "custom")))
+        : currentMap;
       const activeMap = mapDataToDraw || (currentMap === "lake" ? lakeMapData : (currentMap === "forest" ? forestMapData : homeMapData));
       if (!activeMap) return;
 
