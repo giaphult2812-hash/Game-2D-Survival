@@ -12755,6 +12755,7 @@
       spawnHitSparks(placeX + 8, placeY + 8, -Math.PI / 2);
             showNotification("✨ Đã đặt Bàn Chế Tạo! Đứng gần bấm [E] hoặc [Chuột Phải] để mở.", false);
       updateStatsHUD();
+      if (typeof savePlayerToStorage === "function") savePlayerToStorage(true);
       return true;
     }
 
@@ -12807,6 +12808,7 @@
       spawnHitSparks(placeX + 8, placeY + 8, -Math.PI / 2);
             showNotification("✨ Đã đặt Rương Đồ! Đứng gần bấm [E] hoặc [Chuột Phải] để cất đồ.", false);
       updateStatsHUD();
+      if (typeof savePlayerToStorage === "function") savePlayerToStorage(true);
       return true;
     }
     window.tryPlaceChest = tryPlaceChest;
