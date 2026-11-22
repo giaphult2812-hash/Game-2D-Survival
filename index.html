@@ -50,7 +50,11 @@
     <kbd class="hud-kbd">E</kbd>
   </button>
   <button id="btnMobileHudInfo" type="button" title="Xem chỉ số nhân vật [I]">📊 INFO</button>
-  <button id="playerAccountBtn" type="button" onclick="openPlayerProfileModal()" title="Tài khoản & Lưu Cloud" style="position:fixed;top:12px;right:122px;z-index:260;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.45);background:rgba(15,23,42,0.88);color:#fde047;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+  <button id="quickSaveGameBtn" type="button" onclick="manualSaveGameProgress()" title="Lưu tiến trình game ngay (Máy & Cloud)" style="position:fixed;top:12px;right:248px;z-index:260;display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:10px;border:1px solid rgba(74,222,128,0.45);background:rgba(15,23,42,0.88);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+    <span>💾</span>
+    <span id="quickSaveBtnLabel">Lưu Game</span>
+  </button>
+  <button id="playerAccountBtn" type="button" onclick="openPlayerProfileModal()" title="Đăng ký / Đăng nhập & Quản lý Lưu Cloud" style="position:fixed;top:12px;right:122px;z-index:260;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.45);background:rgba(15,23,42,0.88);color:#fde047;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);">
     <span>👤</span>
     <span id="playerAccountBtnLabel">Tài khoản</span>
   </button>
@@ -662,12 +666,6 @@
     </div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="scripts/firebase-config.js"></script>
-  <script src="scripts/game-core.js?v=20261121"></script>
-  <script src="scripts/mobile-controls.js"></script>
-
   <!-- GIAO DIỆN NPC THƯƠNG NHÂN (CARD GRID HIỆN ĐẠI, TỐI ƯU KHÔNG GIAN) -->
   <div id="npc-shop-ui" onwheel="event.stopPropagation()" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:linear-gradient(155deg, rgba(12,17,29,0.98) 0%, rgba(19,27,46,0.98) 100%); border:1.5px solid rgba(250,204,21,0.7); border-radius:16px; padding:14px 18px; z-index:2200; color:#f8fafc; font-family:'Segoe UI',system-ui,sans-serif; box-shadow:0 24px 60px rgba(0,0,0,0.92), 0 0 28px rgba(250,204,21,0.14); width:680px; max-width:95vw; flex-direction:column; backdrop-filter:blur(12px);">
     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(250,204,21,0.2); padding-bottom:9px; margin-bottom:10px;">
@@ -726,16 +724,70 @@
     <div id="playerInfoBody" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
   </div>
 
+  <!-- HỆ THỐNG ĐĂNG KÝ / ĐĂNG NHẬP TÀI KHOẢN & LƯU TIẾN TRÌNH GAME -->
+  <div id="player-profile-modal" style="display:none; position:fixed; inset:0; background:rgba(6,10,19,0.86); z-index:3000; align-items:center; justify-content:center; backdrop-filter:blur(7px); font-family:'Segoe UI',system-ui,sans-serif;">
+    <div style="background:linear-gradient(160deg, rgba(15,23,42,0.98) 0%, rgba(19,27,46,0.99) 100%); border:1.5px solid rgba(250,204,21,0.68); border-radius:16px; padding:20px 24px; width:400px; max-width:93vw; color:#f8fafc; box-shadow:0 24px 60px rgba(0,0,0,0.95);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-size:16px; font-weight:800; color:#fde047;">🛡️ TÀI KHOẢN &amp; LƯU TIẾN TRÌNH</div>
+        <button type="button" onclick="closePlayerProfileModal()" style="background:rgba(148,163,184,0.15); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1; border-radius:7px; padding:3px 9px; font-size:11px; font-weight:700; cursor:pointer;">Đóng ✕</button>
+      </div>
 
-  <!-- MÀN HÌNH ĐẶT TÊN NHÂN VẬT (LẦN ĐẦU VÀO GAME) -->
-  <div id="player-profile-modal" style="display:none; position:fixed; inset:0; background:rgba(6,10,19,0.85); z-index:3000; align-items:center; justify-content:center; backdrop-filter:blur(6px); font-family:'Segoe UI',system-ui,sans-serif;">
-    <div style="background:linear-gradient(160deg, rgba(15,23,42,0.98) 0%, rgba(19,27,46,0.99) 100%); border:1.5px solid rgba(250,204,21,0.65); border-radius:16px; padding:22px 26px; width:340px; max-width:92vw; color:#f8fafc; box-shadow:0 24px 60px rgba(0,0,0,0.9);">
-      <div style="font-size:17px; font-weight:800; color:#fde047; margin-bottom:6px;">⚔️ TẠO NHÂN VẬT SINH TỒN</div>
-      <div style="font-size:12px; color:#94a3b8; margin-bottom:14px;">Tên của bạn sẽ dùng để lưu túi đồ và giao dịch trên Chợ Giao Thương.</div>
-      <input id="playerNameInput" type="text" maxlength="18" placeholder="Nhập tên nhân vật..." style="width:100%; box-sizing:border-box; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:8px; padding:9px 12px; font-size:13px; margin-bottom:12px; outline:none;" />
-      <button type="button" onclick="confirmPlayerProfile()" style="width:100%; background:#eab308; color:#0f172a; border:none; border-radius:8px; padding:9px 0; font-weight:800; font-size:13px; cursor:pointer;">Vào Game Ngay ▶</button>
+      <!-- KHI ĐÃ ĐĂNG NHẬP: BẢNG QUẢN LÝ LƯU TRỮ & TÀI KHOẢN -->
+      <div id="accountLoggedInView" style="display:none; flex-direction:column; gap:10px;">
+        <div style="background:rgba(30,41,59,0.7); border:1px solid rgba(74,222,128,0.35); border-radius:11px; padding:11px 13px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <span id="accSummaryName" style="font-size:14px; font-weight:800; color:#86efac;">👤 Lữ Khách</span>
+            <span id="accCloudBadge" style="font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:99px; background:rgba(74,222,128,0.15); color:#4ade80; border:1px solid rgba(74,222,128,0.35);">🟢 Cloud Sẵn Sàng</span>
+          </div>
+          <div id="accSummaryUser" style="font-size:11.5px; color:#94a3b8; margin-bottom:4px;">Tài khoản: @guest</div>
+          <div id="accSummaryStats" style="font-size:11.5px; color:#fde047; font-weight:600;">🪙 50 Xu • 🏠 Nhà • Đã lưu tự động</div>
+        </div>
+
+        <button type="button" onclick="manualSaveGameProgress()" style="width:100%; background:linear-gradient(90deg,#16a34a,#22c55e); color:#052e16; border:none; border-radius:9px; padding:10px 0; font-weight:800; font-size:13px; cursor:pointer; box-shadow:0 4px 14px rgba(34,197,94,0.3);">💾 LƯU TIẾN TRÌNH NGAY (MÁY + CLOUD)</button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" onclick="manualLoadFromCloud()" style="flex:1; background:rgba(56,189,248,0.16); color:#7dd3fc; border:1px solid rgba(56,189,248,0.4); border-radius:8px; padding:8px 0; font-weight:700; font-size:11.5px; cursor:pointer;">☁️ Tải Lại Từ Cloud</button>
+          <button type="button" onclick="switchToAuthForm('login')" style="flex:1; background:rgba(248,113,113,0.14); color:#fca5a5; border:1px solid rgba(248,113,113,0.35); border-radius:8px; padding:8px 0; font-weight:700; font-size:11.5px; cursor:pointer;">🔄 Đổi Tài Khoản</button>
+        </div>
+      </div>
+
+      <!-- KHI CHƯA ĐĂNG NHẬP / ĐĂNG KÝ MỚI -->
+      <div id="accountAuthView" style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; gap:6px; background:#0f172a; padding:4px; border-radius:9px; border:1px solid #334155;">
+          <button type="button" id="tabBtnRegister" onclick="switchAuthTab('register')" style="flex:1; padding:6px 0; border-radius:6px; border:none; background:#eab308; color:#0f172a; font-weight:800; font-size:12px; cursor:pointer;">📝 Đăng Ký Mới</button>
+          <button type="button" id="tabBtnLogin" onclick="switchAuthTab('login')" style="flex:1; padding:6px 0; border-radius:6px; border:none; background:transparent; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">🔑 Đăng Nhập</button>
+        </div>
+
+        <div style="font-size:11.5px; color:#94a3b8; line-height:1.4;" id="authTabDesc">
+          Tạo tài khoản để lưu toàn bộ Túi đồ, Xu vàng, Giáp, Vị trí và Công trình đã đặt lên Cloud Firebase.
+        </div>
+
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:4px;">Tên đăng nhập (viết liền, dùng để định danh Cloud):</label>
+          <input id="authUsernameInput" type="text" maxlength="24" placeholder="VD: giaphu123" style="width:100%; box-sizing:border-box; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:8px; padding:8px 11px; font-size:12.5px; outline:none;" />
+        </div>
+
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:4px;">Mật khẩu bảo vệ:</label>
+          <input id="authPasswordInput" type="password" maxlength="32" placeholder="Nhập mật khẩu..." style="width:100%; box-sizing:border-box; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:8px; padding:8px 11px; font-size:12.5px; outline:none;" />
+        </div>
+
+        <div id="authDisplayNameGroup">
+          <label style="display:block; font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:4px;">Tên nhân vật hiển thị trong game:</label>
+          <input id="authDisplayNameInput" type="text" maxlength="18" placeholder="VD: Hiệp Sĩ Phú" style="width:100%; box-sizing:border-box; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:8px; padding:8px 11px; font-size:12.5px; outline:none;" />
+        </div>
+
+        <div id="authFeedbackMsg" style="display:none; font-size:11.5px; font-weight:700; padding:7px 10px; border-radius:7px;"></div>
+
+        <button type="button" id="authSubmitBtn" onclick="submitAccountAuth()" style="width:100%; background:#eab308; color:#0f172a; border:none; border-radius:8px; padding:10px 0; font-weight:800; font-size:13px; cursor:pointer;">🚀 Đăng Ký &amp; Lưu Tiến Trình Ngay</button>
+      </div>
     </div>
   </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="scripts/firebase-config.js"></script>
+  <script src="scripts/game-core.js?v=20261121_3"></script>
+  <script src="scripts/mobile-controls.js"></script>
 
 </body>
 </html>

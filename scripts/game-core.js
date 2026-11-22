@@ -3745,56 +3745,190 @@
       }
     }
 
+    let fbPlayerSnapUnsub = null;
+    let currentAuthMode = "register"; // "register" | "login"
+    let lastSavedTimeStr = "Chưa lưu";
+
+    function simpleHashPassword(pw) {
+      let h = 2166136261 >>> 0;
+      const s = String(pw || "");
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return "h_" + (h >>> 0).toString(16);
+    }
+
+    function normalizeUsername(raw) {
+      return String(raw || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    }
+
+    function exportPlacedStructures() {
+      const result = { home: [], forest: [], lake: [] };
+      try {
+        if (typeof mapConfigs === "undefined" || !mapConfigs) return result;
+        ["home", "forest", "lake"].forEach((mKey) => {
+          const arr = mapConfigs[mKey] && Array.isArray(mapConfigs[mKey].harvestables)
+            ? mapConfigs[mKey].harvestables
+            : [];
+          arr.forEach((obj) => {
+            if (obj && (obj.type === "crafting_table" || obj.type === "chest")) {
+              const savedObj = {
+                type: obj.type,
+                x: obj.x,
+                y: obj.y,
+                width: obj.width || 16,
+                height: obj.height || 16,
+                name: obj.name || (obj.type === "chest" ? "Rương Đồ" : "Bàn Chế Tạo")
+              };
+              if (obj.type === "chest" && Array.isArray(obj.items || obj.inventory)) {
+                savedObj.items = obj.items || obj.inventory;
+              }
+              result[mKey].push(savedObj);
+            }
+          });
+        });
+      } catch (e) {}
+      return result;
+    }
+
+    function applyPlacedStructures(placedData) {
+      try {
+        if (!placedData || typeof mapConfigs === "undefined" || !mapConfigs) return;
+        ["home", "forest", "lake"].forEach((mKey) => {
+          if (!mapConfigs[mKey] || !Array.isArray(mapConfigs[mKey].harvestables)) return;
+          const targetArr = mapConfigs[mKey].harvestables;
+          // Xóa các công trình cũ do người chơi đặt để nạp đúng bản lưu
+          for (let i = targetArr.length - 1; i >= 0; i--) {
+            if (targetArr[i] && (targetArr[i].type === "crafting_table" || targetArr[i].type === "chest")) {
+              targetArr.splice(i, 1);
+            }
+          }
+          const savedList = Array.isArray(placedData[mKey]) ? placedData[mKey] : [];
+          savedList.forEach((so) => {
+            if (!so || (so.type !== "crafting_table" && so.type !== "chest")) return;
+            const restored = {
+              type: so.type,
+              x: Number(so.x) || 240,
+              y: Number(so.y) || 240,
+              width: 16,
+              height: 16,
+              name: so.name || (so.type === "chest" ? "Rương Đồ" : "Bàn Chế Tạo")
+            };
+            if (so.type === "chest") {
+              const rawItems = Array.isArray(so.items) ? so.items : (Array.isArray(so.inventory) ? so.inventory : []);
+              restored.items = rawItems.slice(0, 27).concat(new Array(Math.max(0, 27 - rawItems.length)).fill(null));
+            }
+            targetArr.push(restored);
+          });
+        });
+        if (typeof currentMap !== "undefined" && mapConfigs[currentMap]) {
+          currentObjects = mapConfigs[currentMap].harvestables;
+        }
+      } catch (e) { console.warn("Restore structures err:", e); }
+    }
+
+    function applyPlayerSaveData(data) {
+      if (!data || typeof data !== "object") return;
+      try {
+        if (typeof data.gold === "number") playerGold = data.gold;
+        if (Array.isArray(data.inventory)) {
+          for (let i = 0; i < 36; i++) playerInventory[i] = data.inventory[i] || null;
+        }
+        if (Array.isArray(data.equipment)) {
+          for (let i = 0; i < 4; i++) playerEquipment[i] = data.equipment[i] || null;
+        }
+        if (data.placedObjects) {
+          applyPlacedStructures(data.placedObjects);
+        }
+        if (data.currentMap && typeof mapConfigs !== "undefined" && mapConfigs[data.currentMap] && typeof loadMap === "function") {
+          const px = (typeof data.x === "number" && !Number.isNaN(data.x)) ? data.x : player.x;
+          const py = (typeof data.y === "number" && !Number.isNaN(data.y)) ? data.y : player.y;
+          loadMap(data.currentMap, { x: px, y: py });
+        } else if (typeof player !== "undefined") {
+          if (typeof data.x === "number" && !Number.isNaN(data.x)) player.x = data.x;
+          if (typeof data.y === "number" && !Number.isNaN(data.y)) player.y = data.y;
+        }
+        if (typeof recalculatePlayerArmorAndStats === "function" && typeof player !== "undefined") {
+          recalculatePlayerArmorAndStats();
+        }
+        if (typeof player !== "undefined" && typeof data.hp === "number") {
+          player.hp = Math.min(player.maxHp, Math.max(1, data.hp));
+        }
+        if (typeof data.armor === "number") {
+          playerArmor = Math.min(playerMaxArmor, Math.max(0, data.armor));
+        }
+        if (typeof renderInventory === "function") renderInventory();
+        if (typeof renderHotbar === "function") renderHotbar();
+        const now = new Date(data.updatedAt || Date.now());
+        lastSavedTimeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        updatePlayerAccountBtnLabel();
+      } catch (e) { console.warn("Apply save err:", e); }
+    }
+
     async function loadPlayerFromCloud() {
-      if (!fbDb || !currentPlayerProfile || !currentPlayerProfile.id) return;
+      if (!fbDb || !currentPlayerProfile || !currentPlayerProfile.id) return false;
       try {
         const docRef = fbDb.collection("players").doc(currentPlayerProfile.id);
         const snap = await docRef.get();
         if (snap.exists) {
           const data = snap.data();
-          if (typeof data.gold === "number") playerGold = data.gold;
-          if (Array.isArray(data.inventory)) {
-            for (let i = 0; i < 36; i++) playerInventory[i] = data.inventory[i] || null;
-          }
-          if (Array.isArray(data.equipment)) {
-            for (let i = 0; i < 4; i++) playerEquipment[i] = data.equipment[i] || null;
-          }
+          applyPlayerSaveData(data);
           if (data.pendingGold && data.pendingGold > 0) {
             playerGold += data.pendingGold;
-            addFloatingText(`🤝 +${data.pendingGold} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
+            if (typeof addFloatingText === "function" && typeof player !== "undefined") {
+              addFloatingText(`🤝 +${data.pendingGold} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
+            }
             await docRef.set({ pendingGold: 0, gold: playerGold }, { merge: true });
           }
-          if (typeof recalculatePlayerArmorAndStats === "function" && typeof player !== "undefined") {
-            recalculatePlayerArmorAndStats();
-          }
-          renderInventory();
+          savePlayerToStorage();
+        }
+        if (fbPlayerSnapUnsub) {
+          fbPlayerSnapUnsub();
+          fbPlayerSnapUnsub = null;
         }
         // Lắng nghe realtime nếu có người khác mua đồ của bạn khi bạn đang online
-        docRef.onSnapshot((s) => {
+        fbPlayerSnapUnsub = docRef.onSnapshot((s) => {
           if (!s.exists) return;
           const d = s.data();
           if (d && d.pendingGold > 0) {
             const gain = d.pendingGold;
             playerGold += gain;
-            addFloatingText(`🤝 +${gain} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
+            if (typeof addFloatingText === "function" && typeof player !== "undefined") {
+              addFloatingText(`🤝 +${gain} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
+            }
             docRef.set({ pendingGold: 0, gold: playerGold }, { merge: true }).catch(() => {});
             const shopUI = document.getElementById("npc-shop-ui");
             if (shopUI && shopUI.style.display === "flex") renderNpcShopUI();
           }
         });
-      } catch (e) { console.warn("Cloud load err:", e); }
+        return snap.exists;
+      } catch (e) {
+        console.warn("Cloud load err:", e);
+        return false;
+      }
     }
 
     async function syncPlayerToCloud() {
-      if (!fbDb || !currentPlayerProfile || !currentPlayerProfile.id) return;
+      if (!fbDb || !currentPlayerProfile || !currentPlayerProfile.id) return false;
       try {
-        await fbDb.collection("players").doc(currentPlayerProfile.id).set(exportPlayerSaveData(), { merge: true });
-      } catch (e) { console.warn("Cloud save err:", e); }
+        const payload = exportPlayerSaveData();
+        if (currentPlayerProfile.passwordHash) {
+          payload.passwordHash = currentPlayerProfile.passwordHash;
+        }
+        if (currentPlayerProfile.username) {
+          payload.username = currentPlayerProfile.username;
+        }
+        await fbDb.collection("players").doc(currentPlayerProfile.id).set(payload, { merge: true });
+        return true;
+      } catch (e) {
+        console.warn("Cloud save err:", e);
+        return false;
+      }
     }
 
     function subscribeCloudMarket() {
       if (!fbDb || fbMarketUnsub) return;
-      // Chỉ lắng nghe tối đa 20 món mới nhất & chỉ bật khi mở Shop để tiết kiệm quota miễn phí
       fbMarketUnsub = fbDb.collection("market_listings")
         .where("status", "==", "active")
         .orderBy("createdAt", "desc")
@@ -3817,20 +3951,239 @@
 
     function updatePlayerAccountBtnLabel() {
       const lbl = document.getElementById("playerAccountBtnLabel");
+      const isReg = !!(currentPlayerProfile && currentPlayerProfile.username);
       if (lbl) {
-        lbl.textContent = (currentPlayerProfile && currentPlayerProfile.name)
-          ? currentPlayerProfile.name
-          : "Đăng nhập";
+        lbl.textContent = isReg
+          ? `${currentPlayerProfile.name} (@${currentPlayerProfile.username})`
+          : "Đăng ký / Đăng nhập";
+      }
+      const loggedView = document.getElementById("accountLoggedInView");
+      const authView = document.getElementById("accountAuthView");
+      if (loggedView && authView) {
+        if (isReg) {
+          loggedView.style.display = "flex";
+          authView.style.display = "none";
+          const sName = document.getElementById("accSummaryName");
+          const sUser = document.getElementById("accSummaryUser");
+          const sStats = document.getElementById("accSummaryStats");
+          const sBadge = document.getElementById("accCloudBadge");
+          if (sName) sName.textContent = `👤 ${currentPlayerProfile.name}`;
+          if (sUser) sUser.textContent = `Tài khoản: @${currentPlayerProfile.username} • Lưu lúc: ${lastSavedTimeStr}`;
+          const mapLabel = (typeof currentMap !== "undefined" && currentMap === "forest") ? "🌲 Rừng" : ((typeof currentMap !== "undefined" && currentMap === "lake") ? "🌊 Hồ" : "🏠 Nhà");
+          if (sStats) sStats.textContent = `🪙 ${typeof playerGold !== "undefined" ? playerGold : 50} Xu • ${mapLabel}`;
+          if (sBadge) {
+            sBadge.textContent = fbDb ? "🟢 Đã nối Firebase Cloud" : "🟡 Lưu trên Thiết Bị";
+          }
+        } else {
+          loggedView.style.display = "none";
+          authView.style.display = "flex";
+        }
       }
     }
 
-    function openPlayerProfileModal() {
-      const modal = document.getElementById("player-profile-modal");
-      const inp = document.getElementById("playerNameInput");
-      if (inp && currentPlayerProfile && currentPlayerProfile.name) {
-        inp.value = currentPlayerProfile.name;
+    function showAuthFeedback(msg, isError = true) {
+      const el = document.getElementById("authFeedbackMsg");
+      if (!el) return;
+      el.style.display = "block";
+      el.textContent = msg;
+      el.style.background = isError ? "rgba(239,68,68,0.18)" : "rgba(34,197,94,0.18)";
+      el.style.color = isError ? "#fca5a5" : "#86efac";
+      el.style.border = isError ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(34,197,94,0.4)";
+    }
+
+    function switchAuthTab(mode) {
+      currentAuthMode = mode === "login" ? "login" : "register";
+      const btnReg = document.getElementById("tabBtnRegister");
+      const btnLog = document.getElementById("tabBtnLogin");
+      const dispGroup = document.getElementById("authDisplayNameGroup");
+      const submitBtn = document.getElementById("authSubmitBtn");
+      const desc = document.getElementById("authTabDesc");
+      const fb = document.getElementById("authFeedbackMsg");
+      if (fb) fb.style.display = "none";
+
+      if (currentAuthMode === "register") {
+        if (btnReg) { btnReg.style.background = "#eab308"; btnReg.style.color = "#0f172a"; }
+        if (btnLog) { btnLog.style.background = "transparent"; btnLog.style.color = "#94a3b8"; }
+        if (dispGroup) dispGroup.style.display = "block";
+        if (submitBtn) submitBtn.textContent = "🚀 Đăng Ký & Lưu Tiến Trình Ngay";
+        if (desc) desc.textContent = "Tạo tài khoản mới để lưu toàn bộ Túi đồ, Xu vàng, Giáp, Vị trí và Công trình đã đặt lên Cloud Firebase.";
+      } else {
+        if (btnLog) { btnLog.style.background = "#38bdf8"; btnLog.style.color = "#0f172a"; }
+        if (btnReg) { btnReg.style.background = "transparent"; btnReg.style.color = "#94a3b8"; }
+        if (dispGroup) dispGroup.style.display = "none";
+        if (submitBtn) submitBtn.textContent = "🔑 Đăng Nhập & Tải Tiến Trình";
+        if (desc) desc.textContent = "Nhập đúng Tên đăng nhập & Mật khẩu đã tạo để tải lại toàn bộ tiến trình chơi từ Cloud hoặc máy.";
       }
+    }
+
+    function switchToAuthForm(mode = "login") {
+      const loggedView = document.getElementById("accountLoggedInView");
+      const authView = document.getElementById("accountAuthView");
+      if (loggedView) loggedView.style.display = "none";
+      if (authView) authView.style.display = "flex";
+      switchAuthTab(mode);
+    }
+
+    function openPlayerProfileModal() {
+      updatePlayerAccountBtnLabel();
+      const modal = document.getElementById("player-profile-modal");
       if (modal) modal.style.display = "flex";
+    }
+
+    function closePlayerProfileModal() {
+      const modal = document.getElementById("player-profile-modal");
+      if (modal) modal.style.display = "none";
+    }
+
+    async function submitAccountAuth() {
+      const uInp = document.getElementById("authUsernameInput");
+      const pInp = document.getElementById("authPasswordInput");
+      const dInp = document.getElementById("authDisplayNameInput");
+
+      const rawUser = uInp ? uInp.value : "";
+      const username = normalizeUsername(rawUser);
+      const password = pInp ? pInp.value.trim() : "";
+      const displayName = (dInp && dInp.value.trim()) ? dInp.value.trim().slice(0, 18) : username;
+
+      if (username.length < 3) {
+        showAuthFeedback("⚠️ Tên đăng nhập phải từ 3 ký tự trở lên (chữ hoặc số, viết liền)!", true);
+        return;
+      }
+      if (password.length < 3) {
+        showAuthFeedback("⚠️ Mật khẩu phải từ 3 ký tự trở lên!", true);
+        return;
+      }
+
+      const accId = "acc_" + username;
+      const passHash = simpleHashPassword(password);
+      const localAccountsRaw = localStorage.getItem("game2d_accounts_registry_v1");
+      const localAccounts = localAccountsRaw ? JSON.parse(localAccountsRaw) : {};
+
+      showAuthFeedback("⏳ Đang xử lý đồng bộ tài khoản...", false);
+
+      if (currentAuthMode === "register") {
+        // Kiểm tra xem tài khoản đã tồn tại trên Cloud hoặc máy chưa
+        if (fbDb) {
+          try {
+            const snap = await fbDb.collection("players").doc(accId).get();
+            if (snap.exists && snap.data().passwordHash) {
+              showAuthFeedback("❌ Tên đăng nhập này đã có người đăng ký! Hãy chuyển sang tab Đăng Nhập.", true);
+              return;
+            }
+          } catch (e) {}
+        }
+        if (localAccounts[username] && localAccounts[username].passwordHash) {
+          showAuthFeedback("❌ Tên đăng nhập này đã tồn tại trên máy! Hãy chuyển sang tab Đăng Nhập.", true);
+          return;
+        }
+
+        currentPlayerProfile = {
+          id: accId,
+          username: username,
+          name: displayName || username,
+          passwordHash: passHash
+        };
+        localAccounts[username] = currentPlayerProfile;
+        localStorage.setItem("game2d_accounts_registry_v1", JSON.stringify(localAccounts));
+        localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(currentPlayerProfile));
+
+        savePlayerToStorage();
+        await syncPlayerToCloud();
+        updatePlayerAccountBtnLabel();
+        showAuthFeedback("✅ Đăng ký thành công! Đã lưu toàn bộ tiến trình game.", false);
+        if (typeof showNotification === "function") {
+          showNotification(`🎉 Đã đăng ký & lưu tài khoản @${username}!`, false);
+        }
+        setTimeout(() => closePlayerProfileModal(), 700);
+      } else {
+        // ĐĂNG NHẬP
+        let foundCloudData = null;
+        if (fbDb) {
+          try {
+            const snap = await fbDb.collection("players").doc(accId).get();
+            if (snap.exists) {
+              foundCloudData = snap.data();
+            }
+          } catch (e) {}
+        }
+
+        const localAcc = localAccounts[username];
+        if (!foundCloudData && !localAcc) {
+          showAuthFeedback("❌ Không tìm thấy tài khoản này! Vui lòng kiểm tra lại hoặc chọn Đăng Ký Mới.", true);
+          return;
+        }
+
+        const expectedHash = (foundCloudData && foundCloudData.passwordHash)
+          ? foundCloudData.passwordHash
+          : (localAcc ? localAcc.passwordHash : null);
+
+        if (expectedHash && expectedHash !== passHash) {
+          showAuthFeedback("❌ Mật khẩu không chính xác!", true);
+          return;
+        }
+
+        const resolvedName = (foundCloudData && foundCloudData.profile && foundCloudData.profile.name)
+          ? foundCloudData.profile.name
+          : (localAcc && localAcc.name ? localAcc.name : username);
+
+        currentPlayerProfile = {
+          id: accId,
+          username: username,
+          name: resolvedName,
+          passwordHash: passHash
+        };
+        localAccounts[username] = currentPlayerProfile;
+        localStorage.setItem("game2d_accounts_registry_v1", JSON.stringify(localAccounts));
+        localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(currentPlayerProfile));
+
+        if (foundCloudData) {
+          applyPlayerSaveData(foundCloudData);
+          savePlayerToStorage();
+        } else {
+          loadPlayerSaveFromStorage();
+        }
+        await loadPlayerFromCloud();
+        updatePlayerAccountBtnLabel();
+        showAuthFeedback("✅ Đăng nhập & tải tiến trình thành công!", false);
+        if (typeof showNotification === "function") {
+          showNotification(`👋 Chào mừng trở lại, ${currentPlayerProfile.name} (@${username})!`, false);
+        }
+        setTimeout(() => closePlayerProfileModal(), 650);
+      }
+    }
+
+    async function manualSaveGameProgress() {
+      if (!currentPlayerProfile || !currentPlayerProfile.username) {
+        openPlayerProfileModal();
+        switchToAuthForm("register");
+        showAuthFeedback("💡 Hãy tạo tài khoản (chỉ mất 5 giây) để lưu tiến trình của bạn!", false);
+        return;
+      }
+      savePlayerToStorage();
+      const qLbl = document.getElementById("quickSaveBtnLabel");
+      if (qLbl) qLbl.textContent = "Đang lưu...";
+      const okCloud = await syncPlayerToCloud();
+      if (qLbl) {
+        qLbl.textContent = okCloud ? "Đã lưu Cloud ✓" : "Đã lưu Máy ✓";
+        setTimeout(() => { if (qLbl) qLbl.textContent = "Lưu Game"; }, 2200);
+      }
+      updatePlayerAccountBtnLabel();
+      if (typeof showNotification === "function") {
+        showNotification(okCloud
+          ? `💾 Đã lưu tiến trình của @${currentPlayerProfile.username} lên Máy & Firebase Cloud!`
+          : `💾 Đã lưu tiến trình của @${currentPlayerProfile.username} vào Thiết bị!`, false);
+      }
+    }
+
+    async function manualLoadFromCloud() {
+      if (!currentPlayerProfile || !currentPlayerProfile.id) return;
+      const ok = await loadPlayerFromCloud();
+      if (typeof showNotification === "function") {
+        showNotification(ok
+          ? "☁️ Đã tải tiến trình mới nhất từ Firebase Cloud!"
+          : "⚠️ Chưa có bản lưu Cloud hoặc đang ngoại tuyến, đã giữ bản lưu trên máy.", !ok);
+      }
+      updatePlayerAccountBtnLabel();
     }
 
     function initPlayerProfileAndSave() {
@@ -3838,12 +4191,18 @@
       try {
         const rawProf = localStorage.getItem(STORAGE_PROFILE_KEY);
         if (rawProf) {
-          currentPlayerProfile = JSON.parse(rawProf);
-          loadPlayerSaveFromStorage();
-          loadPlayerFromCloud();
-        } else {
+          const parsed = JSON.parse(rawProf);
+          if (parsed && parsed.id) {
+            currentPlayerProfile = parsed;
+            loadPlayerSaveFromStorage();
+            loadPlayerFromCloud();
+          }
+        }
+        // Nếu người chơi chưa đăng ký tài khoản chính thức (chưa có username), mở bảng Đăng Ký / Đăng Nhập
+        if (!currentPlayerProfile || !currentPlayerProfile.username) {
           const modal = document.getElementById("player-profile-modal");
           if (modal) modal.style.display = "flex";
+          switchToAuthForm("register");
         }
       } catch (e) { console.warn("Profile init err:", e); }
       updatePlayerAccountBtnLabel();
@@ -3851,56 +4210,45 @@
     }
 
     function confirmPlayerProfile() {
-      const inp = document.getElementById("playerNameInput");
-      const name = (inp && inp.value.trim()) ? inp.value.trim().slice(0, 18) : "Lữ Khách";
-      currentPlayerProfile = { id: "p_" + Date.now().toString(36), name };
-      localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(currentPlayerProfile));
-      const modal = document.getElementById("player-profile-modal");
-      if (modal) modal.style.display = "none";
-      updatePlayerAccountBtnLabel();
-      savePlayerToStorage();
-      syncPlayerToCloud();
+      submitAccountAuth();
     }
 
     function exportPlayerSaveData() {
+      const nowTs = Date.now();
       return {
         profile: currentPlayerProfile,
-        gold: playerGold,
-        hp: player.hp,
-        maxHp: player.maxHp,
-        armor: playerArmor,
+        gold: typeof playerGold === "number" ? playerGold : 50,
+        hp: (typeof player !== "undefined" && typeof player.hp === "number") ? player.hp : 150,
+        maxHp: (typeof player !== "undefined" && typeof player.maxHp === "number") ? player.maxHp : 150,
+        armor: typeof playerArmor === "number" ? playerArmor : 0,
         inventory: playerInventory,
         equipment: playerEquipment,
-        currentMap: currentMap,
-        x: Math.round(player.x),
-        y: Math.round(player.y),
-        updatedAt: Date.now()
+        currentMap: typeof currentMap !== "undefined" ? currentMap : "home",
+        x: (typeof player !== "undefined" && typeof player.x === "number") ? Math.round(player.x) : 248,
+        y: (typeof player !== "undefined" && typeof player.y === "number") ? Math.round(player.y) : 248,
+        placedObjects: exportPlacedStructures(),
+        updatedAt: nowTs
       };
     }
 
     function savePlayerToStorage() {
       try {
         if (!currentPlayerProfile || !currentPlayerProfile.id) return;
-        localStorage.setItem("game2d_save_" + currentPlayerProfile.id, JSON.stringify(exportPlayerSaveData()));
+        const payload = exportPlayerSaveData();
+        localStorage.setItem("game2d_save_" + currentPlayerProfile.id, JSON.stringify(payload));
+        const now = new Date(payload.updatedAt);
+        lastSavedTimeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        updatePlayerAccountBtnLabel();
       } catch (e) {}
     }
 
     function loadPlayerSaveFromStorage() {
       try {
+        if (!currentPlayerProfile || !currentPlayerProfile.id) return;
         const raw = localStorage.getItem("game2d_save_" + currentPlayerProfile.id);
         if (!raw) return;
         const data = JSON.parse(raw);
-        if (typeof data.gold === "number") playerGold = data.gold;
-        if (Array.isArray(data.inventory)) {
-          for (let i = 0; i < 36; i++) playerInventory[i] = data.inventory[i] || null;
-        }
-        if (Array.isArray(data.equipment)) {
-          for (let i = 0; i < 4; i++) playerEquipment[i] = data.equipment[i] || null;
-        }
-        if (typeof recalculatePlayerArmorAndStats === "function") recalculatePlayerArmorAndStats();
-        if (typeof data.hp === "number") player.hp = Math.min(player.maxHp, Math.max(1, data.hp));
-        if (typeof data.armor === "number") playerArmor = Math.min(playerMaxArmor, Math.max(0, data.armor));
-        renderInventory();
+        applyPlayerSaveData(data);
       } catch (e) { console.warn("Load save err:", e); }
     }
 
