@@ -12116,6 +12116,7 @@
         player.x = newPlayerPos.x;
         player.y = newPlayerPos.y;
         teleportFlashOpacity = 0.5;
+        if (typeof savePlayerToStorage === "function") savePlayerToStorage(true);
       }
 
       // -------------------------------------------------------------
