@@ -3866,22 +3866,63 @@
       } catch (e) { console.warn("Apply save err:", e); }
     }
 
+    const STORAGE_PENDING_SYNC_PREFIX = "game2d_pending_sync_";
+
+    function isCloudSyncPending(profileId) {
+      try {
+        return !!(profileId && localStorage.getItem(STORAGE_PENDING_SYNC_PREFIX + profileId) === "1");
+      } catch (e) { return false; }
+    }
+
+    function setCloudSyncPending(profileId, pending) {
+      try {
+        if (!profileId) return;
+        if (pending) localStorage.setItem(STORAGE_PENDING_SYNC_PREFIX + profileId, "1");
+        else localStorage.removeItem(STORAGE_PENDING_SYNC_PREFIX + profileId);
+      } catch (e) {}
+    }
+
+    function getLocalSaveObject(profileId) {
+      try {
+        if (!profileId) return null;
+        const raw = localStorage.getItem("game2d_save_" + profileId);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    }
+
     async function loadPlayerFromCloud() {
       if (!fbDb || !currentPlayerProfile || !currentPlayerProfile.id) return false;
       try {
         const docRef = fbDb.collection("players").doc(currentPlayerProfile.id);
         const snap = await docRef.get();
+        const isPending = isCloudSyncPending(currentPlayerProfile.id);
+        const localData = getLocalSaveObject(currentPlayerProfile.id);
+
         if (snap.exists) {
-          const data = snap.data();
-          applyPlayerSaveData(data);
-          if (data.pendingGold && data.pendingGold > 0) {
-            playerGold += data.pendingGold;
+          const cloudData = snap.data();
+          const localTs = (localData && typeof localData.updatedAt === "number") ? localData.updatedAt : 0;
+          const cloudTs = (cloudData && typeof cloudData.updatedAt === "number") ? cloudData.updatedAt : 0;
+
+          if (isPending || (localData && localTs > cloudTs)) {
+            // Ưu tiên bản đệm trên máy (chưa kịp đồng bộ trước đó) và đẩy ngược lên Cloud
+            if (localData) applyPlayerSaveData(localData);
+            await syncPlayerToCloud();
+          } else {
+            applyPlayerSaveData(cloudData);
+            savePlayerToStorage(false);
+          }
+
+          if (cloudData.pendingGold && cloudData.pendingGold > 0) {
+            playerGold += cloudData.pendingGold;
             if (typeof addFloatingText === "function" && typeof player !== "undefined") {
-              addFloatingText(`🤝 +${data.pendingGold} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
+              addFloatingText(`🤝 +${cloudData.pendingGold} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
             }
             await docRef.set({ pendingGold: 0, gold: playerGold }, { merge: true });
+            savePlayerToStorage(false);
           }
-          savePlayerToStorage();
+        } else if (localData) {
+          // Chưa có trên Cloud nhưng có bản đệm trên máy -> đẩy lên Cloud ngay
+          await syncPlayerToCloud();
         }
         if (fbPlayerSnapUnsub) {
           fbPlayerSnapUnsub();
@@ -3920,6 +3961,8 @@
           payload.username = currentPlayerProfile.username;
         }
         await fbDb.collection("players").doc(currentPlayerProfile.id).set(payload, { merge: true });
+        // Chỉ xóa cờ pending sau khi Cloud xác nhận ghi thành công 100%
+        setCloudSyncPending(currentPlayerProfile.id, false);
         return true;
       } catch (e) {
         console.warn("Cloud save err:", e);
@@ -4235,11 +4278,14 @@
       };
     }
 
-    function savePlayerToStorage() {
+    function savePlayerToStorage(markPending = true) {
       try {
         if (!currentPlayerProfile || !currentPlayerProfile.id) return;
         const payload = exportPlayerSaveData();
         localStorage.setItem("game2d_save_" + currentPlayerProfile.id, JSON.stringify(payload));
+        if (markPending) {
+          setCloudSyncPending(currentPlayerProfile.id, true);
+        }
         const now = new Date(payload.updatedAt);
         lastSavedTimeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
         updatePlayerAccountBtnLabel();
@@ -16893,7 +16939,24 @@
 
     // Khởi tạo hồ sơ người chơi & tự động lưu mỗi 15 giây
     initPlayerProfileAndSave();
-    setInterval(savePlayerToStorage, 15000);
-    setInterval(syncPlayerToCloud, 120000);
+    setInterval(() => savePlayerToStorage(true), 15000);
+    setInterval(() => {
+      if (currentPlayerProfile && isCloudSyncPending(currentPlayerProfile.id)) {
+        syncPlayerToCloud();
+      }
+    }, 120000);
 
-    window.addEventListener("beforeunload", () => { savePlayerToStorage(); syncPlayerToCloud(); });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        savePlayerToStorage(true);
+        syncPlayerToCloud();
+      }
+    });
+    window.addEventListener("pagehide", () => {
+      savePlayerToStorage(true);
+      syncPlayerToCloud();
+    });
+    window.addEventListener("beforeunload", () => {
+      savePlayerToStorage(true);
+      syncPlayerToCloud();
+    });
