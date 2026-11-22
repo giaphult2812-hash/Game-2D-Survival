@@ -12040,7 +12040,7 @@
         borderColor: "#14421d",
         // CỔNG DỊCH CHUYỂN: Đặt tại x = 0 ngay lối mở không có hàng rào (y: 248)
         portal: {
-          x: 0, // x = 0 sát mép lối đi bên trái
+          x: 20, // Đặt trên đường đất sát mép nước bên trái (không đè lên nước)
           y: (MAP_SIZE - TILE_SIZE) / 2, // 248 px (hàng 15.5)
           width: TILE_SIZE,  // 16 px
           height: TILE_SIZE, // 16 px

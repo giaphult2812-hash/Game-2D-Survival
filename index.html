@@ -50,11 +50,11 @@
     <kbd class="hud-kbd">E</kbd>
   </button>
   <button id="btnMobileHudInfo" type="button" title="Xem chỉ số nhân vật [I]">📊 INFO</button>
-  <button id="quickSaveGameBtn" type="button" onclick="manualSaveGameProgress()" title="Lưu tiến trình game ngay (Máy & Cloud)" style="position:fixed;top:12px;right:248px;z-index:260;display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:10px;border:1px solid rgba(74,222,128,0.45);background:rgba(15,23,42,0.88);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+  <button id="quickSaveGameBtn" type="button" onclick="manualSaveGameProgress()" title="Lưu tiến trình game ngay (Máy & Cloud)" style="position:fixed;top:12px;right:292px;z-index:260;display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:10px;border:1px solid rgba(74,222,128,0.45);background:rgba(15,23,42,0.88);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);">
     <span>💾</span>
     <span id="quickSaveBtnLabel">Lưu Game</span>
   </button>
-  <button id="playerAccountBtn" type="button" onclick="openPlayerProfileModal()" title="Đăng ký / Đăng nhập & Quản lý Lưu Cloud" style="position:fixed;top:12px;right:122px;z-index:260;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.45);background:rgba(15,23,42,0.88);color:#fde047;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+  <button id="playerAccountBtn" type="button" onclick="openPlayerProfileModal()" title="Đăng ký / Đăng nhập & Quản lý Lưu Cloud" style="position:fixed;top:12px;right:122px;max-width:162px;z-index:260;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;border:1px solid rgba(251,191,36,0.45);background:rgba(15,23,42,0.88);color:#fde047;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
     <span>👤</span>
     <span id="playerAccountBtnLabel">Tài khoản</span>
   </button>
@@ -786,7 +786,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="scripts/firebase-config.js"></script>
-  <script src="scripts/game-core.js?v=20261122_2"></script>
+  <script src="scripts/game-core.js?v=20261122_3"></script>
   <script src="scripts/mobile-controls.js"></script>
 
 </body>
