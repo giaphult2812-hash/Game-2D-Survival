@@ -16929,20 +16929,19 @@
       requestAnimationFrame(gameLoop);
     }
 
-    // Khởi động hệ thống tải ảnh và nạp cả 2 bản đồ LDtk trước khi chạy game loop
+    // Khởi động hệ thống tải ảnh và nạp cả 3 bản đồ LDtk trước khi khôi phục save & chạy game loop
     preloadImages(async () => {
-      // Tải dữ liệu bản đồ map_home.json và map_rung.json trước khi bắt đầu vòng lặp game chính
       await Promise.all([
         loadMapData("assets/maps/map_home.json", false),
         loadMapData("assets/maps/map_rung.json", true),
         loadMapData("assets/maps/map_ho.json", "lake")
       ]);
+      initPlayerProfileAndSave();
       requestAnimationFrame(gameLoop);
     });
 
-    // Khởi tạo hồ sơ người chơi & tự động lưu mỗi 15 giây
-    initPlayerProfileAndSave();
-    setInterval(() => savePlayerToStorage(true), 15000);
+    // Tự động lưu vào bộ nhớ đệm trên máy mỗi 2 giây (0 tốn quota) & đồng bộ Cloud mỗi 2 phút
+    setInterval(() => savePlayerToStorage(true), 2000);
     setInterval(() => {
       if (currentPlayerProfile && isCloudSyncPending(currentPlayerProfile.id)) {
         syncPlayerToCloud();
