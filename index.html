@@ -724,12 +724,12 @@
     <div id="playerInfoBody" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
   </div>
 
-  <!-- HỆ THỐNG ĐĂNG KÝ / ĐĂNG NHẬP TÀI KHOẢN & LƯU TIẾN TRÌNH GAME -->
-  <div id="player-profile-modal" style="display:none; position:fixed; inset:0; background:rgba(6,10,19,0.86); z-index:3000; align-items:center; justify-content:center; backdrop-filter:blur(7px); font-family:'Segoe UI',system-ui,sans-serif;">
-    <div style="background:linear-gradient(160deg, rgba(15,23,42,0.98) 0%, rgba(19,27,46,0.99) 100%); border:1.5px solid rgba(250,204,21,0.68); border-radius:16px; padding:20px 24px; width:400px; max-width:93vw; color:#f8fafc; box-shadow:0 24px 60px rgba(0,0,0,0.95);">
+  <!-- MÀN HÌNH ĐĂNG KÝ / ĐĂNG NHẬP TÀI KHOẢN RIÊNG BIỆT -->
+  <div id="player-profile-modal" style="display:none; position:fixed; inset:0; background:radial-gradient(circle at top, #0f172a 0%, #050811 100%); z-index:9999; align-items:center; justify-content:center; font-family:'Segoe UI',system-ui,sans-serif;">
+    <div style="background:linear-gradient(160deg, rgba(15,23,42,0.98) 0%, rgba(19,27,46,0.99) 100%); border:1.5px solid rgba(250,204,21,0.68); border-radius:16px; padding:22px 26px; width:400px; max-width:93vw; color:#f8fafc; box-shadow:0 24px 60px rgba(0,0,0,0.95);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <div style="font-size:16px; font-weight:800; color:#fde047;">🛡️ TÀI KHOẢN &amp; LƯU TIẾN TRÌNH</div>
-        <button type="button" onclick="closePlayerProfileModal()" style="background:rgba(148,163,184,0.15); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1; border-radius:7px; padding:3px 9px; font-size:11px; font-weight:700; cursor:pointer;">Đóng ✕</button>
+        <button id="closeProfileModalBtn" type="button" onclick="closePlayerProfileModal()" style="display:none; background:rgba(148,163,184,0.15); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1; border-radius:7px; padding:3px 9px; font-size:11px; font-weight:700; cursor:pointer;">Vào Game ✕</button>
       </div>
 
       <!-- KHI ĐÃ ĐĂNG NHẬP: BẢNG QUẢN LÝ LƯU TRỮ & TÀI KHOẢN -->

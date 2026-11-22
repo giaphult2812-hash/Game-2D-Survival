@@ -3957,6 +3957,8 @@
           ? `${currentPlayerProfile.name} (@${currentPlayerProfile.username})`
           : "Đăng ký / Đăng nhập";
       }
+      const closeBtn = document.getElementById("closeProfileModalBtn");
+      if (closeBtn) closeBtn.style.display = isReg ? "inline-block" : "none";
       const loggedView = document.getElementById("accountLoggedInView");
       const authView = document.getElementById("accountAuthView");
       if (loggedView && authView) {
@@ -4017,6 +4019,8 @@
     }
 
     function switchToAuthForm(mode = "login") {
+      const closeBtn = document.getElementById("closeProfileModalBtn");
+      if (closeBtn) closeBtn.style.display = isReg ? "inline-block" : "none";
       const loggedView = document.getElementById("accountLoggedInView");
       const authView = document.getElementById("accountAuthView");
       if (loggedView) loggedView.style.display = "none";
@@ -13548,6 +13552,14 @@
     }, { passive: true });
 
     window.addEventListener("keydown", (e) => {
+      const activeTag = e.target && e.target.tagName ? e.target.tagName.toUpperCase() : "";
+      if (activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT" || (e.target && e.target.isContentEditable)) {
+        return;
+      }
+      const profileModalEl = document.getElementById("player-profile-modal");
+      if (profileModalEl && profileModalEl.style.display !== "none") {
+        return;
+      }
       // Nếu đang cầm Đũa Phép: Z, X, C thi triển trực tiếp Chiêu 1, Chiêu 2, Chiêu 3!
       if (!isPaused && getActiveWandItem()) {
         const wandSkillMap = { KeyZ: 0, KeyX: 1, KeyC: 2 };
