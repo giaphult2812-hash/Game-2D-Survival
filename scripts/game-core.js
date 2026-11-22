@@ -595,6 +595,33 @@
       });
     }
 
+    const minimapTerrainCache = {};
+    let lastMinimapTitle = "";
+    let lastMinimapCoords = "";
+
+    function getMinimapTerrainCache(mapId) {
+      if (minimapTerrainCache[mapId]) return minimapTerrainCache[mapId];
+      const mapObj = mapId === "lake" ? lakeMapData : (mapId === "forest" ? forestMapData : homeMapData);
+      if (!mapObj || typeof getCachedMapCanvas !== "function") return null;
+      const fullCanvas = getCachedMapCanvas(mapObj, mapId);
+      if (!fullCanvas) return null;
+
+      const size = minimapCanvas ? minimapCanvas.width : 128;
+      const offscreen = document.createElement("canvas");
+      offscreen.width = size;
+      offscreen.height = size;
+      const octx = offscreen.getContext("2d");
+      if (!octx) return null;
+      octx.imageSmoothingEnabled = false;
+      if (mapId === "lake") {
+        octx.fillStyle = "#3898d4";
+        octx.fillRect(0, 0, size, size);
+      }
+      octx.drawImage(fullCanvas, 0, 0, size, size);
+      minimapTerrainCache[mapId] = offscreen;
+      return offscreen;
+    }
+
     function switchCombatFxTab(tabName) {
       const tabBtns = document.querySelectorAll(".fx-tab-btn");
       tabBtns.forEach((btn) => {
@@ -3750,6 +3777,26 @@
     let fbPlayerSnapUnsub = null;
     let currentAuthMode = "register"; // "register" | "login"
     let lastSavedTimeStr = "Chưa lưu";
+    let isSaveSystemReady = false;
+    let isCloudLoadInFlight = false;
+    let lastSavedDigest = null;
+    let deathRespawnTimer = null;
+
+    function computeSaveDigest(payload) {
+      if (!payload || typeof payload !== "object") return "";
+      const { updatedAt, ...rest } = payload;
+      return JSON.stringify(rest);
+    }
+
+    function canAutoPersistProfile() {
+      return Boolean(
+        isSaveSystemReady &&
+        !isCloudLoadInFlight &&
+        currentPlayerProfile &&
+        currentPlayerProfile.id &&
+        currentPlayerProfile.username
+      );
+    }
 
     function simpleHashPassword(pw) {
       let h = 2166136261 >>> 0;
@@ -3809,10 +3856,12 @@
           const savedList = Array.isArray(placedData[mKey]) ? placedData[mKey] : [];
           savedList.forEach((so) => {
             if (!so || (so.type !== "crafting_table" && so.type !== "chest")) return;
+            const sx = Number(so.x);
+            const sy = Number(so.y);
             const restored = {
               type: so.type,
-              x: Number(so.x) || 240,
-              y: Number(so.y) || 240,
+              x: Number.isFinite(sx) ? sx : 240,
+              y: Number.isFinite(sy) ? sy : 240,
               width: 16,
               height: 16,
               name: so.name || (so.type === "chest" ? "Rương Đồ" : "Bàn Chế Tạo")
@@ -3830,40 +3879,169 @@
       } catch (e) { console.warn("Restore structures err:", e); }
     }
 
+    function resetTransientGameplayState() {
+      if (deathRespawnTimer) {
+        clearTimeout(deathRespawnTimer);
+        deathRespawnTimer = null;
+      }
+      cursorItem = null;
+      if (typeof updateCursorUI === "function") updateCursorUI();
+      if (typeof cancelActiveTouchInvState === "function") cancelActiveTouchInvState(false);
+
+      if (typeof isChestOpen === "function" && isChestOpen() && typeof toggleChestUI === "function") {
+        toggleChestUI(false);
+      }
+      activeOpenChest = null;
+      const cfUI = document.getElementById("campfire-ui");
+      if (cfUI && cfUI.style.display !== "none" && cfUI.style.display !== "" && typeof toggleCampfireUI === "function") {
+        toggleCampfireUI(false);
+      }
+      if (typeof isWandModalOpen === "function" && isWandModalOpen() && typeof openWandCustomizer === "function") {
+        openWandCustomizer(false);
+      }
+      if (typeof isInventoryOpen === "function" && isInventoryOpen() && typeof toggleInventory === "function") {
+        toggleInventory(false);
+      }
+      if (Array.isArray(pocketCraftingInventory)) pocketCraftingInventory.fill(null);
+      if (Array.isArray(workstationCraftingInventory)) workstationCraftingInventory.fill(null);
+      if (Array.isArray(forgeInventory)) forgeInventory.fill(null);
+      pocketCraftResultItem = null;
+      workstationCraftResultItem = null;
+      craftResultItem = null;
+      forgeResultItem = null;
+
+      if (Array.isArray(droppedItems)) droppedItems.length = 0;
+      if (Array.isArray(activeProjectiles)) activeProjectiles.length = 0;
+      if (typeof timeStopState !== "undefined" && timeStopState.active && typeof detonateAndResumeTimeStop === "function") {
+        detonateAndResumeTimeStop(true);
+      }
+      if (typeof timeStopState !== "undefined") timeStopState.resumeFlashTimer = 0;
+
+      if (typeof keys !== "undefined") {
+        keys.up = false; keys.down = false; keys.left = false; keys.right = false;
+      }
+      isKeyActionHeld = false;
+      isMouseActionHeld = false;
+      isMobileActionHeld = false;
+      isActionKeyHeld = false;
+      pendingQuickBowShot = false;
+      isBowCharging = false;
+      bowChargeTimer = 0;
+      dashTimer = 0;
+      dashCooldown = 0;
+      wandCastTimer = 0;
+      if (Array.isArray(wandSkillCooldowns)) wandSkillCooldowns.fill(0);
+      playerOutOfCombatTimer = 0;
+      if (typeof resetFishingState === "function") resetFishingState();
+      if (typeof fishingState !== "undefined") {
+        fishingState.ripples.length = 0;
+        fishingState.caughtArc = null;
+      }
+      if (window.resetMobileJoystick) window.resetMobileJoystick();
+      if (typeof player !== "undefined") {
+        player.action = "idle";
+        player.direction = "down";
+        player.frameX = 0;
+        player.animTimer = 0;
+        player.invulnerableTimer = 0;
+        player.hurtFlashTimer = 0;
+        player.attackCooldown = 0;
+        player.isMoving = false;
+      }
+      isPaused = false;
+      needsCanvasRedraw = true;
+    }
+
     function applyPlayerSaveData(data) {
       if (!data || typeof data !== "object") return;
       try {
-        if (typeof data.gold === "number") playerGold = data.gold;
+        resetTransientGameplayState();
+
+        if (Number.isFinite(data.gold)) playerGold = Math.max(0, data.gold);
         if (Array.isArray(data.inventory)) {
           for (let i = 0; i < 36; i++) playerInventory[i] = data.inventory[i] || null;
         }
         if (Array.isArray(data.equipment)) {
           for (let i = 0; i < 4; i++) playerEquipment[i] = data.equipment[i] || null;
         }
-        if (data.placedObjects) {
-          applyPlacedStructures(data.placedObjects);
+        activeHotbarIndex = Number.isFinite(data.activeHotbarIndex)
+          ? Math.max(0, Math.min(8, Math.trunc(data.activeHotbarIndex)))
+          : 0;
+
+        applyPlacedStructures(data.placedObjects || { home: [], forest: [], lake: [] });
+
+        if (typeof HOME_CAMPFIRE !== "undefined" && HOME_CAMPFIRE) {
+          HOME_CAMPFIRE.healTimer = 0;
+          if (data.campfire && typeof data.campfire === "object") {
+            HOME_CAMPFIRE.inputItem = data.campfire.inputItem ? { ...data.campfire.inputItem } : null;
+            HOME_CAMPFIRE.fuelItem = data.campfire.fuelItem ? { ...data.campfire.fuelItem } : null;
+            HOME_CAMPFIRE.resultItem = data.campfire.resultItem ? { ...data.campfire.resultItem } : null;
+            HOME_CAMPFIRE.cookProgress = Number.isFinite(data.campfire.cookProgress) ? Math.max(0, data.campfire.cookProgress) : 0;
+            HOME_CAMPFIRE.fuelRemaining = Number.isFinite(data.campfire.fuelRemaining) ? Math.max(0, data.campfire.fuelRemaining) : 0;
+            HOME_CAMPFIRE.fuelMax = (Number.isFinite(data.campfire.fuelMax) && data.campfire.fuelMax > 0) ? data.campfire.fuelMax : 16.0;
+          } else {
+            HOME_CAMPFIRE.inputItem = null;
+            HOME_CAMPFIRE.fuelItem = null;
+            HOME_CAMPFIRE.resultItem = null;
+            HOME_CAMPFIRE.cookProgress = 0;
+            HOME_CAMPFIRE.fuelRemaining = 0;
+            HOME_CAMPFIRE.fuelMax = 16.0;
+          }
         }
-        if (data.currentMap && typeof mapConfigs !== "undefined" && mapConfigs[data.currentMap] && typeof loadMap === "function") {
-          const px = (typeof data.x === "number" && !Number.isNaN(data.x)) ? data.x : player.x;
-          const py = (typeof data.y === "number" && !Number.isNaN(data.y)) ? data.y : player.y;
-          loadMap(data.currentMap, { x: px, y: py });
-        } else if (typeof player !== "undefined") {
-          if (typeof data.x === "number" && !Number.isNaN(data.x)) player.x = data.x;
-          if (typeof data.y === "number" && !Number.isNaN(data.y)) player.y = data.y;
-        }
+
+        // 1. Tính lại maxHp và playerMaxArmor theo trang bị + vũ khí cầm tay TRƯỚC khi gán HP/Giáp
         if (typeof recalculatePlayerArmorAndStats === "function" && typeof player !== "undefined") {
           recalculatePlayerArmorAndStats();
         }
-        if (typeof player !== "undefined" && typeof data.hp === "number") {
-          player.hp = Math.min(player.maxHp, Math.max(1, data.hp));
+
+        // 2. Khôi phục chính xác HP và Giáp (dùng Number.isFinite; nếu hp <= 0 thì hồi sinh sạch về Nhà)
+        let didDeathRespawn = false;
+        if (typeof player !== "undefined") {
+          if (Number.isFinite(data.hp)) {
+            if (data.hp <= 0) {
+              didDeathRespawn = true;
+              player.hp = player.maxHp;
+              playerArmor = playerMaxArmor;
+            } else {
+              player.hp = Math.min(player.maxHp, data.hp);
+            }
+          }
         }
-        if (typeof data.armor === "number") {
+        if (!didDeathRespawn && Number.isFinite(data.armor)) {
           playerArmor = Math.min(playerMaxArmor, Math.max(0, data.armor));
         }
+
+        // 3. Đồng bộ ngay lập tức displayHp, playerDisplayArmor và DOM #valPlayerHP
+        if (typeof player !== "undefined") {
+          player.displayHp = player.hp;
+        }
+        playerDisplayArmor = playerArmor;
+        if (valPlayerHP && typeof player !== "undefined") {
+          valPlayerHP.textContent = `${Math.round(player.hp)} / ${player.maxHp}`;
+        }
+
+        // 4. Chuyển bản đồ & vị trí với skipSave = true để không ghi đè save trước khi hoàn tất
+        if (didDeathRespawn && typeof loadMap === "function") {
+          loadMap("home", { x: (MAP_SIZE - TILE_SIZE) / 2, y: (MAP_SIZE - TILE_SIZE) / 2 + 20 }, true);
+        } else if (data.currentMap && typeof mapConfigs !== "undefined" && mapConfigs[data.currentMap] && typeof loadMap === "function") {
+          const px = (typeof player !== "undefined" && Number.isFinite(data.x)) ? data.x : (typeof player !== "undefined" ? player.x : 248);
+          const py = (typeof player !== "undefined" && Number.isFinite(data.y)) ? data.y : (typeof player !== "undefined" ? player.y : 268);
+          loadMap(data.currentMap, { x: px, y: py }, true);
+        } else if (typeof player !== "undefined") {
+          if (Number.isFinite(data.x)) player.x = data.x;
+          if (Number.isFinite(data.y)) player.y = data.y;
+        }
+
         if (typeof renderInventory === "function") renderInventory();
         if (typeof renderHotbar === "function") renderHotbar();
-        const now = new Date(data.updatedAt || Date.now());
-        lastSavedTimeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        if (typeof renderCampfireUI === "function") renderCampfireUI();
+        if (window.onMobileHotbarSelect && typeof isMobileMode === "function" && isMobileMode()) {
+          window.onMobileHotbarSelect(activeHotbarIndex);
+        }
+
+        const safeTs = Number.isFinite(data.updatedAt) ? data.updatedAt : Date.now();
+        lastSavedTimeStr = new Date(safeTs).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        lastSavedDigest = didDeathRespawn ? null : computeSaveDigest(exportPlayerSaveData());
         updatePlayerAccountBtnLabel();
       } catch (e) { console.warn("Apply save err:", e); }
     }
@@ -3892,8 +4070,33 @@
       } catch (e) { return null; }
     }
 
+    function attachPlayerCloudSnapshotListener(docRef) {
+      if (!docRef) return;
+      if (fbPlayerSnapUnsub) {
+        fbPlayerSnapUnsub();
+        fbPlayerSnapUnsub = null;
+      }
+      // Lắng nghe realtime nếu có người khác mua đồ của bạn khi bạn đang online
+      fbPlayerSnapUnsub = docRef.onSnapshot((s) => {
+        if (!s.exists) return;
+        const d = s.data();
+        if (d && Number.isFinite(d.pendingGold) && d.pendingGold > 0) {
+          const gain = d.pendingGold;
+          playerGold += gain;
+          if (typeof addFloatingText === "function" && typeof player !== "undefined") {
+            addFloatingText(`🤝 +${gain} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
+          }
+          docRef.set({ pendingGold: 0, gold: playerGold }, { merge: true }).catch(() => {});
+          savePlayerToStorage(false);
+          const shopUI = document.getElementById("npc-shop-ui");
+          if (shopUI && shopUI.style.display === "flex") renderNpcShopUI();
+        }
+      });
+    }
+
     async function loadPlayerFromCloud() {
-      if (!fbDb || !currentPlayerProfile || !currentPlayerProfile.id) return false;
+      if (!fbDb || !currentPlayerProfile || !currentPlayerProfile.id || !currentPlayerProfile.username) return false;
+      isCloudLoadInFlight = true;
       try {
         const docRef = fbDb.collection("players").doc(currentPlayerProfile.id);
         const snap = await docRef.get();
@@ -3902,8 +4105,8 @@
 
         if (snap.exists) {
           const cloudData = snap.data();
-          const localTs = (localData && typeof localData.updatedAt === "number") ? localData.updatedAt : 0;
-          const cloudTs = (cloudData && typeof cloudData.updatedAt === "number") ? cloudData.updatedAt : 0;
+          const localTs = (localData && Number.isFinite(localData.updatedAt)) ? localData.updatedAt : 0;
+          const cloudTs = (cloudData && Number.isFinite(cloudData.updatedAt)) ? cloudData.updatedAt : 0;
 
           if (isPending || (localData && localTs > cloudTs)) {
             // Ưu tiên bản đệm trên máy (chưa kịp đồng bộ trước đó) và đẩy ngược lên Cloud
@@ -3914,7 +4117,7 @@
             savePlayerToStorage(false);
           }
 
-          if (cloudData.pendingGold && cloudData.pendingGold > 0) {
+          if (cloudData && Number.isFinite(cloudData.pendingGold) && cloudData.pendingGold > 0) {
             playerGold += cloudData.pendingGold;
             if (typeof addFloatingText === "function" && typeof player !== "undefined") {
               addFloatingText(`🤝 +${cloudData.pendingGold} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
@@ -3926,34 +4129,18 @@
           // Chưa có trên Cloud nhưng có bản đệm trên máy -> đẩy lên Cloud ngay
           await syncPlayerToCloud();
         }
-        if (fbPlayerSnapUnsub) {
-          fbPlayerSnapUnsub();
-          fbPlayerSnapUnsub = null;
-        }
-        // Lắng nghe realtime nếu có người khác mua đồ của bạn khi bạn đang online
-        fbPlayerSnapUnsub = docRef.onSnapshot((s) => {
-          if (!s.exists) return;
-          const d = s.data();
-          if (d && d.pendingGold > 0) {
-            const gain = d.pendingGold;
-            playerGold += gain;
-            if (typeof addFloatingText === "function" && typeof player !== "undefined") {
-              addFloatingText(`🤝 +${gain} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
-            }
-            docRef.set({ pendingGold: 0, gold: playerGold }, { merge: true }).catch(() => {});
-            const shopUI = document.getElementById("npc-shop-ui");
-            if (shopUI && shopUI.style.display === "flex") renderNpcShopUI();
-          }
-        });
+        attachPlayerCloudSnapshotListener(docRef);
         return snap.exists;
       } catch (e) {
         console.warn("Cloud load err:", e);
         return false;
+      } finally {
+        isCloudLoadInFlight = false;
       }
     }
 
     async function syncPlayerToCloud() {
-      if (!fbDb || !currentPlayerProfile || !currentPlayerProfile.id) return false;
+      if (!fbDb || !currentPlayerProfile || !currentPlayerProfile.id || !currentPlayerProfile.username) return false;
       try {
         const payload = exportPlayerSaveData();
         if (currentPlayerProfile.passwordHash) {
@@ -4064,12 +4251,19 @@
     }
 
     function switchToAuthForm(mode = "login") {
+      const isReg = !!(currentPlayerProfile && currentPlayerProfile.username);
       const closeBtn = document.getElementById("closeProfileModalBtn");
       if (closeBtn) closeBtn.style.display = isReg ? "inline-block" : "none";
       const loggedView = document.getElementById("accountLoggedInView");
       const authView = document.getElementById("accountAuthView");
       if (loggedView) loggedView.style.display = "none";
       if (authView) authView.style.display = "flex";
+      const uInp = document.getElementById("authUsernameInput");
+      const pInp = document.getElementById("authPasswordInput");
+      const dInp = document.getElementById("authDisplayNameInput");
+      if (uInp) uInp.value = "";
+      if (pInp) pInp.value = "";
+      if (dInp) dInp.value = "";
       switchAuthTab(mode);
     }
 
@@ -4105,8 +4299,19 @@
 
       const accId = "acc_" + username;
       const passHash = simpleHashPassword(password);
+      const prevAccountId = currentPlayerProfile ? currentPlayerProfile.id : null;
       const localAccountsRaw = localStorage.getItem("game2d_accounts_registry_v1");
-      const localAccounts = localAccountsRaw ? JSON.parse(localAccountsRaw) : {};
+      let localAccounts = {};
+      if (localAccountsRaw) {
+        try {
+          const parsedAccounts = JSON.parse(localAccountsRaw);
+          if (parsedAccounts && typeof parsedAccounts === "object" && !Array.isArray(parsedAccounts)) {
+            localAccounts = parsedAccounts;
+          }
+        } catch (e) {
+          localAccounts = {};
+        }
+      }
 
       showAuthFeedback("⏳ Đang xử lý đồng bộ tài khoản...", false);
 
@@ -4136,6 +4341,7 @@
         localStorage.setItem("game2d_accounts_registry_v1", JSON.stringify(localAccounts));
         localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(currentPlayerProfile));
 
+        isSaveSystemReady = true;
         savePlayerToStorage();
         await syncPlayerToCloud();
         updatePlayerAccountBtnLabel();
@@ -4186,12 +4392,78 @@
         localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(currentPlayerProfile));
 
         if (foundCloudData) {
-          applyPlayerSaveData(foundCloudData);
-          savePlayerToStorage();
+          const isPending = isCloudSyncPending(accId);
+          const localData = getLocalSaveObject(accId);
+          const localTs = (localData && Number.isFinite(localData.updatedAt)) ? localData.updatedAt : 0;
+          const cloudTs = Number.isFinite(foundCloudData.updatedAt) ? foundCloudData.updatedAt : 0;
+
+          if (isPending || (localData && localTs > cloudTs)) {
+            if (localData) applyPlayerSaveData(localData);
+            await syncPlayerToCloud();
+          } else {
+            applyPlayerSaveData(foundCloudData);
+            savePlayerToStorage(false);
+          }
+
+          if (Number.isFinite(foundCloudData.pendingGold) && foundCloudData.pendingGold > 0) {
+            playerGold += foundCloudData.pendingGold;
+            if (typeof addFloatingText === "function" && typeof player !== "undefined") {
+              addFloatingText(`🤝 +${foundCloudData.pendingGold} Xu từ Chợ!`, player.x, player.y - 14, "#fde047", true);
+            }
+            if (fbDb) {
+              await fbDb.collection("players").doc(accId).set({ pendingGold: 0, gold: playerGold }, { merge: true });
+            }
+            savePlayerToStorage(false);
+          }
+
+          if (fbDb) {
+            attachPlayerCloudSnapshotListener(fbDb.collection("players").doc(accId));
+          }
         } else {
-          loadPlayerSaveFromStorage();
+          const localSave = getLocalSaveObject(accId);
+          if (localSave) {
+            applyPlayerSaveData(localSave);
+          } else if (prevAccountId !== accId) {
+            resetTransientGameplayState();
+            playerGold = 50;
+            playerInventory.fill(null);
+            playerEquipment.fill(null);
+            activeHotbarIndex = 0;
+            applyPlacedStructures({ home: [], forest: [], lake: [] });
+            if (typeof HOME_CAMPFIRE !== "undefined" && HOME_CAMPFIRE) {
+              HOME_CAMPFIRE.healTimer = 0;
+              HOME_CAMPFIRE.inputItem = null;
+              HOME_CAMPFIRE.fuelItem = null;
+              HOME_CAMPFIRE.resultItem = null;
+              HOME_CAMPFIRE.cookProgress = 0;
+              HOME_CAMPFIRE.fuelRemaining = 0;
+              HOME_CAMPFIRE.fuelMax = 16.0;
+            }
+            if (typeof recalculatePlayerArmorAndStats === "function" && typeof player !== "undefined") {
+              recalculatePlayerArmorAndStats();
+            }
+            if (typeof player !== "undefined") {
+              player.hp = player.maxHp;
+              player.displayHp = player.maxHp;
+            }
+            playerArmor = playerMaxArmor;
+            playerDisplayArmor = playerMaxArmor;
+            if (valPlayerHP && typeof player !== "undefined") {
+              valPlayerHP.textContent = `${Math.round(player.hp)} / ${player.maxHp}`;
+            }
+            if (typeof loadMap === "function") {
+              loadMap("home", { x: (MAP_SIZE - TILE_SIZE) / 2, y: (MAP_SIZE - TILE_SIZE) / 2 + 20 }, true);
+            }
+            if (typeof renderInventory === "function") renderInventory();
+            if (typeof renderHotbar === "function") renderHotbar();
+            if (typeof renderCampfireUI === "function") renderCampfireUI();
+            lastSavedDigest = computeSaveDigest(exportPlayerSaveData());
+          }
+          if (fbDb) {
+            await loadPlayerFromCloud();
+          }
         }
-        await loadPlayerFromCloud();
+        isSaveSystemReady = true;
         updatePlayerAccountBtnLabel();
         showAuthFeedback("✅ Đăng nhập & tải tiến trình thành công!", false);
         if (typeof showNotification === "function") {
@@ -4240,10 +4512,16 @@
       try {
         const rawProf = localStorage.getItem(STORAGE_PROFILE_KEY);
         if (rawProf) {
-          const parsed = JSON.parse(rawProf);
-          if (parsed && parsed.id) {
+          let parsed = null;
+          try {
+            parsed = JSON.parse(rawProf);
+          } catch (parseErr) {
+            console.warn("Corrupt active profile JSON:", parseErr);
+          }
+          if (parsed && typeof parsed === "object" && parsed.id) {
             currentPlayerProfile = parsed;
             loadPlayerSaveFromStorage();
+            isSaveSystemReady = true;
             loadPlayerFromCloud();
           }
         }
@@ -4254,6 +4532,7 @@
           switchToAuthForm("register");
         }
       } catch (e) { console.warn("Profile init err:", e); }
+      isSaveSystemReady = true;
       updatePlayerAccountBtnLabel();
       claimPendingMarketPayouts();
     }
@@ -4264,34 +4543,51 @@
 
     function exportPlayerSaveData() {
       const nowTs = Date.now();
+      const safeCampfire = (typeof HOME_CAMPFIRE !== "undefined" && HOME_CAMPFIRE) ? {
+        inputItem: HOME_CAMPFIRE.inputItem ? { ...HOME_CAMPFIRE.inputItem } : null,
+        fuelItem: HOME_CAMPFIRE.fuelItem ? { ...HOME_CAMPFIRE.fuelItem } : null,
+        resultItem: HOME_CAMPFIRE.resultItem ? { ...HOME_CAMPFIRE.resultItem } : null,
+        cookProgress: Number.isFinite(HOME_CAMPFIRE.cookProgress) ? HOME_CAMPFIRE.cookProgress : 0,
+        fuelRemaining: Number.isFinite(HOME_CAMPFIRE.fuelRemaining) ? HOME_CAMPFIRE.fuelRemaining : 0,
+        fuelMax: (Number.isFinite(HOME_CAMPFIRE.fuelMax) && HOME_CAMPFIRE.fuelMax > 0) ? HOME_CAMPFIRE.fuelMax : 16.0
+      } : null;
+
       return {
         profile: currentPlayerProfile,
-        gold: typeof playerGold === "number" ? playerGold : 50,
-        hp: (typeof player !== "undefined" && typeof player.hp === "number") ? player.hp : 150,
-        maxHp: (typeof player !== "undefined" && typeof player.maxHp === "number") ? player.maxHp : 150,
-        armor: typeof playerArmor === "number" ? playerArmor : 0,
+        gold: (typeof playerGold === "number" && Number.isFinite(playerGold)) ? playerGold : 50,
+        hp: (typeof player !== "undefined" && Number.isFinite(player.hp)) ? player.hp : 150,
+        maxHp: (typeof player !== "undefined" && Number.isFinite(player.maxHp)) ? player.maxHp : 150,
+        armor: Number.isFinite(playerArmor) ? playerArmor : 0,
+        activeHotbarIndex: Number.isFinite(activeHotbarIndex) ? Math.max(0, Math.min(8, Math.trunc(activeHotbarIndex))) : 0,
         inventory: playerInventory,
         equipment: playerEquipment,
         currentMap: typeof currentMap !== "undefined" ? currentMap : "home",
-        x: (typeof player !== "undefined" && typeof player.x === "number") ? Math.round(player.x) : 248,
-        y: (typeof player !== "undefined" && typeof player.y === "number") ? Math.round(player.y) : 248,
+        x: (typeof player !== "undefined" && Number.isFinite(player.x)) ? Math.round(player.x) : 248,
+        y: (typeof player !== "undefined" && Number.isFinite(player.y)) ? Math.round(player.y) : 268,
         placedObjects: exportPlacedStructures(),
+        campfire: safeCampfire,
         updatedAt: nowTs
       };
     }
 
-    function savePlayerToStorage(markPending = true) {
+    function savePlayerToStorage(markPending = true, onlyIfDirty = false) {
       try {
-        if (!currentPlayerProfile || !currentPlayerProfile.id) return;
+        if (!currentPlayerProfile || !currentPlayerProfile.id) return false;
         const payload = exportPlayerSaveData();
+        const digest = computeSaveDigest(payload);
+        if (onlyIfDirty && lastSavedDigest !== null && digest === lastSavedDigest) {
+          return false;
+        }
         localStorage.setItem("game2d_save_" + currentPlayerProfile.id, JSON.stringify(payload));
+        lastSavedDigest = digest;
         if (markPending) {
           setCloudSyncPending(currentPlayerProfile.id, true);
         }
         const now = new Date(payload.updatedAt);
         lastSavedTimeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
         updatePlayerAccountBtnLabel();
-      } catch (e) {}
+        return true;
+      } catch (e) { return false; }
     }
 
     function loadPlayerSaveFromStorage() {
@@ -4660,12 +4956,34 @@
 
     function buyItemFromNPC(itemId) {
       const entry = NPC_SHOP_CATALOG.find(e => e.id === itemId);
-      if (!entry || playerGold < entry.price) {
+      const dbData = entry ? ITEMS_DATABASE[entry.id] : null;
+      if (!entry || !dbData) return;
+      if (playerGold < entry.price) {
         addFloatingText("❌ Không đủ Xu!", player.x, player.y - 12, "#ef4444");
         return;
       }
+
+      const qty = Math.max(1, entry.qty || 1);
+      const newItem = {
+        id: dbData.id || entry.id,
+        name: dbData.name || entry.id,
+        quantity: qty,
+        icon: dbData.icon || "",
+        ...(dbData.durability !== undefined
+          ? { durability: dbData.durability, maxDurability: dbData.maxDurability || dbData.durability }
+          : {})
+      };
+      if (typeof rollWeaponInstance === "function") {
+        rollWeaponInstance(newItem);
+      }
+
+      if (!canFitItemInBagOnly(newItem)) {
+        addFloatingText("🎒 Túi đồ đã đầy!", player.x - 10, player.y - 12, "#ef4444");
+        return;
+      }
+
       playerGold -= entry.price;
-      addItemToInventory(entry.id, entry.qty);
+      pickupItem(newItem);
       addFloatingText(`-${entry.price} Xu 🪙`, player.x, player.y - 12, "#38bdf8", true);
       renderInventory();
       renderNpcShopUI();
@@ -11545,6 +11863,7 @@
       if (!inventoryUI) return;
       const isCurrentlyClosed = (inventoryUI.style.display === "none" || inventoryUI.style.display === "");
       const willOpen = forceOpen !== null ? forceOpen : isCurrentlyClosed;
+      if (hotbarUI) hotbarUI.style.display = willOpen ? "none" : "flex";
 
       if (willOpen) {
         if (mode && mode !== "wand") {
@@ -12101,7 +12420,7 @@
       }
     }
 
-    function loadMap(mapId, newPlayerPos = null) {
+    function loadMap(mapId, newPlayerPos = null, skipSave = false) {
       resetFishingState();
       if (timeStopState.active) detonateAndResumeTimeStop(true);
       timeStopState.resumeFlashTimer = 0;
@@ -12117,8 +12436,8 @@
       if (newPlayerPos) {
         player.x = newPlayerPos.x;
         player.y = newPlayerPos.y;
-        teleportFlashOpacity = 0.5;
-        if (typeof savePlayerToStorage === "function") savePlayerToStorage(true);
+        if (!skipSave) teleportFlashOpacity = 0.5;
+        if (!skipSave && typeof savePlayerToStorage === "function") savePlayerToStorage(true);
       }
 
       // -------------------------------------------------------------
@@ -12643,9 +12962,15 @@
       player.animTimer = 0;
       showNotification("💀 Bạn đã bị hạ gục! Đang hồi sinh về Nhà...", true);
 
+      if (deathRespawnTimer) {
+        clearTimeout(deathRespawnTimer);
+        deathRespawnTimer = null;
+      }
+
       // Sau 2.5s hồi sinh về Nhà đầy máu
-      setTimeout(() => {
-        loadMap("home", { x: (MAP_SIZE - TILE_SIZE) / 2, y: (MAP_SIZE - TILE_SIZE) / 2 + 20 });
+      deathRespawnTimer = setTimeout(() => {
+        deathRespawnTimer = null;
+        loadMap("home", { x: (MAP_SIZE - TILE_SIZE) / 2, y: (MAP_SIZE - TILE_SIZE) / 2 + 20 }, true);
         player.hp = player.maxHp;
         player.displayHp = player.maxHp;
         playerArmor = playerMaxArmor;
@@ -12656,6 +12981,9 @@
         player.frameX = 0;
         if (valPlayerHP) {
           valPlayerHP.textContent = `${Math.round(player.hp)} / ${player.maxHp}`;
+        }
+        if (canAutoPersistProfile() && typeof savePlayerToStorage === "function") {
+          savePlayerToStorage(true);
         }
       }, 2500);
     }
@@ -16943,24 +17271,27 @@
     });
 
     // Tự động lưu vào bộ nhớ đệm trên máy mỗi 2 giây (0 tốn quota) & đồng bộ Cloud mỗi 2 phút
-    setInterval(() => savePlayerToStorage(true), 2000);
     setInterval(() => {
-      if (currentPlayerProfile && isCloudSyncPending(currentPlayerProfile.id)) {
+      if (!canAutoPersistProfile()) return;
+      savePlayerToStorage(true, true);
+    }, 2000);
+    setInterval(() => {
+      if (!canAutoPersistProfile()) return;
+      if (isCloudSyncPending(currentPlayerProfile.id)) {
         syncPlayerToCloud();
       }
     }, 120000);
 
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
-        savePlayerToStorage(true);
+    function handlePageHideOrUnload() {
+      if (!canAutoPersistProfile()) return;
+      const didSave = savePlayerToStorage(true, true);
+      if (didSave || isCloudSyncPending(currentPlayerProfile.id)) {
         syncPlayerToCloud();
       }
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") handlePageHideOrUnload();
     });
-    window.addEventListener("pagehide", () => {
-      savePlayerToStorage(true);
-      syncPlayerToCloud();
-    });
-    window.addEventListener("beforeunload", () => {
-      savePlayerToStorage(true);
-      syncPlayerToCloud();
-    });
+    window.addEventListener("pagehide", handlePageHideOrUnload);
+    window.addEventListener("beforeunload", handlePageHideOrUnload);
