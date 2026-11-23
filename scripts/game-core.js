@@ -109,7 +109,7 @@
       boots_diamond: "assets/items/armor_equipment/giày kim cương.png",
       tileset: "assets/Tileset/custom_tileset_v1.png?v=20261123_1",
       home_props_hd: "assets/Tileset/home_props_hd.png?v=20261123_1",
-      forest_props_hd: "assets/Tileset/forest_props_hd.png?v=20261123_2"
+      forest_props_hd: "assets/Tileset/forest_props_hd.png?v=20261123_3"
     };
 
     const iconImageCache = new Map();
@@ -179,6 +179,48 @@
           forestMapData = mapObj;
         } else {
           homeMapData = mapObj;
+          // Tách các cụm cây/đá trong layer Plains của map_home.json thành thực thể chặt/đập được (không tự mọc lại)
+          const homePlains = layerInstances.find(l => l.__identifier === "Plains");
+          if (homePlains && Array.isArray(homePlains.autoLayerTiles) && homePlains.autoLayerTiles.length > 0) {
+            const tiles = homePlains.autoLayerTiles;
+            const visited = new Set();
+            const tileMap = new Map();
+            tiles.forEach((t, idx) => tileMap.set(`${t.px[0]},${t.px[1]}`, idx));
+            tiles.forEach((t, idx) => {
+              if (visited.has(idx)) return;
+              const queue = [idx];
+              visited.add(idx);
+              let minX = t.px[0], maxX = t.px[0], maxY = t.px[1], count = 0;
+              while (queue.length > 0) {
+                const cur = tiles[queue.shift()];
+                count++;
+                if (cur.px[0] < minX) minX = cur.px[0];
+                if (cur.px[0] > maxX) maxX = cur.px[0];
+                if (cur.px[1] > maxY) maxY = cur.px[1];
+                const dirs = [[16,0],[-16,0],[0,16],[0,-16]];
+                for (const [dx, dy] of dirs) {
+                  const nIdx = tileMap.get(`${cur.px[0]+dx},${cur.px[1]+dy}`);
+                  if (nIdx !== undefined && !visited.has(nIdx)) {
+                    visited.add(nIdx);
+                    queue.push(nIdx);
+                  }
+                }
+              }
+              const cx = Math.round(((minX + maxX) / 2) / 16) * 16;
+              const isRock = count <= 2;
+              homeHarvestables.push({
+                type: isRock ? "rock" : "tree",
+                x: cx,
+                y: maxY,
+                width: 16,
+                height: 16,
+                hp: isRock ? 6 : 5,
+                maxHp: isRock ? 6 : 5,
+                noRespawn: true
+              });
+            });
+            homePlains.autoLayerTiles = [];
+          }
         }
 
         // Thu thập và nạp trước tất cả các ảnh tileset được khai báo trong __tilesetRelPath
@@ -238,7 +280,11 @@
       octx.imageSmoothingEnabled = false;
 
       const layers = mapObj.layerInstances;
-      const renderLayers = layers.slice().reverse();
+      let renderLayers = layers.slice().reverse();
+      if (mapName === "forest") {
+        const order = { Jungles: 0, Water: 1, Fences: 2 };
+        renderLayers = layers.slice().sort((a, b) => (order[a.__identifier] ?? 1) - (order[b.__identifier] ?? 1));
+      }
 
       renderLayers.forEach((layer) => {
         const gridSize = layer.__gridSize || TILE_SIZE;
@@ -12373,6 +12419,40 @@
       forestMobs.push(createChicken("chicken_" + (i + 1), forestHarvestables));
     }
 
+    // Đặt lại vị trí toàn bộ cây, đá và sinh vật rừng SAU KHI forestMapData đã tải xong (tránh rơi xuống nước, hàng rào hay đường đất)
+    function repositionForestEntities() {
+      if (!forestMapData || !forestMapData.layerInstances) return;
+      const validList = [];
+      for (const obj of forestHarvestables) {
+        const pos = getRandomValidPosition(obj.width || TILE_SIZE, validList, false);
+        obj.x = pos.x;
+        obj.y = pos.y;
+        validList.push(obj);
+      }
+      for (const mob of forestMobs) {
+        let attempts = 0;
+        let placed = false;
+        while (!placed && attempts < 400) {
+          attempts++;
+          const px = 48 + Math.floor(Math.random() * (448 - 48 - mob.width));
+          const py = 48 + Math.floor(Math.random() * (448 - 48 - mob.height));
+          if (px < 72 && Math.abs(py - MAP_SIZE / 2) < 40) continue;
+          if (px > 440 && Math.abs(py - MAP_SIZE / 2) < 40) continue;
+          const rect = { x: px, y: py, width: mob.width, height: mob.height };
+          if (!isBoxOnWalkableGround(rect, "forest")) continue;
+          let overlaps = false;
+          for (const o of forestHarvestables) {
+            if (checkAABB(rect, o)) { overlaps = true; break; }
+          }
+          if (!overlaps) {
+            mob.x = px;
+            mob.y = py;
+            placed = true;
+          }
+        }
+      }
+    }
+
     const homeHarvestables = [];
 
     // Cấu hình các Scene/Bản đồ với Cổng 16x16
@@ -12769,9 +12849,17 @@
             const sX = mob.dirX * mob.speed * slowMult * deltaTime;
             const sY = mob.dirY * mob.speed * slowMult * deltaTime;
             const bX = { x: mob.x + sX, y: mob.y, width: mob.width, height: mob.height };
-            if (!checkMobCollision(bX)) mob.x = bX.x;
+            const hitX = checkMobCollision(bX);
+            if (!hitX) mob.x = bX.x;
             const bY = { x: mob.x, y: mob.y + sY, width: mob.width, height: mob.height };
-            if (!checkMobCollision(bY)) mob.y = bY.y;
+            const hitY = checkMobCollision(bY);
+            if (!hitY) mob.y = bY.y;
+            if (hitX && hitY) {
+              // Đổi hướng ngay khi chạm nước/hàng rào/cây để sinh vật không bị kẹt
+              const newAngle = Math.random() * Math.PI * 2;
+              mob.dirX = Math.cos(newAngle);
+              mob.dirY = Math.sin(newAngle);
+            }
           }
           continue;
         }
@@ -15796,7 +15884,14 @@
                 ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
               }
             } else if (obj.type === "rock") {
-              if (images.rocks && images.rocks.complete && images.rocks.naturalWidth > 0) {
+              const fPropImg = images.forest_props_hd;
+              if (fPropImg && fPropImg.complete && fPropImg.naturalWidth > 0) {
+                ctx.drawImage(
+                  fPropImg,
+                  6 * 64, 0, 64, 64,
+                  obj.x - 3, obj.y - 4, 22, 20
+                );
+              } else if (images.rocks && images.rocks.complete && images.rocks.naturalWidth > 0) {
                 const rType = obj.rockType !== undefined ? obj.rockType : 0;
                 ctx.drawImage(
                   images.rocks,
@@ -17480,10 +17575,11 @@
     // Khởi động hệ thống tải ảnh và nạp cả 3 bản đồ LDtk trước khi khôi phục save & chạy game loop
     preloadImages(async () => {
       await Promise.all([
-        loadMapData("assets/maps/map_home.json?v=20261123_2", false),
-        loadMapData("assets/maps/map_rung.json?v=20261123_2", true),
+        loadMapData("assets/maps/map_home.json?v=20261123_4", false),
+        loadMapData("assets/maps/map_rung.json?v=20261123_4", true),
         loadMapData("assets/maps/map_ho.json", "lake")
       ]);
+      repositionForestEntities();
       initPlayerProfileAndSave();
       requestAnimationFrame(gameLoop);
     });
