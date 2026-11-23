@@ -4357,7 +4357,7 @@
         }
         applyPlacedStructures({ home: [], forest: [], lake: [] });
         if (typeof loadMap === "function") {
-          loadMap("home", { x: 248, y: 248 });
+          loadMap("home", { x: 248, y: 276 });
         }
 
         isSaveSystemReady = true;
