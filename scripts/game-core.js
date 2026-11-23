@@ -107,8 +107,8 @@
   chest_diamond: "assets/items/armor_equipment/giáp kim cương.png",
   legs_diamond: "assets/items/armor_equipment/quần kim cương.png",
       boots_diamond: "assets/items/armor_equipment/giày kim cương.png",
-      tileset: "assets/Tileset/custom_tileset_v1.png",
-      home_props_hd: "assets/Tileset/home_props_hd.png"
+      tileset: "assets/Tileset/custom_tileset_v1.png?v=20261123_1",
+      home_props_hd: "assets/Tileset/home_props_hd.png?v=20261123_1"
     };
 
     const iconImageCache = new Map();
@@ -207,7 +207,7 @@
                   mapTilesetImages[relPath] = null;
                   resolve(null);
                 };
-                img.src = relPath;
+                img.src = relPath + "?v=20261123_1";
               });
               mapTilesetImages[relPath] = true; // Đánh dấu đang tải
               tilesetPromises.push(p);
@@ -17326,7 +17326,7 @@
     // Khởi động hệ thống tải ảnh và nạp cả 3 bản đồ LDtk trước khi khôi phục save & chạy game loop
     preloadImages(async () => {
       await Promise.all([
-        loadMapData("assets/maps/map_home.json", false),
+        loadMapData("assets/maps/map_home.json?v=20261123_1", false),
         loadMapData("assets/maps/map_rung.json", true),
         loadMapData("assets/maps/map_ho.json", "lake")
       ]);
