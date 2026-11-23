@@ -107,7 +107,8 @@
   chest_diamond: "assets/items/armor_equipment/giáp kim cương.png",
   legs_diamond: "assets/items/armor_equipment/quần kim cương.png",
       boots_diamond: "assets/items/armor_equipment/giày kim cương.png",
-      tileset: "assets/Tileset/custom_tileset_v1.png"
+      tileset: "assets/Tileset/custom_tileset_v1.png",
+      home_props_hd: "assets/Tileset/home_props_hd.png"
     };
 
     const iconImageCache = new Map();
@@ -250,6 +251,9 @@
 
         if (layer.autoLayerTiles && layer.autoLayerTiles.length > 0) {
           layer.autoLayerTiles.forEach((tile) => {
+            if (mapName === "home" && layer.__identifier === "Plains" && !(tile.src[1] === 64 && tile.src[0] === 64)) {
+              return; // Chỉ giữ cầu gỗ ở nền map home; cây và vật thể HD được vẽ có Y-sorting
+            }
             const dx = tile.px[0];
             const dy = tile.px[1];
             const sx = tile.src[0];
@@ -14267,9 +14271,11 @@
         const ground = layers.find(l => l.__identifier === "Ground");
         const water = layers.find(l => l.__identifier === "Water");
         const rock = layers.find(l => l.__identifier === "Rock");
+        const plains = layers.find(l => l.__identifier === "Plains");
 
         if (water && water.intGridCsv && water.intGridCsv[idx] > 0) return false;
         if (rock && rock.intGridCsv && rock.intGridCsv[idx] > 0) return false;
+        if (plains && plains.intGridCsv && plains.intGridCsv[idx] > 0) return false;
         if (ground && ground.intGridCsv && ground.intGridCsv[idx] > 0) return true;
         return false;
       }
@@ -15544,6 +15550,63 @@
       // --- VẼ CÁC THỰC THỂ CÓ ĐỘ SÂU THEO TRỤC Y (Y-SORTING LAYER LOGIC) ---
       // Gom tất cả các đối tượng: Vật thể (Cây, Đá, Lò rèn), Heo Rừng và Player vào danh sách renderable
       const renderables = [];
+
+      // 0. Thêm cây & vật thể HD từ map home (dùng Tree1.png & home_props_hd.png có Y-sorting)
+      if (currentMap === "home" && homeMapData && homeMapData.layerInstances) {
+        const plainsLayer = homeMapData.layerInstances.find(l => l.__identifier === "Plains");
+        if (plainsLayer && plainsLayer.autoLayerTiles) {
+          for (const tile of plainsLayer.autoLayerTiles) {
+            const sx = tile.src[0];
+            const sy = tile.src[1];
+            const px = tile.px[0];
+            const py = tile.px[1];
+            if (sy === 64 && sx === 64) continue; // Cầu gỗ đã vẽ ở nền
+
+            if (sy === 64 && (sx === 0 || sx === 16)) {
+              renderables.push({
+                sortY: py + 16,
+                draw: () => {
+                  const treeImg = images.tree1;
+                  if (treeImg && treeImg.complete && treeImg.naturalWidth > 0) {
+                    ctx.drawImage(treeImg, 37, 51, 119, 190, px - 14, py - 44, 44, 60);
+                  }
+                }
+              });
+            } else {
+              // Map src -> slot in home_props_hd.png (512x64, 8 slots of 64x64)
+              let slot = -1, ox = 0, oy = 0, dw = 16, dh = 16;
+              if (sy === 48 && sx === 0) { slot = 0; ox = -4; oy = -10; dw = 24; dh = 26; } // Đèn đường
+              else if (sy === 64 && sx === 32) { slot = 2; ox = -3; oy = -4; dw = 22; dh = 20; } // Bụi cỏ
+              else if (sy === 64 && sx === 48) { slot = 3; ox = -3; oy = -4; dw = 22; dh = 20; } // Đá rêu
+              else if (sy === 64 && sx === 80) { slot = 5; ox = 0; oy = -2; dw = 16; dh = 18; } // Hàng rào
+              else if (sy === 64 && sx === 96) { slot = 6; ox = -2; oy = -6; dw = 20; dh = 22; } // Biển chỉ dẫn
+              else if (sy === 64 && sx === 112) { slot = 7; ox = -3; oy = -6; dw = 22; dh = 22; } // Lửa trại
+
+              if (slot >= 0) {
+                renderables.push({
+                  sortY: py + 16,
+                  draw: () => {
+                    const propImg = images.home_props_hd;
+                    if (propImg && propImg.complete && propImg.naturalWidth > 0) {
+                      if (slot === 7) {
+                        const pulse = 0.85 + 0.15 * Math.sin(performance.now() * 0.008 + px);
+                        const grad = ctx.createRadialGradient(px + 8, py + 8, 2, px + 8, py + 8, 22 * pulse);
+                        grad.addColorStop(0, "rgba(255, 160, 40, 0.35)");
+                        grad.addColorStop(1, "rgba(255, 100, 20, 0)");
+                        ctx.fillStyle = grad;
+                        ctx.beginPath();
+                        ctx.arc(px + 8, py + 8, 22 * pulse, 0, Math.PI * 2);
+                        ctx.fill();
+                      }
+                      ctx.drawImage(propImg, slot * 64, 0, 64, 64, px + ox, py + oy, dw, dh);
+                    }
+                  }
+                });
+              }
+            }
+          }
+        }
+      }
 
       // 1. Thêm các vật thể bản đồ
       for (const obj of currentObjects) {
