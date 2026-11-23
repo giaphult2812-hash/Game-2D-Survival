@@ -4346,8 +4346,22 @@
         localStorage.setItem("game2d_accounts_registry_v1", JSON.stringify(localAccounts));
         localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(currentPlayerProfile));
 
+        // Đưa trạng thái tài khoản mới về mặc định (map Nhà, vị trí spawn, full máu, 50 Xu, chưa đặt công trình)
+        // Giữ nguyên túi đồ mặc định hiện tại để phục vụ quá trình test/chỉnh sửa
+        playerGold = 50;
+        for (let i = 0; i < 4; i++) playerEquipment[i] = null;
+        if (typeof recalculatePlayerArmorAndStats === "function") recalculatePlayerArmorAndStats();
+        if (typeof player !== "undefined") {
+          player.hp = player.maxHp;
+          playerArmor = 0;
+        }
+        applyPlacedStructures({ home: [], forest: [], lake: [] });
+        if (typeof loadMap === "function") {
+          loadMap("home", { x: 248, y: 248 });
+        }
+
         isSaveSystemReady = true;
-        savePlayerToStorage();
+        savePlayerToStorage(true);
         await syncPlayerToCloud();
         updatePlayerAccountBtnLabel();
         showAuthFeedback("✅ Đăng ký thành công! Đã lưu toàn bộ tiến trình game.", false);
