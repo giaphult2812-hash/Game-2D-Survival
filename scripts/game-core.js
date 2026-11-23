@@ -108,7 +108,8 @@
   legs_diamond: "assets/items/armor_equipment/quần kim cương.png",
       boots_diamond: "assets/items/armor_equipment/giày kim cương.png",
       tileset: "assets/Tileset/custom_tileset_v1.png?v=20261123_1",
-      home_props_hd: "assets/Tileset/home_props_hd.png?v=20261123_1"
+      home_props_hd: "assets/Tileset/home_props_hd.png?v=20261123_1",
+      forest_props_hd: "assets/Tileset/forest_props_hd.png?v=20261123_2"
     };
 
     const iconImageCache = new Map();
@@ -253,6 +254,9 @@
           layer.autoLayerTiles.forEach((tile) => {
             if (mapName === "home" && layer.__identifier === "Plains" && !(tile.src[1] === 64 && tile.src[0] === 64)) {
               return; // Chỉ giữ cầu gỗ ở nền map home; cây và vật thể HD được vẽ có Y-sorting
+            }
+            if (mapName === "forest" && layer.__identifier === "Fences" && !(tile.src[1] === 64 && tile.src[0] === 48)) {
+              return; // Chỉ giữ cầu gỗ ở nền map forest; bia đá, đền, khúc gỗ... được vẽ HD có Y-sorting
             }
             const dx = tile.px[0];
             const dy = tile.px[1];
@@ -12071,21 +12075,51 @@
       );
     }
 
-    // Tìm tọa độ ngẫu nhiên hợp lệ trên bản đồ Rừng (không đè lên vật thể khác, không đè lên player hoặc portal)
+    // Kiểm tra tọa độ (px, py) có nằm trên đường đất hoặc cầu ở map Rừng hay không (cấm cây/đá mọc lên đường)
+    function isForestDirtOrBridge(rect) {
+      if (!forestMapData || !forestMapData.layerInstances) return false;
+      const jungles = forestMapData.layerInstances.find(l => l.__identifier === "Jungles");
+      const fences = forestMapData.layerInstances.find(l => l.__identifier === "Fences");
+      const pts = [
+        [rect.x + 2, rect.y + 2],
+        [rect.x + rect.width - 2, rect.y + 2],
+        [rect.x + 2, rect.y + rect.height - 2],
+        [rect.x + rect.width - 2, rect.y + rect.height - 2]
+      ];
+      for (const [cx, cy] of pts) {
+        const tx = Math.floor(cx / TILE_SIZE) * TILE_SIZE;
+        const ty = Math.floor(cy / TILE_SIZE) * TILE_SIZE;
+        if (jungles && jungles.autoLayerTiles) {
+          for (const t of jungles.autoLayerTiles) {
+            if (t.px[0] === tx && t.px[1] === ty && (t.src[1] === 16 || t.src[1] === 80 || t.src[1] === 96)) {
+              return true;
+            }
+          }
+        }
+        if (fences && fences.autoLayerTiles) {
+          for (const t of fences.autoLayerTiles) {
+            if (t.px[0] === tx && t.px[1] === ty) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // Tìm tọa độ ngẫu nhiên hợp lệ trên bản đồ Rừng (không đè lên vật thể khác, không đè lên đường đất, player hoặc portal)
     function getRandomValidPosition(size, existingList, excludePlayer = true) {
       let posX = 0, posY = 0, valid = false, attempts = 0;
 
       while (!valid && attempts < 400) {
         attempts++;
-        // Ở map Rừng, hàng rào bao quanh ở ranh giới ô col: 2..29, row: 2..29 (tương ứng pixel 32 đến 480)
-        // Tạo vị trí an toàn bên trong hàng rào (từ pixel 48 đến 448)
-        posX = 48 + Math.floor(Math.random() * (448 - 48 - size));
-        posY = 48 + Math.floor(Math.random() * (448 - 48 - size));
+        // Ở map Rừng, tạo vị trí an toàn bên trong biên bản đồ (từ pixel 32 đến 464)
+        posX = 32 + Math.floor(Math.random() * (464 - 32 - size));
+        posY = 32 + Math.floor(Math.random() * (464 - 32 - size));
 
         const tempRect = { x: posX, y: posY, width: size, height: size };
 
-        // Tránh vị trí cổng dịch chuyển (x: 20..50, y: 220..280) và vị trí spawn trung tâm (x: 230..270, y: 230..270)
-        if (posX < 64 && Math.abs(posY - MAP_SIZE / 2) < 40) continue;
+        // Tránh vị trí cổng dịch chuyển Tây (VỀ NHÀ) và Đông (HỒ)
+        if (posX < 72 && Math.abs(posY - MAP_SIZE / 2) < 40) continue;
+        if (posX > 440 && Math.abs(posY - MAP_SIZE / 2) < 40) continue;
         if (Math.abs(posX - MAP_SIZE / 2) < 32 && Math.abs(posY - MAP_SIZE / 2) < 32) continue;
 
         // Tránh vị trí người chơi đang đứng
@@ -12097,8 +12131,9 @@
           if (checkAABB(tempRect, playerPadded)) continue;
         }
 
-        // Kiểm tra xem vị trí có nằm trên đất đi được và không nằm đè lên hàng rào hay nước
+        // Kiểm tra xem vị trí có nằm trên đất đi được, không nằm trên nước/vật cản và KHÔNG mọc trên đường đất/cầu
         if (!isBoxOnWalkableGround(tempRect, "forest")) continue;
+        if (isForestDirtOrBridge(tempRect)) continue;
 
         let overlaps = false;
         for (const obj of existingList) {
@@ -12338,14 +12373,7 @@
       forestMobs.push(createChicken("chicken_" + (i + 1), forestHarvestables));
     }
 
-    const homeHarvestables = [
-      { type: "tree", x: 96, y: 112, width: 16, height: 16, hp: 5, maxHp: 5, noRespawn: true },
-      { type: "tree", x: 144, y: 368, width: 16, height: 16, hp: 5, maxHp: 5, noRespawn: true },
-      { type: "tree", x: 352, y: 128, width: 16, height: 16, hp: 5, maxHp: 5, noRespawn: true },
-      { type: "tree", x: 368, y: 368, width: 16, height: 16, hp: 5, maxHp: 5, noRespawn: true },
-      { type: "rock", x: 112, y: 240, width: 16, height: 16, hp: 6, maxHp: 6, noRespawn: true },
-      { type: "rock", x: 320, y: 384, width: 16, height: 16, hp: 6, maxHp: 6, noRespawn: true }
-    ];
+    const homeHarvestables = [];
 
     // Cấu hình các Scene/Bản đồ với Cổng 16x16
     const mapConfigs = {
@@ -15688,6 +15716,52 @@
         }
       }
 
+      // 0b. Thêm vật thể HD từ map Rừng (bia đá cổ, đền phát sáng, khúc gỗ mục, dương xỉ...) với Y-sorting
+      if (currentMap === "forest" && forestMapData && forestMapData.layerInstances) {
+        const fencesLayer = forestMapData.layerInstances.find(l => l.__identifier === "Fences");
+        if (fencesLayer && fencesLayer.autoLayerTiles) {
+          for (const tile of fencesLayer.autoLayerTiles) {
+            const sx = tile.src[0];
+            const sy = tile.src[1];
+            const px = tile.px[0];
+            const py = tile.px[1];
+            if (sy === 64 && sx === 48) continue; // Cầu gỗ đã vẽ ở nền
+
+            let slot = -1, ox = -3, oy = -6, dw = 22, dh = 22;
+            if (sy === 64 && sx === 0) { slot = 0; ox = -3; oy = -8; dw = 22; dh = 24; } // Bia đá cổ
+            else if (sy === 64 && sx === 16) { slot = 1; ox = -3; oy = -8; dw = 22; dh = 24; } // Đền phát sáng
+            else if (sy === 64 && sx === 32) { slot = 2; ox = -4; oy = -4; dw = 24; dh = 20; } // Khúc gỗ mục
+            else if (sy === 64 && sx === 64) { slot = 3; ox = -3; oy = -4; dw = 22; dh = 20; } // Bụi dương xỉ & nấm
+            else if (sy === 48 && sx === 0) { slot = 4; ox = -2; oy = -6; dw = 20; dh = 22; } // Cọc rào gỗ
+            else if (sy === 64 && sx === 80) { slot = 5; ox = -2; oy = -6; dw = 20; dh = 22; } // Biển chỉ dẫn
+            else if (sy === 64 && sx === 96) { slot = 6; ox = -3; oy = -4; dw = 22; dh = 20; } // Mỏm đá rêu
+            else if (sy === 64 && sx === 112) { slot = 7; ox = -3; oy = -4; dw = 22; dh = 20; } // Bụi gai rừng
+
+            if (slot >= 0) {
+              renderables.push({
+                sortY: py + 16,
+                draw: () => {
+                  const fPropImg = images.forest_props_hd;
+                  if (fPropImg && fPropImg.complete && fPropImg.naturalWidth > 0) {
+                    if (slot === 1) {
+                      const pulse = 0.85 + 0.15 * Math.sin(performance.now() * 0.006 + px);
+                      const grad = ctx.createRadialGradient(px + 8, py + 4, 2, px + 8, py + 4, 24 * pulse);
+                      grad.addColorStop(0, "rgba(76, 224, 255, 0.38)");
+                      grad.addColorStop(1, "rgba(34, 211, 238, 0)");
+                      ctx.fillStyle = grad;
+                      ctx.beginPath();
+                      ctx.arc(px + 8, py + 4, 24 * pulse, 0, Math.PI * 2);
+                      ctx.fill();
+                    }
+                    ctx.drawImage(fPropImg, slot * 64, 0, 64, 64, px + ox, py + oy, dw, dh);
+                  }
+                }
+              });
+            }
+          }
+        }
+      }
+
       // 1. Thêm các vật thể bản đồ
       for (const obj of currentObjects) {
         // Tọa độ Y chân tiếp đất của vật thể để so sánh lớp
@@ -17406,8 +17480,8 @@
     // Khởi động hệ thống tải ảnh và nạp cả 3 bản đồ LDtk trước khi khôi phục save & chạy game loop
     preloadImages(async () => {
       await Promise.all([
-        loadMapData("assets/maps/map_home.json?v=20261123_1", false),
-        loadMapData("assets/maps/map_rung.json", true),
+        loadMapData("assets/maps/map_home.json?v=20261123_2", false),
+        loadMapData("assets/maps/map_rung.json?v=20261123_2", true),
         loadMapData("assets/maps/map_ho.json", "lake")
       ]);
       initPlayerProfileAndSave();
