@@ -12338,7 +12338,14 @@
       forestMobs.push(createChicken("chicken_" + (i + 1), forestHarvestables));
     }
 
-    const homeHarvestables = [];
+    const homeHarvestables = [
+      { type: "tree", x: 96, y: 112, width: 16, height: 16, hp: 5, maxHp: 5, noRespawn: true },
+      { type: "tree", x: 144, y: 368, width: 16, height: 16, hp: 5, maxHp: 5, noRespawn: true },
+      { type: "tree", x: 352, y: 128, width: 16, height: 16, hp: 5, maxHp: 5, noRespawn: true },
+      { type: "tree", x: 368, y: 368, width: 16, height: 16, hp: 5, maxHp: 5, noRespawn: true },
+      { type: "rock", x: 112, y: 240, width: 16, height: 16, hp: 6, maxHp: 6, noRespawn: true },
+      { type: "rock", x: 320, y: 384, width: 16, height: 16, hp: 6, maxHp: 6, noRespawn: true }
+    ];
 
     // Cấu hình các Scene/Bản đồ với Cổng 16x16
     const mapConfigs = {
@@ -13162,6 +13169,59 @@
     }
     window.tryPlaceChest = tryPlaceChest;
 
+    if (typeof ITEMS_DATABASE !== "undefined") {
+      ITEMS_DATABASE.tree_sapling = {
+        id: "tree_sapling",
+        name: "Mầm Cây",
+        category: "placeable",
+        icon: "🌱",
+        maxStack: 64,
+        desc: "Đặt xuống đất để trồng cây. Lớn qua 2 giai đoạn thành Cây Gỗ."
+      };
+    }
+
+    function tryPlantSapling(slotIdx) {
+      let placeX = Math.round(player.x / 16) * 16;
+      let placeY = Math.round(player.y / 16) * 16;
+      if (hoverTileX !== null && hoverTileY !== null && isTilePlaceable(hoverTileX, hoverTileY)) {
+        placeX = hoverTileX;
+        placeY = hoverTileY;
+      } else {
+        if (playerFacing === 'right') placeX += 16;
+        else if (playerFacing === 'left') placeX -= 16;
+        else if (playerFacing === 'down') placeY += 16;
+        else if (playerFacing === 'up') placeY -= 16;
+      }
+      const placeBox = { x: placeX, y: placeY, width: 16, height: 16 };
+      if (!isBoxOnWalkableGround(placeBox)) return false;
+      const playerBody = { x: player.x, y: player.y, width: 16, height: 16 };
+      if (checkAABB(placeBox, playerBody)) return false;
+      for (const o of currentObjects) {
+        if (checkAABB(placeBox, o)) return false;
+      }
+      const item = playerInventory[slotIdx];
+      if (!item || item.id !== "tree_sapling") return false;
+      item.quantity -= 1;
+      if (item.quantity <= 0) playerInventory[slotIdx] = null;
+      renderHotbar();
+
+      currentObjects.push({
+        type: "sapling",
+        x: placeX,
+        y: placeY,
+        width: 16,
+        height: 16,
+        stage: 1,
+        growTimer: 0,
+        name: "Mầm Cây"
+      });
+      playImpactSound(false);
+      spawnHitSparks(placeX + 8, placeY + 8, -Math.PI / 2);
+      showNotification("🌱 Đã trồng Mầm Cây! Cây sẽ lớn qua 2 giai đoạn.", false);
+      if (typeof savePlayerToStorage === "function") savePlayerToStorage(true);
+      return true;
+    }
+
     
     // Tính thời gian yêu cầu và trạng thái công cụ cho Cây (tree) hoặc Đá (rock)
     function getHarvestInfo(targetObj) {
@@ -13643,6 +13703,12 @@
       // Nếu đang cầm Rương Đồ: Đặt xuống đất ngay trước mặt!
       if (equippedItem && equippedItem.id === 'chest') {
         tryPlaceChest(activeHotbarIndex);
+        return;
+      }
+
+      // Nếu đang cầm Mầm Cây: Trồng xuống đất!
+      if (equippedItem && equippedItem.id === 'tree_sapling') {
+        tryPlantSapling(activeHotbarIndex);
         return;
       }
 
