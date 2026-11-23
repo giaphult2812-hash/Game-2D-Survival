@@ -14800,7 +14800,7 @@
       }
 
       // XỬ LÝ NHẤN GIỮ KHAI THÁC (CHẶT CÂY & ĐÀO ĐÁ) - Không chạy khi đang cầm Cung hoặc Cần Câu
-      if (isActionKeyHeld && !isHoldingBow && !(activeItem && activeItem.id === 'fishing_rod') && currentMap === "forest") {
+      if (isActionKeyHeld && !isHoldingBow && !(activeItem && activeItem.id === 'fishing_rod')) {
         const playerCenterX = player.x + player.width / 2;
         const playerCenterY = player.y + player.height / 2;
 
