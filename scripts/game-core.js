@@ -108,7 +108,7 @@
   legs_diamond: "assets/items/armor_equipment/quần kim cương.png",
       boots_diamond: "assets/items/armor_equipment/giày kim cương.png",
       tileset: "assets/Tileset/custom_tileset_v1.png?v=20261123_1",
-      home_props_hd: "assets/Tileset/home_props_hd.png?v=20261123_1",
+      home_props_hd: "assets/Tileset/home_props_hd.png?v=20261123_5",
       forest_props_hd: "assets/Tileset/forest_props_hd.png?v=20261123_3"
     };
 
@@ -179,48 +179,6 @@
           forestMapData = mapObj;
         } else {
           homeMapData = mapObj;
-          // Tách các cụm cây/đá trong layer Plains của map_home.json thành thực thể chặt/đập được (không tự mọc lại)
-          const homePlains = layerInstances.find(l => l.__identifier === "Plains");
-          if (homePlains && Array.isArray(homePlains.autoLayerTiles) && homePlains.autoLayerTiles.length > 0) {
-            const tiles = homePlains.autoLayerTiles;
-            const visited = new Set();
-            const tileMap = new Map();
-            tiles.forEach((t, idx) => tileMap.set(`${t.px[0]},${t.px[1]}`, idx));
-            tiles.forEach((t, idx) => {
-              if (visited.has(idx)) return;
-              const queue = [idx];
-              visited.add(idx);
-              let minX = t.px[0], maxX = t.px[0], maxY = t.px[1], count = 0;
-              while (queue.length > 0) {
-                const cur = tiles[queue.shift()];
-                count++;
-                if (cur.px[0] < minX) minX = cur.px[0];
-                if (cur.px[0] > maxX) maxX = cur.px[0];
-                if (cur.px[1] > maxY) maxY = cur.px[1];
-                const dirs = [[16,0],[-16,0],[0,16],[0,-16]];
-                for (const [dx, dy] of dirs) {
-                  const nIdx = tileMap.get(`${cur.px[0]+dx},${cur.px[1]+dy}`);
-                  if (nIdx !== undefined && !visited.has(nIdx)) {
-                    visited.add(nIdx);
-                    queue.push(nIdx);
-                  }
-                }
-              }
-              const cx = Math.round(((minX + maxX) / 2) / 16) * 16;
-              const isRock = count <= 2;
-              homeHarvestables.push({
-                type: isRock ? "rock" : "tree",
-                x: cx,
-                y: maxY,
-                width: 16,
-                height: 16,
-                hp: isRock ? 6 : 5,
-                maxHp: isRock ? 6 : 5,
-                noRespawn: true
-              });
-            });
-            homePlains.autoLayerTiles = [];
-          }
         }
 
         // Thu thập và nạp trước tất cả các ảnh tileset được khai báo trong __tilesetRelPath
@@ -15509,6 +15467,28 @@
         }
       }
 
+      // Tự động giải thoát nếu nhân vật đang đứng chồng lên mép nước/vật cản (do load save cũ)
+      function ensurePlayerNotStuck() {
+        const curBox = { x: player.x, y: player.y, width: player.width, height: player.height };
+        if (!willPlayerCollide(curBox)) return;
+        for (let r = 2; r <= 64; r += 2) {
+          for (let i = 0; i < 16; i++) {
+            const ang = (i / 16) * Math.PI * 2;
+            const cx = Math.max(0, Math.min(MAP_SIZE - player.width, player.x + Math.cos(ang) * r));
+            const cy = Math.max(0, Math.min(MAP_SIZE - player.height, player.y + Math.sin(ang) * r));
+            if (!willPlayerCollide({ x: cx, y: cy, width: player.width, height: player.height })) {
+              player.x = cx;
+              player.y = cy;
+              return;
+            }
+          }
+        }
+      }
+
+      if (deltaX !== 0 || deltaY !== 0) {
+        ensurePlayerNotStuck();
+      }
+
       // Xử lý va chạm AABB trục X (16x16)
       if (deltaX !== 0) {
         const futureBoxX = {
@@ -15772,8 +15752,10 @@
               // Map src -> slot in home_props_hd.png (512x64, 8 slots of 64x64)
               let slot = -1, ox = 0, oy = 0, dw = 16, dh = 16;
               if (sy === 48 && sx === 0) { slot = 0; ox = -4; oy = -10; dw = 24; dh = 26; } // Đèn đường
-              else if (sy === 64 && sx === 32) { slot = 2; ox = -3; oy = -4; dw = 22; dh = 20; } // Bụi cỏ
+              else if (sy === 48 && sx === 16) { slot = 1; ox = -5; oy = -10; dw = 26; dh = 26; } // Giếng nước làng quê
+              else if (sy === 64 && sx === 32) { slot = 2; ox = -3; oy = -4; dw = 22; dh = 20; } // Bụi hoa vườn
               else if (sy === 64 && sx === 48) { slot = 3; ox = -3; oy = -4; dw = 22; dh = 20; } // Đá rêu
+              else if (sy === 48 && sx === 64) { slot = 4; ox = -3; oy = -4; dw = 22; dh = 20; } // Thùng gỗ & chậu hoa
               else if (sy === 64 && sx === 80) { slot = 5; ox = 0; oy = -2; dw = 16; dh = 18; } // Hàng rào
               else if (sy === 64 && sx === 96) { slot = 6; ox = -2; oy = -6; dw = 20; dh = 22; } // Biển chỉ dẫn
               else if (sy === 64 && sx === 112) { slot = 7; ox = -3; oy = -6; dw = 22; dh = 22; } // Lửa trại
@@ -15784,14 +15766,15 @@
                   draw: () => {
                     const propImg = images.home_props_hd;
                     if (propImg && propImg.complete && propImg.naturalWidth > 0) {
-                      if (slot === 7) {
-                        const pulse = 0.85 + 0.15 * Math.sin(performance.now() * 0.008 + px);
-                        const grad = ctx.createRadialGradient(px + 8, py + 8, 2, px + 8, py + 8, 22 * pulse);
-                        grad.addColorStop(0, "rgba(255, 160, 40, 0.35)");
-                        grad.addColorStop(1, "rgba(255, 100, 20, 0)");
+                      if (slot === 0 || slot === 7) {
+                        const pulse = 0.88 + 0.12 * Math.sin(performance.now() * 0.007 + px);
+                        const gy = slot === 0 ? py + 2 : py + 8;
+                        const grad = ctx.createRadialGradient(px + 8, gy, 2, px + 8, gy, 20 * pulse);
+                        grad.addColorStop(0, "rgba(255, 180, 60, 0.32)");
+                        grad.addColorStop(1, "rgba(255, 120, 20, 0)");
                         ctx.fillStyle = grad;
                         ctx.beginPath();
-                        ctx.arc(px + 8, py + 8, 22 * pulse, 0, Math.PI * 2);
+                        ctx.arc(px + 8, gy, 20 * pulse, 0, Math.PI * 2);
                         ctx.fill();
                       }
                       ctx.drawImage(propImg, slot * 64, 0, 64, 64, px + ox, py + oy, dw, dh);
@@ -17575,7 +17558,7 @@
     // Khởi động hệ thống tải ảnh và nạp cả 3 bản đồ LDtk trước khi khôi phục save & chạy game loop
     preloadImages(async () => {
       await Promise.all([
-        loadMapData("assets/maps/map_home.json?v=20261123_4", false),
+        loadMapData("assets/maps/map_home.json?v=20261123_5", false),
         loadMapData("assets/maps/map_rung.json?v=20261123_4", true),
         loadMapData("assets/maps/map_ho.json", "lake")
       ]);
