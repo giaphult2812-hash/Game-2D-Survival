@@ -109,7 +109,8 @@
       boots_diamond: "assets/items/armor_equipment/giày kim cương.png",
       tileset: "assets/Tileset/custom_tileset_v1.png?v=20261123_1",
       home_props_hd: "assets/Tileset/home_props_hd.png?v=20261123_5",
-      forest_props_hd: "assets/Tileset/forest_props_hd.png?v=20261123_3"
+      forest_props_hd: "assets/Tileset/forest_props_hd.png?v=20261123_3",
+      lake_props_hd: "assets/Tileset/lake_props_hd.png?v=20261125_2"
     };
 
     const iconImageCache = new Map();
@@ -208,7 +209,7 @@
                   mapTilesetImages[relPath] = null;
                   resolve(null);
                 };
-                img.src = relPath + "?v=20261123_1";
+                img.src = relPath + "?v=20261125_5";
               });
               mapTilesetImages[relPath] = true; // Đánh dấu đang tải
               tilesetPromises.push(p);
@@ -242,9 +243,13 @@
       if (mapName === "forest") {
         const order = { Jungles: 0, Water: 1, Fences: 2 };
         renderLayers = layers.slice().sort((a, b) => (order[a.__identifier] ?? 1) - (order[b.__identifier] ?? 1));
+      } else if (mapName === "lake") {
+        const order = { IntGrid: 0, Plains: 1, Props: 2 };
+        renderLayers = layers.slice().sort((a, b) => (order[a.__identifier] ?? 1) - (order[b.__identifier] ?? 1));
       }
 
       renderLayers.forEach((layer) => {
+        if (mapName === "lake" && layer.__identifier === "Props") return; // Vật thể HD hồ vẽ ở renderables có Y-sorting
         const gridSize = layer.__gridSize || TILE_SIZE;
         let relPath = (layer.__tilesetRelPath || "").replace(/\\/g, "/");
         if (relPath.startsWith("../")) {
@@ -14507,6 +14512,10 @@
       }
 
       if (currentMap === "lake" && lakeLandGrid) {
+        const propsLayer = lakeMapData && lakeMapData.layerInstances
+          ? lakeMapData.layerInstances.find(l => l.__identifier === "Props")
+          : null;
+        const cWid = (lakeMapData && lakeMapData.widthInTiles) || 32;
         const corners = [
           { x: playerFeetBox.x, y: playerFeetBox.y },
           { x: playerFeetBox.x + playerFeetBox.width - 1, y: playerFeetBox.y },
@@ -14518,6 +14527,9 @@
           const ty = Math.floor(c.y / TILE_SIZE);
           if (ty < 0 || ty >= lakeLandGrid.length || tx < 0 || tx >= lakeLandGrid[0].length || !lakeLandGrid[ty][tx]) {
             return true; // Chặn đi xuống nước trên map Hồ
+          }
+          if (propsLayer && propsLayer.intGridCsv && propsLayer.intGridCsv[ty * cWid + tx] > 0) {
+            return true; // Chặn va chạm với vật thể HD ven hồ (đá, thùng cá, đèn, giá cần câu...)
           }
         }
       }
@@ -15617,7 +15629,7 @@
       } else if (currentMap === "forest" && forestMapData) {
         drawMap(ctx, forestMapData);
       } else if (currentMap === "lake" && lakeMapData) {
-        ctx.fillStyle = "#3898d4";
+        ctx.fillStyle = "#2068ac";
         ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
         drawMap(ctx, lakeMapData);
       } else if (images.grass && images.grass.complete && images.grass.naturalWidth > 0) {
@@ -15636,6 +15648,57 @@
         ctx.fillStyle = config.color;
         ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
       }
+
+      // --- MẶT NƯỚC ĐỘNG (ANIMATED WATER SHIMMER & RIPPLES) ---
+      (function drawAnimatedWaterOverlay() {
+        const t = performance.now() * 0.0018;
+        const mapObj = currentMap === "lake" ? lakeMapData : (currentMap === "forest" ? forestMapData : homeMapData);
+        if (!mapObj || !mapObj.layerInstances) return;
+        const cWid = mapObj.widthInTiles || 32;
+        const cHei = mapObj.heightInTiles || 32;
+        const waterLayer = currentMap !== "lake" ? mapObj.layerInstances.find(l => l.__identifier === "Water") : null;
+        if (currentMap !== "lake" && (!waterLayer || !waterLayer.intGridCsv)) return;
+        if (currentMap === "lake" && !lakeLandGrid) return;
+
+        const minC = Math.max(0, Math.floor(camera.x / TILE_SIZE));
+        const maxC = Math.min(cWid - 1, Math.ceil((camera.x + canvas.width / activeZoom) / TILE_SIZE));
+        const minR = Math.max(0, Math.floor(camera.y / TILE_SIZE));
+        const maxR = Math.min(cHei - 1, Math.ceil((camera.y + canvas.height / activeZoom) / TILE_SIZE));
+
+        const isOpenWater = (r, c) => {
+          if (r < 0 || r >= cHei || c < 0 || c >= cWid) return false;
+          if (currentMap === "lake") return !lakeLandGrid[r][c];
+          return waterLayer.intGridCsv[r * cWid + c] > 0;
+        };
+
+        ctx.save();
+        for (let r = minR; r <= maxR; r++) {
+          for (let c = minC; c <= maxC; c++) {
+            if (!isOpenWater(r, c)) continue;
+            const insideWater = isOpenWater(r - 1, c) && isOpenWater(r + 1, c) && isOpenWater(r, c - 1) && isOpenWater(r, c + 1);
+            const px = c * TILE_SIZE;
+            const py = r * TILE_SIZE;
+            const phase = t + c * 1.17 + r * 0.83;
+            const waveAlpha = Math.max(0, Math.sin(phase));
+            if (waveAlpha > 0.15) {
+              const driftX = Math.sin(t * 0.7 + r) * 1.8;
+              const wx = px + (insideWater ? 4 : 6) + driftX;
+              const wy = py + (insideWater ? 5 + ((c + r) % 3) * 3 : 8);
+              const len = insideWater ? (2 + waveAlpha * 2.2) : 2;
+              ctx.fillStyle = `rgba(210, 246, 255, ${(waveAlpha * 0.38).toFixed(3)})`;
+              ctx.fillRect(Math.round(wx), Math.round(wy), Math.round(len), 1);
+            }
+            if (insideWater && ((c * 7 + r * 13) % 5 === 0)) {
+              const spk = Math.max(0, Math.sin(t * 1.45 + c * 2.1 - r * 1.7));
+              if (spk > 0.65) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${((spk - 0.65) * 1.4).toFixed(3)})`;
+                ctx.fillRect(px + 10, py + 11, 2, 1);
+              }
+            }
+          }
+        }
+        ctx.restore();
+      })();
 
       // Viền ranh giới bản đồ
       ctx.strokeStyle = config.borderColor;
@@ -15829,6 +15892,60 @@
                 }
               });
             }
+          }
+        }
+      }
+
+      // 0c. Thêm vật thể HD từ map Hồ (giá cần câu, thùng cá, hoa súng, lau sậy, đá cuội, đèn bến, biển chỉ dẫn, cọc neo)
+      if (currentMap === "lake" && lakeMapData && lakeMapData.layerInstances) {
+        const propsLayer = lakeMapData.layerInstances.find(l => l.__identifier === "Props");
+        if (propsLayer && propsLayer.autoLayerTiles) {
+          for (const tile of propsLayer.autoLayerTiles) {
+            const slot = Math.floor(tile.src[0] / TILE_SIZE);
+            const px = tile.px[0];
+            const py = tile.px[1];
+            let ox = -3, oy = -6, dw = 22, dh = 22;
+            if (slot === 0) { ox = -4; oy = -8; dw = 24; dh = 24; } // Giá treo cần câu
+            else if (slot === 1) { ox = -4; oy = -6; dw = 24; dh = 22; } // Thùng gỗ & xô cá
+            else if (slot === 2) { ox = -4; oy = -2; dw = 24; dh = 20; } // Hoa súng & lá sen (trên mặt nước)
+            else if (slot === 3) { ox = -3; oy = -8; dw = 22; dh = 24; } // Bụi lau sậy
+            else if (slot === 4) { ox = -3; oy = -4; dw = 22; dh = 20; } // Mỏm đá rêu ẩm
+            else if (slot === 5) { ox = -4; oy = -10; dw = 24; dh = 26; } // Đèn bến thuyền
+            else if (slot === 6) { ox = -2; oy = -6; dw = 20; dh = 22; } // Biển chỉ dẫn
+            else if (slot === 7) { ox = -2; oy = -4; dw = 20; dh = 20; } // Cọc neo thuyền
+
+            renderables.push({
+              sortY: slot === 2 ? py - 10 : py + 16,
+              draw: () => {
+                const lPropImg = images.lake_props_hd;
+                if (lPropImg && lPropImg.complete && lPropImg.naturalWidth > 0) {
+                  if (slot === 5) {
+                    const pulse = 0.88 + 0.12 * Math.sin(performance.now() * 0.007 + px);
+                    const grad = ctx.createRadialGradient(px + 8, py + 2, 2, px + 8, py + 2, 22 * pulse);
+                    grad.addColorStop(0, "rgba(255, 190, 70, 0.35)");
+                    grad.addColorStop(1, "rgba(255, 130, 30, 0)");
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(px + 8, py + 2, 22 * pulse, 0, Math.PI * 2);
+                    ctx.fill();
+                  }
+                  if (slot === 2) {
+                    const tLily = performance.now() * 0.002 + px * 0.07 + py * 0.05;
+                    const bobX = Math.sin(tLily * 0.85) * 1.1;
+                    const bobY = Math.cos(tLily * 1.15) * 0.85;
+                    const ringR = 8 + Math.sin(tLily * 1.3) * 1.8;
+                    ctx.strokeStyle = `rgba(196, 244, 255, ${(0.22 + 0.10 * Math.cos(tLily * 1.3)).toFixed(3)})`;
+                    ctx.lineWidth = 0.7;
+                    ctx.beginPath();
+                    ctx.ellipse(px + 8 + bobX, py + 9 + bobY, ringR, ringR * 0.55, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.drawImage(lPropImg, slot * 64, 0, 64, 64, px + ox + bobX, py + oy + bobY, dw, dh);
+                  } else {
+                    ctx.drawImage(lPropImg, slot * 64, 0, 64, 64, px + ox, py + oy, dw, dh);
+                  }
+                }
+              }
+            });
           }
         }
       }
@@ -17558,9 +17675,9 @@
     // Khởi động hệ thống tải ảnh và nạp cả 3 bản đồ LDtk trước khi khôi phục save & chạy game loop
     preloadImages(async () => {
       await Promise.all([
-        loadMapData("assets/maps/map_home.json?v=20261123_5", false),
-        loadMapData("assets/maps/map_rung.json?v=20261123_4", true),
-        loadMapData("assets/maps/map_ho.json", "lake")
+        loadMapData("assets/maps/map_home.json?v=20261125_2", false),
+        loadMapData("assets/maps/map_rung.json?v=20261125_2", true),
+        loadMapData("assets/maps/map_ho.json?v=20261125_5", "lake")
       ]);
       repositionForestEntities();
       initPlayerProfileAndSave();
