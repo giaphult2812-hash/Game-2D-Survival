@@ -41,9 +41,6 @@ body.is-mobile-ui #hud {
   pointer-events: auto;
 }
 
-body.is-mobile-ui #hud.mobile-hud-open {
-  display: block;
-}
 
 /* Compact top-right utility triggers (within 15% sticky top cap) */
 body.is-mobile-ui #btnMobileBag {
@@ -207,6 +204,7 @@ body.is-mobile-ui #mobileControlsWrapper {
   gap: 0;
   pointer-events: none;
   z-index: 30;
+  contain: layout style;
 }
 
 body.is-mobile-ui .joystick-zone {
@@ -225,11 +223,10 @@ body.is-mobile-ui #mobileJoystick {
   border: 2px solid rgba(148, 163, 184, 0.42);
   box-shadow:
     inset 0 0 0 1px rgba(15, 23, 42, 0.85),
-    inset 0 4px 12px rgba(0, 0, 0, 0.55),
-    0 6px 18px rgba(0, 0, 0, 0.55);
+    0 4px 12px rgba(0, 0, 0, 0.45);
   touch-action: none;
   user-select: none;
-  transition: border-color 120ms ease-out;
+  contain: layout style;
 }
 
 body.is-mobile-ui #mobileJoystick.active {
@@ -269,7 +266,6 @@ body.is-mobile-ui .joystick-tick::after {
   transform: translateY(-50%);
   background: rgba(148, 163, 184, 0.35);
   border-radius: 1px;
-  transition: background-color 80ms ease, width 80ms ease;
 }
 
 /* Cardinal ticks slightly longer */
@@ -285,7 +281,6 @@ body.is-mobile-ui .joystick-tick.active::after {
   width: 10px;
   height: 3px;
   background: #f59e0b;
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
 }
 
 body.is-mobile-ui #joystickThumb {
@@ -295,12 +290,10 @@ body.is-mobile-ui #joystickThumb {
   width: clamp(40px, 8.5vh, 48px);
   height: clamp(40px, 8.5vh, 48px);
   border-radius: 50%;
-  transform: translate(calc(-50% + var(--joy-x, 0px)), calc(-50% + var(--joy-y, 0px)));
+  transform: translate3d(calc(-50% + var(--joy-x, 0px)), calc(-50% + var(--joy-y, 0px)), 0);
   background: radial-gradient(circle at 38% 35%, #475569 0%, #273244 65%, #1a2230 100%);
   border: 2px solid #94a3b8;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.18),
-    0 4px 10px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55);
   pointer-events: none;
   will-change: transform;
 }
@@ -767,8 +760,7 @@ body.is-mobile-ui .wand-socket-grid {
 }
 
 body.is-mobile-ui #wand-socket-modal .wand-socket-slot,
-body.is-mobile-ui #wand-socket-modal .wand-gem-slot,
-body.is-mobile-ui #wand-socket-modal .wand-gem-socket-slot {
+body.is-mobile-ui #wand-socket-modal .wand-gem-slot {
   width: 36px;
   height: 36px;
   border-radius: 7px;
@@ -1037,8 +1029,7 @@ body.is-mobile-ui .forge-result-slot {
   }
 
   body.is-mobile-ui #wand-socket-modal .wand-socket-slot,
-  body.is-mobile-ui #wand-socket-modal .wand-gem-slot,
-  body.is-mobile-ui #wand-socket-modal .wand-gem-socket-slot {
+  body.is-mobile-ui #wand-socket-modal .wand-gem-slot {
     width: 33px;
     height: 33px;
   }
@@ -1345,8 +1336,7 @@ body.is-mobile-ui .forge-result-slot {
   }
 
   body.is-mobile-ui #wand-socket-modal .wand-socket-slot,
-  body.is-mobile-ui #wand-socket-modal .wand-gem-slot,
-  body.is-mobile-ui #wand-socket-modal .wand-gem-socket-slot {
+  body.is-mobile-ui #wand-socket-modal .wand-gem-slot {
     width: 36px;
     height: 36px;
   }

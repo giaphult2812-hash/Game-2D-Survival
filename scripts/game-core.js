@@ -10,7 +10,12 @@
     // HỆ SỐ PHÓNG ĐẠI CAMERA: 3X TRÊN MÁY TÍNH, 2X NGUYÊN TRÊN ĐIỆN THOẠI NGANG
     const CAMERA_ZOOM = 3;
 
-    function isMobileMode() {
+    let _cachedMobileMode = false;
+    let _cachedViewportW = 800;
+    let _cachedViewportH = 600;
+    let _cachedCameraZoom = CAMERA_ZOOM;
+
+    function computeIsMobileMode() {
       const ua = navigator.userAgent || "";
       const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
                          (navigator.userAgentData && navigator.userAgentData.mobile === true);
@@ -20,31 +25,39 @@
       const hasFinePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
       if (hasFinePointer) return false;
 
-      const w = window.innerWidth || document.documentElement.clientWidth || 800;
+      const w = _cachedViewportW || window.innerWidth || document.documentElement.clientWidth || 800;
       const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
       const hasTouch = ("ontouchstart" in window || navigator.maxTouchPoints > 0);
       return coarse && hasTouch && w <= 1024;
     }
 
+    function refreshResponsiveCache() {
+      _cachedViewportW = window.innerWidth || document.documentElement.clientWidth || 800;
+      _cachedViewportH = window.innerHeight || document.documentElement.clientHeight || 600;
+      _cachedMobileMode = computeIsMobileMode();
+      _cachedCameraZoom = (_cachedMobileMode && (_cachedViewportH <= 540 || _cachedViewportW <= 920)) ? 2 : CAMERA_ZOOM;
+    }
+
+    function isMobileMode() {
+      return _cachedMobileMode;
+    }
+
     function getCameraZoom() {
-      const w = window.innerWidth || document.documentElement.clientWidth || 800;
-      const h = window.innerHeight || document.documentElement.clientHeight || 600;
-      if (isMobileMode() && (h <= 540 || w <= 920)) {
-        return 2;
-      }
-      return CAMERA_ZOOM;
+      return _cachedCameraZoom;
     }
 
     // Bán kính tương tác hành động chặt cây/đào đá/săn heo (theo chuẩn 16px)
     const INTERACTION_RADIUS = 24;
 
     // Các phần tử DOM
+    const hudEl = document.getElementById("hud");
     const valCurrentMap = document.getElementById("valCurrentMap");
     const valPlayerHP = document.getElementById("valPlayerHP");
     const valPlayerPos = document.getElementById("valPlayerPos");
     const valMobCount = document.getElementById("valMobCount");
     const valObjectCounts = document.getElementById("valObjectCounts");
     const valFPS = document.getElementById("valFPS");
+    let lastValPlayerPos = "";
     // const btnBuildForge removed
     const notificationToast = document.getElementById("notificationToast");
     const mobileControlsWrapper = document.getElementById("mobileControlsWrapper");
@@ -54,9 +67,10 @@
     const loadingBar = document.getElementById("loadingBar");
 
     function syncResponsiveMode() {
-      const mobile = isMobileMode();
-      const w = window.innerWidth || document.documentElement.clientWidth || 800;
-      const h = window.innerHeight || document.documentElement.clientHeight || 600;
+      refreshResponsiveCache();
+      const mobile = _cachedMobileMode;
+      const w = _cachedViewportW;
+      const h = _cachedViewportH;
       document.body.classList.toggle("is-mobile-ui", mobile);
       document.body.classList.toggle("is-portrait-hint", mobile && w < h);
       if (mobileControlsWrapper) {
@@ -110,8 +124,7 @@
       tileset: "assets/Tileset/custom_tileset_v1.png?v=20261123_1",
       home_props_hd: "assets/Tileset/home_props_hd.png?v=20261123_5",
       forest_props_hd: "assets/Tileset/forest_props_hd.png?v=20261123_3",
-      lake_props_hd: "assets/Tileset/lake_props_hd.png?v=20261125_2",
-      tall_grass: "assets/Tileset/tall_grass_sheet.png?v=20261128_4"
+      lake_props_hd: "assets/Tileset/lake_props_hd.png?v=20261125_2"
     };
 
     const iconImageCache = new Map();
@@ -132,6 +145,131 @@
     let lakeMapData = null;
     let lakeLandGrid = null;
     const mapTilesetImages = {}; // Lưu trữ ảnh Tileset tải theo __tilesetRelPath
+
+    const mapWalkableGrids = { home: null, forest: null, lake: null };
+    const mapWalkableDims = { home: { w: 64, h: 64 }, forest: { w: 64, h: 64 }, lake: { w: 64, h: 64 } };
+    let lakePropsBlockedGrid = null;
+    const staticRenderPropsByMap = { home: [], forest: [], lake: [] };
+
+    function buildWalkableGridForMap(mapId, mapObj) {
+      if (!mapObj || !mapObj.layerInstances) return;
+      const cWid = mapObj.widthInTiles || 32;
+      const cHei = mapObj.heightInTiles || 32;
+      const total = cWid * cHei;
+      const grid = new Uint8Array(total);
+      const layers = mapObj.layerInstances;
+
+      if (mapId === "home") {
+        const ground = layers.find(l => l.__identifier === "Ground");
+        const water = layers.find(l => l.__identifier === "Water");
+        const rock = layers.find(l => l.__identifier === "Rock");
+        const plains = layers.find(l => l.__identifier === "Plains");
+        const gCsv = ground && ground.intGridCsv;
+        const wCsv = water && water.intGridCsv;
+        const rCsv = rock && rock.intGridCsv;
+        const pCsv = plains && plains.intGridCsv;
+        for (let i = 0; i < total; i++) {
+          if (wCsv && wCsv[i] > 0) continue;
+          if (rCsv && rCsv[i] > 0) continue;
+          if (pCsv && pCsv[i] > 0) continue;
+          if (gCsv && gCsv[i] > 0) grid[i] = 1;
+        }
+      } else if (mapId === "forest") {
+        const fences = layers.find(l => l.__identifier === "Fences");
+        const water = layers.find(l => l.__identifier === "Water");
+        const jungles = layers.find(l => l.__identifier === "Jungles");
+        const fCsv = fences && fences.intGridCsv;
+        const wCsv = water && water.intGridCsv;
+        const jCsv = jungles && jungles.intGridCsv;
+        for (let i = 0; i < total; i++) {
+          if (fCsv && fCsv[i] > 0) continue;
+          if (wCsv && wCsv[i] > 0) continue;
+          if (jCsv && jCsv[i] > 0) grid[i] = 1;
+        }
+      } else if (mapId === "lake") {
+        grid.fill(1);
+        const propsLayer = layers.find(l => l.__identifier === "Props");
+        const pCsv = propsLayer && propsLayer.intGridCsv;
+        lakePropsBlockedGrid = new Uint8Array(total);
+        if (pCsv) {
+          for (let i = 0; i < total; i++) {
+            if (pCsv[i] > 0) lakePropsBlockedGrid[i] = 1;
+          }
+        }
+      }
+
+      mapWalkableGrids[mapId] = grid;
+      mapWalkableDims[mapId] = { w: cWid, h: cHei };
+    }
+
+    function buildStaticRenderPropsForMap(mapId, mapObj) {
+      if (!mapObj || !mapObj.layerInstances) return;
+      const list = [];
+      if (mapId === "home") {
+        const plainsLayer = mapObj.layerInstances.find(l => l.__identifier === "Plains");
+        if (plainsLayer && plainsLayer.autoLayerTiles) {
+          for (const tile of plainsLayer.autoLayerTiles) {
+            const sx = tile.src[0], sy = tile.src[1], px = tile.px[0], py = tile.px[1];
+            if (sy === 64 && sx === 64) continue;
+            if (sy === 64 && (sx === 0 || sx === 16)) {
+              list.push({ kind: "tree", px, py, sortY: py + 16 });
+            } else {
+              let slot = -1, ox = 0, oy = 0, dw = 16, dh = 16;
+              if (sy === 48 && sx === 0) { slot = 0; ox = -4; oy = -10; dw = 24; dh = 26; }
+              else if (sy === 48 && sx === 16) { slot = 1; ox = -5; oy = -10; dw = 26; dh = 26; }
+              else if (sy === 64 && sx === 32) { slot = 2; ox = -3; oy = -4; dw = 22; dh = 20; }
+              else if (sy === 64 && sx === 48) { slot = 3; ox = -3; oy = -4; dw = 22; dh = 20; }
+              else if (sy === 48 && sx === 64) { slot = 4; ox = -3; oy = -4; dw = 22; dh = 20; }
+              else if (sy === 64 && sx === 80) { slot = 5; ox = 0; oy = -2; dw = 16; dh = 18; }
+              else if (sy === 64 && sx === 96) { slot = 6; ox = -2; oy = -6; dw = 20; dh = 22; }
+              else if (sy === 64 && sx === 112) { slot = 7; ox = -3; oy = -6; dw = 22; dh = 22; }
+              if (slot >= 0) {
+                list.push({ kind: "home_prop", slot, px, py, ox, oy, dw, dh, sortY: py + 16, hasGlow: slot === 0 || slot === 7 });
+              }
+            }
+          }
+        }
+      } else if (mapId === "forest") {
+        const fencesLayer = mapObj.layerInstances.find(l => l.__identifier === "Fences");
+        if (fencesLayer && fencesLayer.autoLayerTiles) {
+          for (const tile of fencesLayer.autoLayerTiles) {
+            const sx = tile.src[0], sy = tile.src[1], px = tile.px[0], py = tile.px[1];
+            if (sy === 64 && sx === 48) continue;
+            let slot = -1, ox = -3, oy = -6, dw = 22, dh = 22;
+            if (sy === 64 && sx === 0) { slot = 0; ox = -3; oy = -8; dw = 22; dh = 24; }
+            else if (sy === 64 && sx === 16) { slot = 1; ox = -3; oy = -8; dw = 22; dh = 24; }
+            else if (sy === 64 && sx === 32) { slot = 2; ox = -4; oy = -4; dw = 24; dh = 20; }
+            else if (sy === 64 && sx === 64) { slot = 3; ox = -3; oy = -4; dw = 22; dh = 20; }
+            else if (sy === 48 && sx === 0) { slot = 4; ox = -2; oy = -6; dw = 20; dh = 22; }
+            else if (sy === 64 && sx === 80) { slot = 5; ox = -2; oy = -6; dw = 20; dh = 22; }
+            else if (sy === 64 && sx === 96) { slot = 6; ox = -3; oy = -4; dw = 22; dh = 20; }
+            else if (sy === 64 && sx === 112) { slot = 7; ox = -3; oy = -4; dw = 22; dh = 20; }
+            if (slot >= 0) {
+              list.push({ kind: "forest_prop", slot, px, py, ox, oy, dw, dh, sortY: py + 16, hasGlow: slot === 1 });
+            }
+          }
+        }
+      } else if (mapId === "lake") {
+        const propsLayer = mapObj.layerInstances.find(l => l.__identifier === "Props");
+        if (propsLayer && propsLayer.autoLayerTiles) {
+          for (const tile of propsLayer.autoLayerTiles) {
+            const slot = Math.floor(tile.src[0] / TILE_SIZE);
+            const px = tile.px[0], py = tile.px[1];
+            let ox = -3, oy = -6, dw = 22, dh = 22;
+            if (slot === 0) { ox = -4; oy = -8; dw = 24; dh = 24; }
+            else if (slot === 1) { ox = -4; oy = -6; dw = 24; dh = 22; }
+            else if (slot === 2) { ox = -4; oy = -2; dw = 24; dh = 20; }
+            else if (slot === 3) { ox = -3; oy = -8; dw = 22; dh = 24; }
+            else if (slot === 4) { ox = -3; oy = -4; dw = 22; dh = 20; }
+            else if (slot === 5) { ox = -4; oy = -10; dw = 24; dh = 26; }
+            else if (slot === 6) { ox = -2; oy = -6; dw = 20; dh = 22; }
+            else if (slot === 7) { ox = -2; oy = -4; dw = 20; dh = 20; }
+            list.push({ kind: "lake_prop", slot, px, py, ox, oy, dw, dh, sortY: slot === 2 ? py - 10 : py + 16, hasGlow: slot === 5 });
+          }
+        }
+      }
+      staticRenderPropsByMap[mapId] = list;
+    }
 
     // Hàm tải và đọc file bản đồ LDtk JSON
     async function loadMapData(mapUrl, isForest = false) {
@@ -177,10 +315,16 @@
               }
             }
           }
+          buildWalkableGridForMap("lake", mapObj);
+          buildStaticRenderPropsForMap("lake", mapObj);
         } else if (isForest) {
           forestMapData = mapObj;
+          buildWalkableGridForMap("forest", mapObj);
+          buildStaticRenderPropsForMap("forest", mapObj);
         } else {
           homeMapData = mapObj;
+          buildWalkableGridForMap("home", mapObj);
+          buildStaticRenderPropsForMap("home", mapObj);
         }
 
         // Thu thập và nạp trước tất cả các ảnh tileset được khai báo trong __tilesetRelPath
@@ -316,6 +460,35 @@
       return offscreen;
     }
 
+    const glowSpriteCache = {};
+    function getGlowSprite(kind) {
+      if (glowSpriteCache[kind]) return glowSpriteCache[kind];
+      const size = 64;
+      const cv = document.createElement("canvas");
+      cv.width = size;
+      cv.height = size;
+      const gctx = cv.getContext("2d");
+      const half = size * 0.5;
+      const grad = gctx.createRadialGradient(half, half, 2, half, half, half);
+      if (kind === "cyan") {
+        grad.addColorStop(0, "rgba(76, 224, 255, 0.42)");
+        grad.addColorStop(0.55, "rgba(34, 211, 238, 0.16)");
+        grad.addColorStop(1, "rgba(34, 211, 238, 0)");
+      } else if (kind === "purple") {
+        grad.addColorStop(0, "rgba(192, 132, 252, 0.46)");
+        grad.addColorStop(0.6, "rgba(126, 34, 206, 0.16)");
+        grad.addColorStop(1, "rgba(126, 34, 206, 0)");
+      } else {
+        grad.addColorStop(0, "rgba(255, 190, 75, 0.42)");
+        grad.addColorStop(0.55, "rgba(245, 158, 11, 0.16)");
+        grad.addColorStop(1, "rgba(245, 158, 11, 0)");
+      }
+      gctx.fillStyle = grad;
+      gctx.fillRect(0, 0, size, size);
+      glowSpriteCache[kind] = cv;
+      return cv;
+    }
+
     function drawMap(ctx, mapDataToDraw) {
       const mapName = mapDataToDraw
         ? (mapDataToDraw === lakeMapData ? "lake" : (mapDataToDraw === forestMapData ? "forest" : (mapDataToDraw === homeMapData ? "home" : "custom")))
@@ -325,7 +498,16 @@
 
       const cached = getCachedMapCanvas(activeMap, mapName);
       if (cached) {
-        ctx.drawImage(cached, 0, 0);
+        const z = getCameraZoom();
+        const sx = Math.max(0, Math.floor(camera.x) - 2);
+        const sy = Math.max(0, Math.floor(camera.y) - 2);
+        const ex = Math.min(cached.width, Math.ceil(camera.x + canvas.width / z) + 2);
+        const ey = Math.min(cached.height, Math.ceil(camera.y + canvas.height / z) + 2);
+        const sw = ex - sx;
+        const sh = ey - sy;
+        if (sw > 0 && sh > 0) {
+          ctx.drawImage(cached, sx, sy, sw, sh, sx, sy, sw, sh);
+        }
       }
     }
 
@@ -852,11 +1034,6 @@
       addFloatingText("📄 Bật chế độ Ép Quá Mạnh!", player.x - 24, player.y - 16, "#f0abfc");
     }
 
-    function openGravityFxSettings() {
-      if (!combatFxPanel) return;
-      combatFxPanel.style.display = "block";
-      switchCombatFxTab("gravity");
-    }
 
     // Ngăn chặn sự kiện phím khi đang nhập liệu hoặc thao tác trên Panel
     if (combatFxPanel) {
@@ -3371,8 +3548,6 @@
     const forgeInventory = new Array(2).fill(null);
     let forgeResultItem = null;
 
-    // Theo dõi người chơi đang mở bàn chế tạo gần (gần Bàn Chế Tạo thật trên map) hay túi đồ 2x2 cá nhân
-    let isNearCraftingTable = false;
 
     // Biến quản lý trạng thái kéo giữ chuột trái trượt qua các ô để rải đều 1 vật phẩm (Mouse Drag Distribution)
     let isMouseDraggingLeft = false;
@@ -4110,6 +4285,8 @@
           const shopUI = document.getElementById("npc-shop-ui");
           if (shopUI && shopUI.style.display === "flex") renderNpcShopUI();
         }
+      }, (err) => {
+        console.warn("Player snapshot err:", err);
       });
     }
 
@@ -4182,14 +4359,16 @@
       if (!fbDb || fbMarketUnsub) return;
       fbMarketUnsub = fbDb.collection("market_listings")
         .where("status", "==", "active")
-        .orderBy("createdAt", "desc")
-        .limit(20)
+        .limit(50)
         .onSnapshot((snap) => {
           const cloudList = [];
           snap.forEach((doc) => cloudList.push({ id: doc.id, ...doc.data() }));
-          marketListings = cloudList;
+          cloudList.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+          marketListings = cloudList.slice(0, 20);
           const shopUI = document.getElementById("npc-shop-ui");
           if (shopUI && shopUI.style.display === "flex") renderNpcShopUI();
+        }, (err) => {
+          console.warn("Market snapshot err:", err);
         });
     }
 
@@ -4570,9 +4749,6 @@
       claimPendingMarketPayouts();
     }
 
-    function confirmPlayerProfile() {
-      submitAccountAuth();
-    }
 
     function exportPlayerSaveData() {
       const nowTs = Date.now();
@@ -6745,10 +6921,6 @@
       return item.iconUrl || item.icon || "";
     }
 
-    // Khởi tạo 10 vật phẩm nguyên liệu chuẩn vào túi đồ để người chơi test hiển thị & kéo thả
-        // Khởi tạo các vật phẩm kiểm thử túi đồ: Gỗ, Đá, Gậy, Dây gai, và Bàn chế tạo
-        // Khởi tạo các vật phẩm kiểm thử túi đồ: Đầy đủ vật liệu và vũ khí
-        // Khởi tạo các vật phẩm kiểm thử: Gỗ, Đá, Thỏi/Quặng Sắt, Vàng, Kim Cương, Cung, Tên, Bàn Chế Tạo
     // Sắp xếp Hotbar (0 đến 8) tiện lợi nhất cho người chơi test Cung & Chế tạo
     playerInventory[0] = {
       id: 'magic_wand',
@@ -10002,7 +10174,6 @@
         const fw = sw / 6;
         const fh = sh / 10;
         pctx.drawImage(pSprite, 0, 0, fw, fh, 0, 0, 48, 48);
-        drawHelmetOverlay(pctx, 0, 0, 'down', 0, 'idle');
       } else {
         pctx.fillStyle = "#38bdf8";
         pctx.fillRect(16, 16, 16, 24);
@@ -10540,40 +10711,6 @@
       return off;
     }
 
-    // Giữ hàm tương thích để không gãy call-site; toàn bộ nón đã được kết xuất pixel-perfect vào sprite sheet
-    function drawHelmetOverlay() {}
-
-    // Lấy hình ảnh Image object của món giáp
-    function getArmorImage(item) {
-      if (!item) return null;
-      const itData = getItemData(item) || item;
-      const id = itData.id || "";
-      if (id.includes("leather")) {
-        if (id.includes("helmet")) return images.helmet_leather;
-        if (id.includes("chest")) return images.chest_leather;
-        if (id.includes("legs")) return images.legs_leather;
-        if (id.includes("boots")) return images.boots_leather;
-      }
-      if (id.includes("iron")) {
-        if (id.includes("helmet")) return images.helmet_iron;
-        if (id.includes("chest")) return images.chest_iron;
-        if (id.includes("legs")) return images.legs_iron;
-        if (id.includes("boots")) return images.boots_iron;
-      }
-      if (id.includes("gold")) {
-        if (id.includes("helmet")) return images.helmet_gold;
-        if (id.includes("chest")) return images.chest_gold;
-        if (id.includes("legs")) return images.legs_gold;
-        if (id.includes("boots")) return images.boots_gold;
-      }
-      if (id.includes("diamond")) {
-        if (id.includes("helmet")) return images.helmet_diamond;
-        if (id.includes("chest")) return images.chest_diamond;
-        if (id.includes("legs")) return images.legs_diamond;
-        if (id.includes("boots")) return images.boots_diamond;
-      }
-      return null;
-    }
 
     // Render lưới chế tạo cá nhân (2x2) hoặc bàn chế tạo (3x3) tùy chế độ
     function renderCrafting() {
@@ -12418,12 +12555,338 @@
     }
 
     // -------------------------------------------------------------
-    // HỆ THỐNG BỤI CỎ CAO KIỂU POKÉMON (ĐI LÊN ĐƯỢC, RUNG LẮC & LÁ BAY)
+    // HỆ THỐNG BỤI CỎ CAO 3 LỚP GIẢ LẬP 3D (ĐỨNG YÊN MẶC ĐỊNH + CHỈ XÀO XẠC KHI NGƯỜI CHƠI CHẠM/ĐI QUA)
     // -------------------------------------------------------------
-    const tallGrassByMap = { home: new Map(), forest: new Map(), lake: new Map() };
+    const TG_GRID_SIZE = 64;
+    const TG_IDLE_FRAME = 8;
+    const TG_LAYERS = 3; // 0: lớp sau (râm sâu), 1: lớp giữa (thân tán), 2: lớp trước (đón nắng)
+    const TG_LAYER_ALPHAS = [0.72, 0.88, 1.0];
+    const TG_LAYER_DY_OFFSETS = [-1, -0.5, 0];
+    const TG_LAYER_SORT_OFFSETS = [0.5, 8.5, 17.5];
+    const tallGrassGridByMap = {
+      home: new Array(TG_GRID_SIZE * TG_GRID_SIZE).fill(null),
+      forest: new Array(TG_GRID_SIZE * TG_GRID_SIZE).fill(null),
+      lake: new Array(TG_GRID_SIZE * TG_GRID_SIZE).fill(null)
+    };
+    const tallGrassRowsByMap = {
+      home: new Array(TG_GRID_SIZE).fill(null),
+      forest: new Array(TG_GRID_SIZE).fill(null),
+      lake: new Array(TG_GRID_SIZE).fill(null)
+    };
+    const activeGrassTiles = new Set();
     const tallGrassLeaves = [];
-    let lastPlayerGrassKey = "";
+    let prevPlayerGrassTiles = new Set();
+    let currPlayerGrassTiles = new Set();
     let playerGrassBurstCooldown = 0;
+
+    const TG_CELL = 24;
+    const TG_SWAY_COUNT = 17; // Frames 0..16 (sway -8..+8)
+    const TG_PART_COUNT = 6;  // Frames 17..22 (tách lá mượt quanh chân)
+    const TG_TOTAL_FRAMES = TG_SWAY_COUNT + TG_PART_COUNT;
+    let tallGrassAtlasCanvas = null;
+
+    function buildPokemonTallGrassAtlas() {
+      if (tallGrassAtlasCanvas) return tallGrassAtlasCanvas;
+      const numVariants = 3;
+      const cv = document.createElement("canvas");
+      cv.width = TG_TOTAL_FRAMES * TG_CELL;
+      cv.height = numVariants * TG_LAYERS * TG_CELL; // Mỗi variant gồm 3 hàng: back (0), mid (1), front (2)
+      const actx = cv.getContext("2d");
+      actx.imageSmoothingEnabled = false;
+
+      // 3 bảng màu phân tách chiều sâu 3D: lớp sau xanh lạnh râm sâu, lớp giữa trung tính, lớp trước rực sáng đón nắng
+      const LAYER_PALETTES = [
+        {
+          shadow: "rgba(6, 22, 10, 0.28)",
+          outline: "#0a2410",
+          dark: "#0f3715",
+          mid: "#17541c",
+          bright: "#237323",
+          tip: "#36962c",
+          dew: "#53b83c"
+        },
+        {
+          shadow: "rgba(8, 26, 10, 0.34)",
+          outline: "#0c2d11",
+          dark: "#144917",
+          mid: "#226f1f",
+          bright: "#39a429",
+          tip: "#61cc37",
+          dew: "#94eb5e"
+        },
+        {
+          shadow: "rgba(7, 24, 9, 0.44)",
+          outline: "#0f3612",
+          dark: "#195a1a",
+          mid: "#2a8824",
+          bright: "#4ec531",
+          tip: "#89ec45",
+          dew: "#cdfc86",
+          blossom: "#fef08a"
+        }
+      ];
+
+      // Cụm lá mọc so le theo 3 tầng chiều sâu (back - mid - front) tạo độ phồng & khe hở 3D chân thực
+      const variantSpecs = [
+        {
+          back: [
+            { bx: 3, by: 11, h: 7, w: 3, lean: -1.12, side: -1, lit: 0 },
+            { bx: 6, by: 10, h: 8, w: 4, lean: -0.68, side: -1, lit: 1 },
+            { bx: 9, by: 10, h: 9, w: 4, lean: -0.25, side: -1, lit: 0 },
+            { bx: 12, by: 9, h: 9, w: 4, lean: 0.08, side: 1, lit: 1 },
+            { bx: 15, by: 10, h: 8, w: 4, lean: 0.42, side: 1, lit: 0 },
+            { bx: 18, by: 10, h: 8, w: 3, lean: 0.78, side: 1, lit: 1 },
+            { bx: 20, by: 11, h: 7, w: 3, lean: 1.08, side: 1, lit: 0 }
+          ],
+          mid: [
+            { bx: 2, by: 15, h: 7, w: 3, lean: -1.14, side: -1, lit: 1 },
+            { bx: 5, by: 16, h: 9, w: 4, lean: -0.74, side: -1, lit: 0 },
+            { bx: 8, by: 15, h: 9, w: 4, lean: -0.34, side: -1, lit: 1 },
+            { bx: 10, by: 16, h: 10, w: 4, lean: -0.06, side: -1, lit: 1 },
+            { bx: 13, by: 15, h: 10, w: 4, lean: 0.22, side: 1, lit: 0 },
+            { bx: 16, by: 16, h: 9, w: 4, lean: 0.52, side: 1, lit: 1 },
+            { bx: 19, by: 15, h: 8, w: 3, lean: 0.88, side: 1, lit: 0 },
+            { bx: 21, by: 15, h: 6, w: 3, lean: 1.14, side: 1, lit: 1 }
+          ],
+          front: [
+            { bx: 2, by: 19, h: 7, w: 3, lean: -1.15, side: -1, lit: 0 },
+            { bx: 4, by: 20, h: 9, w: 4, lean: -0.78, side: -1, lit: 1 },
+            { bx: 6, by: 21, h: 8, w: 3, lean: -0.45, side: -1, lit: 0 },
+            { bx: 8, by: 21, h: 10, w: 4, lean: -0.22, side: -1, lit: 1 },
+            { bx: 10, by: 22, h: 9, w: 3, lean: -0.04, side: -1, lit: 0 },
+            { bx: 12, by: 21, h: 11, w: 4, lean: 0.14, side: 1, lit: 1 },
+            { bx: 14, by: 22, h: 9, w: 4, lean: 0.34, side: 1, lit: 0 },
+            { bx: 16, by: 21, h: 10, w: 4, lean: 0.56, side: 1, lit: 1 },
+            { bx: 18, by: 20, h: 8, w: 3, lean: 0.78, side: 1, lit: 0 },
+            { bx: 20, by: 20, h: 8, w: 4, lean: 0.98, side: 1, lit: 1 },
+            { bx: 21, by: 19, h: 6, w: 3, lean: 1.15, side: 1, lit: 0 }
+          ]
+        },
+        {
+          back: [
+            { bx: 3, by: 11, h: 7, w: 3, lean: -1.06, side: -1, lit: 1 },
+            { bx: 6, by: 11, h: 8, w: 4, lean: -0.58, side: -1, lit: 0 },
+            { bx: 9, by: 10, h: 9, w: 4, lean: -0.18, side: -1, lit: 1 },
+            { bx: 12, by: 10, h: 9, w: 4, lean: 0.14, side: 1, lit: 0 },
+            { bx: 15, by: 10, h: 8, w: 4, lean: 0.48, side: 1, lit: 1 },
+            { bx: 18, by: 11, h: 8, w: 3, lean: 0.84, side: 1, lit: 0 },
+            { bx: 21, by: 11, h: 6, w: 3, lean: 1.10, side: 1, lit: 1 }
+          ],
+          mid: [
+            { bx: 3, by: 15, h: 7, w: 3, lean: -1.08, side: -1, lit: 0 },
+            { bx: 5, by: 16, h: 9, w: 4, lean: -0.66, side: -1, lit: 1 },
+            { bx: 7, by: 15, h: 9, w: 3, lean: -0.28, side: -1, lit: 1 },
+            { bx: 10, by: 16, h: 10, w: 4, lean: 0.04, side: 1, lit: 0 },
+            { bx: 13, by: 15, h: 10, w: 4, lean: 0.30, side: 1, lit: 1 },
+            { bx: 16, by: 16, h: 8, w: 4, lean: 0.62, side: 1, lit: 0 },
+            { bx: 18, by: 15, h: 8, w: 4, lean: 0.88, side: 1, lit: 1 },
+            { bx: 21, by: 15, h: 6, w: 3, lean: 1.12, side: 1, lit: 0 }
+          ],
+          front: [
+            { bx: 2, by: 19, h: 7, w: 3, lean: -1.12, side: -1, lit: 1 },
+            { bx: 4, by: 20, h: 8, w: 4, lean: -0.72, side: -1, lit: 0 },
+            { bx: 6, by: 21, h: 10, w: 4, lean: -0.40, side: -1, lit: 1 },
+            { bx: 9, by: 22, h: 10, w: 4, lean: -0.14, side: -1, lit: 1 },
+            { bx: 11, by: 21, h: 9, w: 3, lean: 0.05, side: 1, lit: 0 },
+            { bx: 13, by: 22, h: 10, w: 4, lean: 0.25, side: 1, lit: 1 },
+            { bx: 15, by: 21, h: 9, w: 4, lean: 0.48, side: 1, lit: 0 },
+            { bx: 17, by: 21, h: 9, w: 3, lean: 0.70, side: 1, lit: 1 },
+            { bx: 19, by: 20, h: 8, w: 4, lean: 0.92, side: 1, lit: 1 },
+            { bx: 21, by: 19, h: 6, w: 3, lean: 1.12, side: 1, lit: 0 }
+          ]
+        },
+        {
+          back: [
+            { bx: 2, by: 11, h: 7, w: 3, lean: -1.10, side: -1, lit: 0 },
+            { bx: 5, by: 10, h: 8, w: 4, lean: -0.64, side: -1, lit: 1 },
+            { bx: 8, by: 10, h: 9, w: 4, lean: -0.22, side: -1, lit: 0 },
+            { bx: 11, by: 9, h: 9, w: 4, lean: 0.10, side: 1, lit: 1 },
+            { bx: 14, by: 10, h: 9, w: 4, lean: 0.40, side: 1, lit: 1 },
+            { bx: 17, by: 11, h: 8, w: 3, lean: 0.76, side: 1, lit: 0 },
+            { bx: 20, by: 11, h: 7, w: 3, lean: 1.06, side: 1, lit: 1 }
+          ],
+          mid: [
+            { bx: 3, by: 15, h: 7, w: 3, lean: -1.06, side: -1, lit: 1 },
+            { bx: 5, by: 16, h: 9, w: 4, lean: -0.62, side: -1, lit: 0 },
+            { bx: 8, by: 16, h: 9, w: 4, lean: -0.24, side: -1, lit: 1 },
+            { bx: 11, by: 15, h: 10, w: 4, lean: 0.08, side: 1, lit: 1 },
+            { bx: 14, by: 16, h: 10, w: 4, lean: 0.36, side: 1, lit: 0 },
+            { bx: 16, by: 15, h: 9, w: 3, lean: 0.66, side: 1, lit: 1 },
+            { bx: 19, by: 15, h: 8, w: 4, lean: 0.94, side: 1, lit: 0 },
+            { bx: 21, by: 15, h: 6, w: 3, lean: 1.12, side: 1, lit: 1 }
+          ],
+          front: [
+            { bx: 2, by: 20, h: 8, w: 3, lean: -1.10, side: -1, lit: 1 },
+            { bx: 4, by: 21, h: 8, w: 4, lean: -0.68, side: -1, lit: 0 },
+            { bx: 6, by: 21, h: 10, w: 4, lean: -0.34, side: -1, lit: 1 },
+            { bx: 8, by: 22, h: 9, w: 3, lean: -0.10, side: -1, lit: 0 },
+            { bx: 11, by: 21, h: 10, w: 4, lean: 0.08, side: 1, lit: 1 },
+            { bx: 13, by: 21, h: 10, w: 4, lean: 0.28, side: 1, lit: 1 },
+            { bx: 15, by: 22, h: 9, w: 4, lean: 0.50, side: 1, lit: 0 },
+            { bx: 17, by: 21, h: 9, w: 3, lean: 0.72, side: 1, lit: 1 },
+            { bx: 19, by: 20, h: 8, w: 4, lean: 0.94, side: 1, lit: 0 },
+            { bx: 21, by: 19, h: 6, w: 3, lean: 1.12, side: 1, lit: 1 }
+          ],
+          accentSpot: { x: 16, y: 15 }
+        }
+      ];
+
+      function drawLayerCell(ox, oy, blades, swayAmt, partAmt, layerIdx, accentSpot) {
+        const pal = LAYER_PALETTES[layerIdx];
+        const isFront = layerIdx === 2;
+        const buf = new Int8Array(TG_CELL * TG_CELL); // 0=empty, 1=dark, 2=mid, 3=bright, 4=tip, 5=dew, 6=blossom
+        const turfBaseY = layerIdx === 0 ? 11 : (layerIdx === 1 ? 15 : 20);
+
+        // 1. Gốc khóm cỏ uốn lượn tự nhiên (3 bầu khóm nhấp nhô thay vì dải ngang bằng phẳng)
+        const mounds = [
+          { cx: 6, rx: 3.6, ry: 2.0 },
+          { cx: 12, rx: 4.2, ry: 2.3 },
+          { cx: 18, rx: 3.6, ry: 1.9 }
+        ];
+        for (let mi = 0; mi < mounds.length; mi++) {
+          const m = mounds[mi];
+          const shiftedCx = m.cx + (partAmt > 0 ? (m.cx < 12 ? -partAmt * 2.2 : (m.cx > 12 ? partAmt * 2.2 : 0)) : 0);
+          for (let py = turfBaseY - 3; py <= turfBaseY + 1; py++) {
+            if (py < 1 || py >= TG_CELL - 1) continue;
+            for (let px = Math.floor(shiftedCx - m.rx); px <= Math.ceil(shiftedCx + m.rx); px++) {
+              if (px < 2 || px >= TG_CELL - 2) continue;
+              if (partAmt > 0.30 && Math.abs(px - 11.5) < partAmt * 3.4) continue;
+              const nx = (px - shiftedCx) / m.rx;
+              const ny = (py - (turfBaseY - 0.3)) / m.ry;
+              if (nx * nx + ny * ny <= 1.0) {
+                const cVal = (py >= turfBaseY) ? 1 : (ny < -0.35 ? 3 : 2);
+                const idx = py * TG_CELL + px;
+                if (cVal > buf[idx]) buf[idx] = cVal;
+              }
+            }
+          }
+        }
+
+        // 2. Vẽ từng lá cỏ cong mềm có cel-shading 2 tông (mặt đón sáng bên trái/trên, mặt khuất bóng bên phải/dưới)
+        for (let bi = 0; bi < blades.length; bi++) {
+          const b = blades[bi];
+          const centerDist = Math.abs(b.bx - 12);
+          const partShift = partAmt > 0 ? b.side * partAmt * (5.4 - Math.min(2.5, centerDist * 0.22)) : 0;
+          const totalBend = b.lean * 1.65 + swayAmt * 3.8 + partShift;
+          const sink = Math.floor(Math.min(2, (Math.abs(totalBend) * 0.18) + partAmt * 1.1));
+          const effH = Math.max(5, b.h - sink);
+
+          for (let k = 0; k <= effH; k++) {
+            const t = k / effH; // 0 = gốc, 1 = ngọn
+            const curve = Math.pow(t, 1.45) * totalBend;
+            const cx = Math.round(b.bx + b.side * partAmt * 0.8 + curve);
+            const py = Math.round(b.by - k);
+            if (py < 1 || py >= TG_CELL - 1) continue;
+
+            let halfL = 0, halfR = 0;
+            if (t < 0.30 && b.w >= 4) {
+              halfL = -1; halfR = 2;
+            } else if (t < 0.48 && b.w >= 3) {
+              halfL = -1; halfR = 1;
+            } else if (t < 0.80) {
+              halfL = totalBend >= 0 ? 0 : -1;
+              halfR = totalBend >= 0 ? 1 : 0;
+            }
+
+            for (let dx = halfL; dx <= halfR; dx++) {
+              const px = cx + dx;
+              if (px < 1 || px >= TG_CELL - 1) continue;
+              const isShadowSide = (dx === halfR && halfR > halfL);
+              const isSunSide = (dx === halfL && halfR > halfL);
+              let cIdx = 2;
+              if (t <= 0.20) {
+                cIdx = 1;
+              } else if (t >= 0.88) {
+                cIdx = (b.lit && k === effH) ? 5 : 4;
+              } else if (t >= 0.62) {
+                cIdx = b.lit ? (isShadowSide ? 3 : 4) : (isShadowSide ? 2 : 3);
+              } else if (b.lit) {
+                cIdx = isShadowSide ? 2 : (isSunSide ? 4 : 3);
+              } else {
+                cIdx = isShadowSide ? 1 : (isSunSide ? 3 : 2);
+              }
+              const idx = py * TG_CELL + px;
+              if (b.lit || cIdx > buf[idx]) {
+                buf[idx] = cIdx;
+              }
+            }
+          }
+        }
+
+        // Chấm nụ hoa nhỏ tinh tế trên biến thể 3 (lớp trước) để thảm cỏ sống động hơn
+        if (isFront && accentSpot && partAmt < 0.25) {
+          const ax = Math.max(2, Math.min(TG_CELL - 3, Math.round(accentSpot.x + swayAmt * 2.2)));
+          const ay = accentSpot.y;
+          if (buf[ay * TG_CELL + ax] > 0) {
+            buf[ay * TG_CELL + ax] = 6;
+          }
+        }
+
+        // 3. Bóng tiếp đất mềm dưới chân khóm cỏ để tách khối 3 tầng chiều sâu
+        if (partAmt > 0.25 && isFront) {
+          actx.fillStyle = pal.shadow;
+          actx.fillRect(ox + 8, oy + 19, 8, 3);
+        } else {
+          actx.fillStyle = pal.shadow;
+          actx.fillRect(ox + 4, oy + turfBaseY + 1, 16, isFront ? 2 : 1);
+          actx.fillRect(ox + 6, oy + turfBaseY + (isFront ? 2 : 1), 12, 1);
+        }
+
+        // 4. Viền tối tạo chiều sâu khe lá (chỉ viền phần ngọn & cạnh trên, không tạo đường thẳng ở gốc)
+        actx.fillStyle = pal.outline;
+        for (let y = 1; y < TG_CELL - 1; y++) {
+          for (let x = 1; x < TG_CELL - 1; x++) {
+            if (buf[y * TG_CELL + x] !== 0) continue;
+            const hasDown = buf[(y + 1) * TG_CELL + x] > 0;
+            const allowSide = y < turfBaseY;
+            const hasLeft = allowSide && buf[y * TG_CELL + (x - 1)] > 0;
+            const hasRight = allowSide && buf[y * TG_CELL + (x + 1)] > 0;
+            if (hasDown || hasLeft || hasRight) {
+              actx.fillRect(ox + x, oy + y, 1, 1);
+            }
+          }
+        }
+
+        // 5. Tô màu pixel từng lớp lá sắc nét
+        const colorLut = [null, pal.dark, pal.mid, pal.bright, pal.tip, pal.dew, pal.blossom || pal.dew];
+        for (let y = 1; y < TG_CELL - 1; y++) {
+          for (let x = 1; x < TG_CELL - 1; x++) {
+            const c = buf[y * TG_CELL + x];
+            if (c > 0) {
+              actx.fillStyle = colorLut[c];
+              actx.fillRect(ox + x, oy + y, 1, 1);
+            }
+          }
+        }
+      }
+
+      for (let v = 0; v < numVariants; v++) {
+        const spec = variantSpecs[v];
+        const yBack = (v * TG_LAYERS) * TG_CELL;
+        const yMid = (v * TG_LAYERS + 1) * TG_CELL;
+        const yFront = (v * TG_LAYERS + 2) * TG_CELL;
+
+        // 17 frame đung đưa bật lò xo (-1.0 -> +1.0, frame 8 đứng yên hoàn toàn)
+        for (let f = 0; f < TG_SWAY_COUNT; f++) {
+          const swayNorm = (f - 8) / 8;
+          drawLayerCell(f * TG_CELL, yBack, spec.back, swayNorm * 0.85, 0, 0, null);
+          drawLayerCell(f * TG_CELL, yMid, spec.mid, swayNorm * 0.94, 0, 1, null);
+          drawLayerCell(f * TG_CELL, yFront, spec.front, swayNorm, 0, 2, spec.accentSpot || null);
+        }
+
+        // 6 frame tách cỏ hai bên khi nhân vật bước vào
+        for (let p = 0; p < TG_PART_COUNT; p++) {
+          const partNorm = (p + 1) / TG_PART_COUNT;
+          const fx = (TG_SWAY_COUNT + p) * TG_CELL;
+          drawLayerCell(fx, yBack, spec.back, 0, partNorm * 0.72, 0, null);
+          drawLayerCell(fx, yMid, spec.mid, 0, partNorm * 0.88, 1, null);
+          drawLayerCell(fx, yFront, spec.front, 0, partNorm, 2, spec.accentSpot || null);
+        }
+      }
+
+      tallGrassAtlasCanvas = cv;
+      return cv;
+    }
 
     function isDirtOrBridgeTileAt(mapId, col, row) {
       const mapObj = mapId === "lake" ? lakeMapData : (mapId === "forest" ? forestMapData : homeMapData);
@@ -12454,7 +12917,27 @@
       return false;
     }
 
+    function buildGrassRowStripCanvas(rowObj, atlas, layerIdx) {
+      const spanCols = rowObj.maxCol - rowObj.minCol + 1;
+      const cv = document.createElement("canvas");
+      cv.width = spanCols * TILE_SIZE + (TG_CELL - TILE_SIZE);
+      cv.height = TG_CELL;
+      const rctx = cv.getContext("2d");
+      rctx.imageSmoothingEnabled = false;
+      rctx.globalAlpha = TG_LAYER_ALPHAS[layerIdx];
+      const sx = TG_IDLE_FRAME * TG_CELL;
+      const tiles = rowObj.tiles;
+      for (let i = 0; i < tiles.length; i++) {
+        const t = tiles[i];
+        const sy = (t.variant * TG_LAYERS + layerIdx) * TG_CELL;
+        const dx = (t.col - rowObj.minCol) * TILE_SIZE;
+        rctx.drawImage(atlas, sx, sy, TG_CELL, TG_CELL, dx, 0, TG_CELL, TG_CELL);
+      }
+      return cv;
+    }
+
     function initTallGrassPatches() {
+      const atlas = buildPokemonTallGrassAtlas();
       const patches = {
         home: [
           [5, 5, 10, 8], [22, 6, 28, 10], [38, 6, 44, 10], [52, 6, 58, 11],
@@ -12474,10 +12957,17 @@
           [32, 27, 34, 30], [37, 34, 39, 36], [51, 30, 54, 33]
         ]
       };
+      activeGrassTiles.clear();
+      prevPlayerGrassTiles.clear();
+      currPlayerGrassTiles.clear();
+
       for (const mapId of ["home", "forest", "lake"]) {
-        const gMap = tallGrassByMap[mapId];
-        gMap.clear();
+        const grid = tallGrassGridByMap[mapId];
+        const rows = tallGrassRowsByMap[mapId];
+        grid.fill(null);
+        rows.fill(null);
         const cfg = mapConfigs[mapId];
+
         for (const [c0, r0, c1, r1] of patches[mapId]) {
           for (let r = r0; r <= r1; r++) {
             for (let c = c0; c <= c1; c++) {
@@ -12489,64 +12979,221 @@
               if (isDirtOrBridgeTileAt(mapId, c, r)) continue;
               if (cfg && cfg.portal && Math.hypot(cx - (cfg.portal.x + 8), cy - (cfg.portal.y + 8)) < 36) continue;
               if (cfg && cfg.portalToLake && Math.hypot(cx - (cfg.portalToLake.x + 8), cy - (cfg.portalToLake.y + 8)) < 36) continue;
-              gMap.set(`${c},${r}`, { col: c, row: r, rustle: 0, swayDir: 1 });
+
+              const idx = r * TG_GRID_SIZE + c;
+              if (grid[idx]) continue;
+
+              let rowObj = rows[r];
+              if (!rowObj) {
+                rowObj = {
+                  row: r,
+                  tiles: [],
+                  activeCount: 0,
+                  minCol: TG_GRID_SIZE,
+                  maxCol: -1,
+                  restBackCanvas: null,
+                  restMidCanvas: null,
+                  restFrontCanvas: null
+                };
+                rows[r] = rowObj;
+              }
+              if (c < rowObj.minCol) rowObj.minCol = c;
+              if (c > rowObj.maxCol) rowObj.maxCol = c;
+
+              const variant = ((c * 73 + r * 139) >>> 0) % 3;
+              const tile = {
+                col: c,
+                row: r,
+                variant,
+                disp0: 0, vel0: 0, // Lớp sau: rung chậm & sâu
+                disp1: 0, vel1: 0, // Lớp giữa: rung vừa
+                disp2: 0, vel2: 0, // Lớp trước: bật nhanh & sắc
+                part: 0,
+                active: false,
+                rowObj
+              };
+              grid[idx] = tile;
+              rowObj.tiles.push(tile);
             }
           }
+        }
+
+        // Tiền kết xuất 3 dải cỏ đứng yên (đã nhúng sẵn độ trong suốt từng lớp) theo từng hàng
+        for (let r = 0; r < TG_GRID_SIZE; r++) {
+          const rowObj = rows[r];
+          if (!rowObj || rowObj.tiles.length === 0) continue;
+          rowObj.tiles.sort((a, b) => a.col - b.col);
+          rowObj.restBackCanvas = buildGrassRowStripCanvas(rowObj, atlas, 0);
+          rowObj.restMidCanvas = buildGrassRowStripCanvas(rowObj, atlas, 1);
+          rowObj.restFrontCanvas = buildGrassRowStripCanvas(rowObj, atlas, 2);
         }
       }
     }
 
-    function spawnTallGrassLeaves(wx, wy, count = 4) {
-      for (let i = 0; i < count; i++) {
+    function activateGrassTile(tile) {
+      if (!tile || tile.active) return;
+      tile.active = true;
+      tile.rowObj.activeCount++;
+      activeGrassTiles.add(tile);
+    }
+
+    function deactivateGrassTile(tile) {
+      if (!tile || !tile.active) return;
+      tile.active = false;
+      tile.disp0 = 0; tile.vel0 = 0;
+      tile.disp1 = 0; tile.vel1 = 0;
+      tile.disp2 = 0; tile.vel2 = 0;
+      tile.part = 0;
+      if (tile.rowObj.activeCount > 0) tile.rowObj.activeCount--;
+      activeGrassTiles.delete(tile);
+    }
+
+    function resetAllActiveGrassTiles() {
+      if (activeGrassTiles.size > 0) {
+        for (const tile of activeGrassTiles) {
+          tile.active = false;
+          tile.disp0 = 0; tile.vel0 = 0;
+          tile.disp1 = 0; tile.vel1 = 0;
+          tile.disp2 = 0; tile.vel2 = 0;
+          tile.part = 0;
+          tile.rowObj.activeCount = 0;
+        }
+        activeGrassTiles.clear();
+      }
+      prevPlayerGrassTiles.clear();
+      currPlayerGrassTiles.clear();
+      tallGrassLeaves.length = 0;
+    }
+
+    function disturbGrassTile(tile, dirSign, strength = 1.0, withPart = true) {
+      if (!tile) return;
+      // 3 lớp nhận xung lực lệch pha nhau: lớp trước bật mạnh & nhanh, lớp giữa vừa, lớp sau chậm tạo hiệu ứng thị sai 3D
+      tile.vel0 += dirSign * 6.8 * strength;
+      tile.vel1 += dirSign * 10.2 * strength;
+      tile.vel2 += dirSign * 13.6 * strength;
+      if (withPart) tile.part = Math.max(tile.part, 0.95 * strength);
+      activateGrassTile(tile);
+    }
+
+    function disturbNeighborGrass(grid, col, row, dirSign) {
+      const nOffsets = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      for (let i = 0; i < 4; i++) {
+        const nc = col + nOffsets[i][0];
+        const nr = row + nOffsets[i][1];
+        if (nc < 0 || nc >= TG_GRID_SIZE || nr < 0 || nr >= TG_GRID_SIZE) continue;
+        const nb = grid[nr * TG_GRID_SIZE + nc];
+        if (nb) disturbGrassTile(nb, dirSign, 0.34, false);
+      }
+    }
+
+    function spawnTallGrassLeaves(wx, wy, count = 3) {
+      if (tallGrassLeaves.length >= 32) return;
+      const n = Math.min(count, 32 - tallGrassLeaves.length);
+      for (let i = 0; i < n; i++) {
         tallGrassLeaves.push({
-          x: wx + (Math.random() - 0.5) * 12,
+          x: wx + (Math.random() - 0.5) * 11,
           y: wy - 3 + (Math.random() - 0.5) * 4,
-          vx: (Math.random() - 0.5) * 34,
-          vy: -24 - Math.random() * 20,
-          life: 0.65 + Math.random() * 0.25,
+          vx: (Math.random() - 0.5) * 30,
+          vy: -20 - Math.random() * 18,
+          phase: Math.random() * Math.PI * 2,
+          life: 0.60 + Math.random() * 0.25,
           maxLife: 0.85,
-          color: Math.random() < 0.5 ? "#86efac" : "#22c55e"
+          c1: Math.random() < 0.5 ? "#9ef048" : "#5ec732",
+          c2: "#1b6b27"
         });
       }
     }
 
     function updateTallGrass(dt) {
-      const gMap = tallGrassByMap[currentMap];
-      if (!gMap) return;
+      const grid = tallGrassGridByMap[currentMap];
+      if (!grid) return;
 
-      for (const tile of gMap.values()) {
-        if (tile.rustle > 0) tile.rustle = Math.max(0, tile.rustle - dt * 2.8);
-      }
+      // 1. Chỉ cập nhật lò xo 3 tốc độ độc lập cho những ô cỏ đang bị người chơi làm xào xạc
+      if (activeGrassTiles.size > 0) {
+        const k0 = 88, c0 = 9.2;   // Lớp sau: tần số thấp, đung đưa trễ
+        const k1 = 142, c1 = 11.6; // Lớp giữa: tần số trung bình
+        const k2 = 215, c2 = 14.0; // Lớp trước: bật nhanh, dứt khoát
+        for (const tile of activeGrassTiles) {
+          tile.vel0 += (-k0 * tile.disp0 - c0 * tile.vel0) * dt;
+          tile.disp0 += tile.vel0 * dt;
+          if (tile.disp0 > 1.35) tile.disp0 = 1.35;
+          else if (tile.disp0 < -1.35) tile.disp0 = -1.35;
 
-      playerGrassBurstCooldown = Math.max(0, playerGrassBurstCooldown - dt);
-      const pc = Math.floor((player.x + player.width / 2) / TILE_SIZE);
-      const pr = Math.floor((player.y + player.height - 2) / TILE_SIZE);
-      const pKey = `${pc},${pr}`;
-      const pTile = gMap.get(pKey);
-      if (pTile) {
-        if (pKey !== lastPlayerGrassKey || (player.action === "walk" && playerGrassBurstCooldown <= 0)) {
-          pTile.rustle = 1.0;
-          pTile.swayDir = player.direction === "left" ? -1 : 1;
-          spawnTallGrassLeaves(pc * TILE_SIZE + 8, pr * TILE_SIZE + 8, pKey !== lastPlayerGrassKey ? 3 : 2);
-          playerGrassBurstCooldown = 0.22;
-        }
-      }
-      lastPlayerGrassKey = pKey;
+          tile.vel1 += (-k1 * tile.disp1 - c1 * tile.vel1) * dt;
+          tile.disp1 += tile.vel1 * dt;
+          if (tile.disp1 > 1.35) tile.disp1 = 1.35;
+          else if (tile.disp1 < -1.35) tile.disp1 = -1.35;
 
-      if (currentMobs && currentMobs.length > 0) {
-        for (const mob of currentMobs) {
-          if (!mob.isMoving || mob.hp <= 0) continue;
-          const mc = Math.floor((mob.x + mob.width / 2) / TILE_SIZE);
-          const mr = Math.floor((mob.y + mob.height - 2) / TILE_SIZE);
-          const mTile = gMap.get(`${mc},${mr}`);
-          if (mTile && mTile.rustle < 0.25) {
-            mTile.rustle = 0.85;
-            mTile.swayDir = mob.dirX < 0 ? -1 : 1;
-            spawnTallGrassLeaves(mc * TILE_SIZE + 8, mr * TILE_SIZE + 8, 1);
+          tile.vel2 += (-k2 * tile.disp2 - c2 * tile.vel2) * dt;
+          tile.disp2 += tile.vel2 * dt;
+          if (tile.disp2 > 1.35) tile.disp2 = 1.35;
+          else if (tile.disp2 < -1.35) tile.disp2 = -1.35;
+
+          if (tile.part > 0) tile.part = Math.max(0, tile.part - dt * 2.5);
+
+          if (
+            Math.abs(tile.disp0) < 0.015 && Math.abs(tile.vel0) < 0.04 &&
+            Math.abs(tile.disp1) < 0.015 && Math.abs(tile.vel1) < 0.04 &&
+            Math.abs(tile.disp2) < 0.015 && Math.abs(tile.vel2) < 0.04 &&
+            tile.part <= 0.01
+          ) {
+            deactivateGrassTile(tile);
           }
         }
       }
 
+      // 2. Chỉ kích hoạt xào xạc khi vùng chân của NGƯỜI CHƠI va chạm hoặc đi xuyên qua bụi cỏ
+      playerGrassBurstCooldown = Math.max(0, playerGrassBurstCooldown - dt);
+      currPlayerGrassTiles.clear();
+
+      const fx0 = player.x + 2;
+      const fx1 = player.x + player.width - 2;
+      const fy0 = player.y + 4;
+      const fy1 = player.y + player.height - 1;
+      const c0 = Math.max(0, Math.floor(fx0 / TILE_SIZE));
+      const c1 = Math.min(TG_GRID_SIZE - 1, Math.floor(fx1 / TILE_SIZE));
+      const r0 = Math.max(0, Math.floor(fy0 / TILE_SIZE));
+      const r1 = Math.min(TG_GRID_SIZE - 1, Math.floor(fy1 / TILE_SIZE));
+
+      const isWalking = player.action === "walk";
+      const dirSign = player.direction === "left" ? -1 : 1;
+      let triggeredContinuousBurst = false;
+
+      for (let r = r0; r <= r1; r++) {
+        const rowBase = r * TG_GRID_SIZE;
+        for (let c = c0; c <= c1; c++) {
+          const pTile = grid[rowBase + c];
+          if (!pTile) continue;
+          currPlayerGrassTiles.add(pTile);
+
+          if (!prevPlayerGrassTiles.has(pTile)) {
+            // Người chơi vừa va chạm / bước vào ô cỏ này -> kích hoạt hiệu ứng xào xạc 3 lớp ngay lập tức
+            disturbGrassTile(pTile, dirSign, 1.0, true);
+            disturbNeighborGrass(grid, c, r, dirSign);
+            spawnTallGrassLeaves(c * TILE_SIZE + 8, r * TILE_SIZE + 8, 3);
+            playerGrassBurstCooldown = 0.20;
+          } else if (isWalking) {
+            // Đang đi xuyên qua bụi cỏ -> giữ lá tách hai bên và xào xạc theo nhịp bước
+            pTile.part = Math.max(pTile.part, 0.78);
+            activateGrassTile(pTile);
+            if (!triggeredContinuousBurst && playerGrassBurstCooldown <= 0) {
+              disturbGrassTile(pTile, dirSign, 0.55, true);
+              spawnTallGrassLeaves(c * TILE_SIZE + 8, r * TILE_SIZE + 8, 1);
+              triggeredContinuousBurst = true;
+            }
+          }
+        }
+      }
+      if (triggeredContinuousBurst) {
+        playerGrassBurstCooldown = 0.24;
+      }
+
+      // Đổi tham chiếu 2 Set (không cấp phát object mới)
+      const tmpSet = prevPlayerGrassTiles;
+      prevPlayerGrassTiles = currPlayerGrassTiles;
+      currPlayerGrassTiles = tmpSet;
+
+      // 3. Cập nhật các mảnh lá rơi nếu đang có
       for (let i = tallGrassLeaves.length - 1; i >= 0; i--) {
         const lf = tallGrassLeaves[i];
         lf.life -= dt;
@@ -12554,8 +13201,10 @@
           tallGrassLeaves.splice(i, 1);
           continue;
         }
-        lf.vy += 55 * dt;
-        lf.x += lf.vx * dt;
+        lf.vy += 42 * dt;
+        lf.vx *= Math.max(0, 1 - dt * 1.4);
+        lf.phase += dt * 11;
+        lf.x += (lf.vx + Math.sin(lf.phase) * 14) * dt;
         lf.y += lf.vy * dt;
       }
     }
@@ -12704,9 +13353,12 @@
           valCurrentMap.className = "map-badge-forest";
         }
       }
+      resetAllActiveGrassTiles();
+      if (typeof ensurePlayerNotStuck === "function") ensurePlayerNotStuck();
       updateStatsHUD();
     }
 
+    const _stuckCheckBox = { x: 0, y: 0, width: 16, height: 16 };
     loadMap("home");
 
     // -------------------------------------------------------------
@@ -14556,156 +15208,141 @@
     // -------------------------------------------------------------
     // HỆ THỐNG VẬT LÝ BẢN ĐỒ: KIỂM TRA MẶT ĐẤT ĐI ĐƯỢC (WALKABLE)
     // -------------------------------------------------------------
-    // Kiểm tra xem 1 tọa độ pixel (px, py) có nằm hoàn toàn trên mặt đất hay không
+    // Kiểm tra xem 1 tọa độ pixel (px, py) có nằm hoàn toàn trên mặt đất hay không (Tra bảng O(1))
     function isWalkableGround(px, py, mapId = null) {
       const activeMapId = mapId || currentMap;
-
-      if (activeMapId === "home") {
-        if (!homeMapData || !homeMapData.layerInstances) return true;
-        const cWid = homeMapData.widthInTiles || 32;
-        const cHei = homeMapData.heightInTiles || 32;
-        const col = Math.floor(px / TILE_SIZE);
-        const row = Math.floor(py / TILE_SIZE);
-
-        if (col < 0 || col >= cWid || row < 0 || row >= cHei) return false;
-
-        const idx = row * cWid + col;
-        const layers = homeMapData.layerInstances;
-        const ground = layers.find(l => l.__identifier === "Ground");
-        const water = layers.find(l => l.__identifier === "Water");
-        const rock = layers.find(l => l.__identifier === "Rock");
-        const plains = layers.find(l => l.__identifier === "Plains");
-
-        if (water && water.intGridCsv && water.intGridCsv[idx] > 0) return false;
-        if (rock && rock.intGridCsv && rock.intGridCsv[idx] > 0) return false;
-        if (plains && plains.intGridCsv && plains.intGridCsv[idx] > 0) return false;
-        if (ground && ground.intGridCsv && ground.intGridCsv[idx] > 0) return true;
-        return false;
-      }
-
-      if (activeMapId === "forest") {
-        if (!forestMapData || !forestMapData.layerInstances) return true;
-        const cWid = forestMapData.widthInTiles || 32;
-        const cHei = forestMapData.heightInTiles || 32;
-        const col = Math.floor(px / TILE_SIZE);
-        const row = Math.floor(py / TILE_SIZE);
-
-        if (col < 0 || col >= cWid || row < 0 || row >= cHei) return false;
-
-        const idx = row * cWid + col;
-        const layers = forestMapData.layerInstances;
-        const fences = layers.find(l => l.__identifier === "Fences");
-        const water = layers.find(l => l.__identifier === "Water");
-        const jungles = layers.find(l => l.__identifier === "Jungles");
-
-        // 1. Tuyệt đối không thể đi lên hàng rào Fences
-        if (fences && fences.intGridCsv && fences.intGridCsv[idx] > 0) return false;
-
-        // 2. Không thể đi vào nước
-        if (water && water.intGridCsv && water.intGridCsv[idx] > 0) return false;
-
-        // 3. Chỗ nào còn tileset đất (Jungles) ngoại trừ hàng rào và nước thì đều di chuyển được hết
-        if (jungles && jungles.intGridCsv && jungles.intGridCsv[idx] > 0) return true;
-
-        return false;
-      }
-
-      return true;
+      const grid = mapWalkableGrids[activeMapId];
+      if (!grid) return true;
+      const dims = mapWalkableDims[activeMapId];
+      const cWid = dims.w;
+      const cHei = dims.h;
+      const col = (px / TILE_SIZE) | 0;
+      const row = (py / TILE_SIZE) | 0;
+      if (px < 0 || py < 0 || col >= cWid || row >= cHei) return false;
+      return grid[row * cWid + col] === 1;
     }
 
     // Kiểm tra toàn bộ 4 góc chân của hộp nhân vật có nằm trên mặt đất hay không
     function isBoxOnWalkableGround(box, mapId = null) {
-      // Bỏ qua một lượng đệm biên nhỏ (2px) để nhân vật di chuyển êm mượt, không bị khựng sát góc
+      const activeMapId = mapId || currentMap;
+      const grid = mapWalkableGrids[activeMapId];
+      if (!grid) return true;
+      const dims = mapWalkableDims[activeMapId];
+      const cWid = dims.w;
+      const cHei = dims.h;
       const inset = 2;
       const left = box.x + inset;
       const right = box.x + box.width - inset;
       const top = box.y + inset;
       const bottom = box.y + box.height - inset;
-
+      if (left < 0 || top < 0) return false;
+      const c0 = (left / TILE_SIZE) | 0;
+      const c1 = (right / TILE_SIZE) | 0;
+      const r0 = (top / TILE_SIZE) | 0;
+      const r1 = (bottom / TILE_SIZE) | 0;
+      if (c1 >= cWid || r1 >= cHei) return false;
       return (
-        isWalkableGround(left, top, mapId) &&
-        isWalkableGround(right, top, mapId) &&
-        isWalkableGround(left, bottom, mapId) &&
-        isWalkableGround(right, bottom, mapId)
+        grid[r0 * cWid + c0] === 1 &&
+        grid[r0 * cWid + c1] === 1 &&
+        grid[r1 * cWid + c0] === 1 &&
+        grid[r1 * cWid + c1] === 1
       );
     }
 
     // -------------------------------------------------------------
     // 9. CẬP NHẬT LOGIC GAME & VA CHẠM AABB
     // -------------------------------------------------------------
-    function getObjectCollisionBox(obj) {
-      if (obj.type === "crafting_table" || obj.type === "chest") {
-        // Thu hẹp hitbox vật thể đặt 12x12 để người chơi lướt qua các khe hẹp mượt mà, không bao giờ bị kẹt
-        return { x: obj.x + 2, y: obj.y + 3, width: 12, height: 11 };
-      }
-      return obj;
-    }
 
     function willPlayerCollide(targetBox) {
-      // Hitbox va chạm của Player thu gọn ở phần chân (12x12 căn giữa)
-      const playerFeetBox = {
-        x: targetBox.x + 2,
-        y: targetBox.y + 3,
-        width: 12,
-        height: 12
-      };
+      // Hitbox va chạm của Player thu gọn ở phần chân (12x12 căn giữa) - không cấp phát object mới
+      const fx = targetBox.x + 2;
+      const fy = targetBox.y + 3;
+      const fw = 12;
+      const fh = 12;
 
-      // 1. Kiểm tra giới hạn vật lý mặt đất
-      if (!isBoxOnWalkableGround(playerFeetBox)) {
-        return true;
+      // 1. Kiểm tra giới hạn vật lý mặt đất bằng mảng phẳng O(1)
+      const grid = mapWalkableGrids[currentMap];
+      if (grid) {
+        const dims = mapWalkableDims[currentMap];
+        const cWid = dims.w;
+        const cHei = dims.h;
+        const gx0 = fx + 2;
+        const gx1 = fx + fw - 2;
+        const gy0 = fy + 2;
+        const gy1 = fy + fh - 2;
+        if (gx0 < 0 || gy0 < 0) return true;
+        const c0 = (gx0 / TILE_SIZE) | 0;
+        const c1 = (gx1 / TILE_SIZE) | 0;
+        const r0 = (gy0 / TILE_SIZE) | 0;
+        const r1 = (gy1 / TILE_SIZE) | 0;
+        if (c1 >= cWid || r1 >= cHei) return true;
+        if (grid[r0 * cWid + c0] !== 1 || grid[r0 * cWid + c1] !== 1 ||
+            grid[r1 * cWid + c0] !== 1 || grid[r1 * cWid + c1] !== 1) {
+          return true;
+        }
       }
 
       if (currentMap === "lake" && lakeLandGrid) {
-        const propsLayer = lakeMapData && lakeMapData.layerInstances
-          ? lakeMapData.layerInstances.find(l => l.__identifier === "Props")
-          : null;
-        const cWid = (lakeMapData && lakeMapData.widthInTiles) || 32;
-        const corners = [
-          { x: playerFeetBox.x, y: playerFeetBox.y },
-          { x: playerFeetBox.x + playerFeetBox.width - 1, y: playerFeetBox.y },
-          { x: playerFeetBox.x, y: playerFeetBox.y + playerFeetBox.height - 1 },
-          { x: playerFeetBox.x + playerFeetBox.width - 1, y: playerFeetBox.y + playerFeetBox.height - 1 }
-        ];
-        for (const c of corners) {
-          const tx = Math.floor(c.x / TILE_SIZE);
-          const ty = Math.floor(c.y / TILE_SIZE);
-          if (ty < 0 || ty >= lakeLandGrid.length || tx < 0 || tx >= lakeLandGrid[0].length || !lakeLandGrid[ty][tx]) {
-            return true; // Chặn đi xuống nước trên map Hồ
-          }
-          if (propsLayer && propsLayer.intGridCsv && propsLayer.intGridCsv[ty * cWid + tx] > 0) {
-            return true; // Chặn va chạm với vật thể HD ven hồ (đá, thùng cá, đèn, giá cần câu...)
+        const lWid = lakeWalkableWidth();
+        const lHei = lakeLandGrid.length;
+        const tx0 = (fx / TILE_SIZE) | 0;
+        const tx1 = ((fx + fw - 1) / TILE_SIZE) | 0;
+        const ty0 = (fy / TILE_SIZE) | 0;
+        const ty1 = ((fy + fh - 1) / TILE_SIZE) | 0;
+        if (fx < 0 || fy < 0 || ty0 < 0 || ty1 >= lHei || tx0 < 0 || tx1 >= lWid) return true;
+        if (!lakeLandGrid[ty0][tx0] || !lakeLandGrid[ty0][tx1] || !lakeLandGrid[ty1][tx0] || !lakeLandGrid[ty1][tx1]) {
+          return true;
+        }
+        if (lakePropsBlockedGrid) {
+          const pw = mapWalkableDims.lake.w;
+          if (lakePropsBlockedGrid[ty0 * pw + tx0] || lakePropsBlockedGrid[ty0 * pw + tx1] ||
+              lakePropsBlockedGrid[ty1 * pw + tx0] || lakePropsBlockedGrid[ty1 * pw + tx1]) {
+            return true;
           }
         }
       }
 
       // 2. Va chạm với Lửa Trại ở bản đồ Nhà
       if (currentMap === "home") {
-        const campfireBox = {
-          x: HOME_CAMPFIRE.x - 7,
-          y: HOME_CAMPFIRE.y - 2,
-          width: 14,
-          height: 8
-        };
-        if (checkAABB(playerFeetBox, campfireBox)) {
+        const cx = HOME_CAMPFIRE.x - 7;
+        const cy = HOME_CAMPFIRE.y - 2;
+        if (fx < cx + 14 && fx + fw > cx && fy < cy + 8 && fy + fh > cy) {
           return true;
         }
       }
 
-      // 3. Va chạm với vật thể thu thập & công trình
-      for (const obj of currentObjects) {
-        const cBox = getObjectCollisionBox(obj);
-        if (checkAABB(playerFeetBox, cBox)) {
+      // 3. Va chạm với vật thể thu thập & công trình (loại nhanh bằng khoảng cách 32px)
+      for (let i = 0; i < currentObjects.length; i++) {
+        const obj = currentObjects[i];
+        const dx = obj.x - fx;
+        const dy = obj.y - fy;
+        if (dx > 32 || dx < -32 || dy > 32 || dy < -32) continue;
+        let ox = obj.x, oy = obj.y, ow = obj.width || 16, oh = obj.height || 16;
+        if (obj.type === "crafting_table" || obj.type === "chest") {
+          ox += 2; oy += 3; ow = 12; oh = 11;
+        }
+        if (fx < ox + ow && fx + fw > ox && fy < oy + oh && fy + fh > oy) {
           return true;
         }
       }
 
-      // 3. Va chạm với quái vật
-      for (const mob of currentMobs) {
-        if (checkAABB(playerFeetBox, mob)) {
+      // 4. Va chạm với quái vật
+      for (let i = 0; i < currentMobs.length; i++) {
+        const mob = currentMobs[i];
+        const dx = mob.x - fx;
+        const dy = mob.y - fy;
+        if (dx > 32 || dx < -32 || dy > 32 || dy < -32) continue;
+        const mw = mob.width || 16;
+        const mh = mob.height || 16;
+        if (fx < mob.x + mw && fx + fw > mob.x && fy < mob.y + mh && fy + fh > mob.y) {
           return true;
         }
       }
       return false;
+    }
+
+    function lakeWalkableWidth() {
+      return (lakeLandGrid && lakeLandGrid[0]) ? lakeLandGrid[0].length : 64;
     }
 
     let portalCooldown = 0;
@@ -15625,52 +16262,31 @@
       }
 
       // Tự động giải thoát nếu nhân vật đang đứng chồng lên mép nước/vật cản (do load save cũ)
-      function ensurePlayerNotStuck() {
-        const curBox = { x: player.x, y: player.y, width: player.width, height: player.height };
-        if (!willPlayerCollide(curBox)) return;
-        for (let r = 2; r <= 64; r += 2) {
-          for (let i = 0; i < 16; i++) {
-            const ang = (i / 16) * Math.PI * 2;
-            const cx = Math.max(0, Math.min(MAP_SIZE - player.width, player.x + Math.cos(ang) * r));
-            const cy = Math.max(0, Math.min(MAP_SIZE - player.height, player.y + Math.sin(ang) * r));
-            if (!willPlayerCollide({ x: cx, y: cy, width: player.width, height: player.height })) {
-              player.x = cx;
-              player.y = cy;
-              return;
-            }
-          }
-        }
-      }
-
       if (deltaX !== 0 || deltaY !== 0) {
         ensurePlayerNotStuck();
       }
 
-      // Xử lý va chạm AABB trục X (16x16)
+      // Xử lý va chạm AABB trục X & Y với hộp tái sử dụng (không tạo rác bộ nhớ)
+      const _moveBox = { x: player.x, y: player.y, width: player.width, height: player.height };
       if (deltaX !== 0) {
-        const futureBoxX = {
-          x: player.x + deltaX,
-          y: player.y,
-          width: player.width,
-          height: player.height
-        };
-        const hitMapBoundX = futureBoxX.x < 0 || futureBoxX.x + futureBoxX.width > MAP_SIZE;
-        if (!willPlayerCollide(futureBoxX) && !hitMapBoundX) {
-          player.x = futureBoxX.x;
+        const nextX = player.x + deltaX;
+        if (nextX >= 0 && nextX + player.width <= MAP_SIZE) {
+          _moveBox.x = nextX;
+          _moveBox.y = player.y;
+          if (!willPlayerCollide(_moveBox)) {
+            player.x = nextX;
+          }
         }
       }
 
-      // Xử lý va chạm AABB trục Y (16x16)
       if (deltaY !== 0) {
-        const futureBoxY = {
-          x: player.x,
-          y: player.y + deltaY,
-          width: player.width,
-          height: player.height
-        };
-        const hitMapBoundY = futureBoxY.y < 0 || futureBoxY.y + futureBoxY.height > MAP_SIZE;
-        if (!willPlayerCollide(futureBoxY) && !hitMapBoundY) {
-          player.y = futureBoxY.y;
+        const nextY = player.y + deltaY;
+        if (nextY >= 0 && nextY + player.height <= MAP_SIZE) {
+          _moveBox.x = player.x;
+          _moveBox.y = nextY;
+          if (!willPlayerCollide(_moveBox)) {
+            player.y = nextY;
+          }
         }
       }
 
@@ -15726,8 +16342,12 @@
       camera.x = playerCenterX - visibleWidth / 2 + screenShakeOffsetX;
       camera.y = playerCenterY - visibleHeight / 2 + screenShakeOffsetY;
 
-      if (valPlayerPos) {
-        valPlayerPos.textContent = `X: ${Math.round(player.x)}, Y: ${Math.round(player.y)}`;
+      if (valPlayerPos && hudEl && hudEl.offsetParent !== null) {
+        const nextPosText = `X: ${Math.round(player.x)}, Y: ${Math.round(player.y)}`;
+        if (nextPosText !== lastValPlayerPos) {
+          valPlayerPos.textContent = nextPosText;
+          lastValPlayerPos = nextPosText;
+        }
       }
 
       if (teleportFlashOpacity > 0) {
@@ -15744,6 +16364,72 @@
           floatingTexts.splice(i, 1);
         }
       }
+    }
+
+    function ensurePlayerNotStuck() {
+      _stuckCheckBox.x = player.x;
+      _stuckCheckBox.y = player.y;
+      _stuckCheckBox.width = player.width;
+      _stuckCheckBox.height = player.height;
+      if (!willPlayerCollide(_stuckCheckBox)) return;
+      for (let r = 2; r <= 64; r += 2) {
+        for (let i = 0; i < 16; i++) {
+          const ang = (i / 16) * Math.PI * 2;
+          const cx = Math.max(0, Math.min(MAP_SIZE - player.width, player.x + Math.cos(ang) * r));
+          const cy = Math.max(0, Math.min(MAP_SIZE - player.height, player.y + Math.sin(ang) * r));
+          _stuckCheckBox.x = cx;
+          _stuckCheckBox.y = cy;
+          if (!willPlayerCollide(_stuckCheckBox)) {
+            player.x = cx;
+            player.y = cy;
+            return;
+          }
+        }
+      }
+    }
+
+    const WATER_WAVE_STYLES = [
+      "rgba(210, 246, 255, 0.12)",
+      "rgba(210, 246, 255, 0.20)",
+      "rgba(210, 246, 255, 0.29)",
+      "rgba(210, 246, 255, 0.38)"
+    ];
+    const WATER_SPARK_STYLES = [
+      "rgba(255, 255, 255, 0.22)",
+      "rgba(255, 255, 255, 0.45)"
+    ];
+
+    const grassRenderPool = [];
+    let grassRenderPoolLen = 0;
+    function pushGrassRenderable(list, sortY, srcImg, sx, sy, sw, sh, dx, dy, dw, dh, alpha = 1) {
+      let entry = grassRenderPool[grassRenderPoolLen];
+      if (!entry) {
+        entry = {
+          sortY: 0,
+          srcImg: null,
+          sx: 0, sy: 0, sw: 0, sh: 0,
+          dx: 0, dy: 0, dw: 0, dh: 0,
+          alpha: 1,
+          draw() {
+            if (this.alpha < 0.999) {
+              const prevAlpha = ctx.globalAlpha;
+              ctx.globalAlpha = prevAlpha * this.alpha;
+              ctx.drawImage(this.srcImg, this.sx, this.sy, this.sw, this.sh, this.dx, this.dy, this.dw, this.dh);
+              ctx.globalAlpha = prevAlpha;
+            } else {
+              ctx.drawImage(this.srcImg, this.sx, this.sy, this.sw, this.sh, this.dx, this.dy, this.dw, this.dh);
+            }
+          }
+        };
+        grassRenderPool[grassRenderPoolLen] = entry;
+      }
+      grassRenderPoolLen++;
+      entry.sortY = sortY;
+      entry.srcImg = srcImg;
+      entry.sx = sx; entry.sy = sy; entry.sw = sw; entry.sh = sh;
+      entry.dx = dx; entry.dy = dy; entry.dw = dw; entry.dh = dh;
+      entry.alpha = alpha;
+      list.push(entry);
     }
 
     // -------------------------------------------------------------
@@ -15763,9 +16449,18 @@
       ctx.save();
       const activeZoom = getCameraZoom();
       const snapPx = (v) => Math.round(v * activeZoom) / activeZoom;
+      const camDrawX = snapPx(camera.x);
+      const camDrawY = snapPx(camera.y);
+      const viewW = canvas.width / activeZoom;
+      const viewH = canvas.height / activeZoom;
+      const viewLeft = camDrawX - 56;
+      const viewRight = camDrawX + viewW + 56;
+      const viewTop = camDrawY - 72;
+      const viewBottom = camDrawY + viewH + 72;
+
       ctx.scale(activeZoom, activeZoom);
       // Dời hệ quy chiếu theo tọa độ Camera đã căn lưới pixel nguyên để không rớt pixel khi đi 8 hướng
-      ctx.translate(-snapPx(camera.x), -snapPx(camera.y));
+      ctx.translate(-camDrawX, -camDrawY);
 
       // NỀN BẢN ĐỒ:
       // Ở bản đồ 'home', vẽ bản đồ LDtk (Ground, Water, Rock, Plains) từ map_home.json
@@ -15776,74 +16471,74 @@
         drawMap(ctx, forestMapData);
       } else if (currentMap === "lake" && lakeMapData) {
         ctx.fillStyle = "#2068ac";
-        ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+        ctx.fillRect(Math.max(0, camDrawX - 2), Math.max(0, camDrawY - 2), viewW + 4, viewH + 4);
         drawMap(ctx, lakeMapData);
       } else if (images.grass && images.grass.complete && images.grass.naturalWidth > 0) {
         const grassSrcX = currentMap === "home" ? 0 : 16;
-        for (let x = 0; x < MAP_SIZE; x += TILE_SIZE) {
-          for (let y = 0; y < MAP_SIZE; y += TILE_SIZE) {
-            ctx.drawImage(
-              images.grass,
-              grassSrcX, 0, 16, 16, // Source rect
-              x, y, 16, 16          // Dest rect
-            );
+        const startGX = Math.max(0, Math.floor(camDrawX / TILE_SIZE) * TILE_SIZE);
+        const endGX = Math.min(MAP_SIZE - TILE_SIZE, Math.ceil((camDrawX + viewW) / TILE_SIZE) * TILE_SIZE);
+        const startGY = Math.max(0, Math.floor(camDrawY / TILE_SIZE) * TILE_SIZE);
+        const endGY = Math.min(MAP_SIZE - TILE_SIZE, Math.ceil((camDrawY + viewH) / TILE_SIZE) * TILE_SIZE);
+        for (let x = startGX; x <= endGX; x += TILE_SIZE) {
+          for (let y = startGY; y <= endGY; y += TILE_SIZE) {
+            ctx.drawImage(images.grass, grassSrcX, 0, 16, 16, x, y, 16, 16);
           }
         }
       } else {
-        // Fallback màu nếu chưa tải xong ảnh
         ctx.fillStyle = config.color;
         ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
       }
 
       // --- MẶT NƯỚC ĐỘNG (ANIMATED WATER SHIMMER & RIPPLES) ---
       (function drawAnimatedWaterOverlay() {
-        const t = performance.now() * 0.0018;
+        const nowMs = performance.now();
+        const t = nowMs * 0.0018;
         const mapObj = currentMap === "lake" ? lakeMapData : (currentMap === "forest" ? forestMapData : homeMapData);
         if (!mapObj || !mapObj.layerInstances) return;
         const cWid = mapObj.widthInTiles || 32;
         const cHei = mapObj.heightInTiles || 32;
         const waterLayer = currentMap !== "lake" ? mapObj.layerInstances.find(l => l.__identifier === "Water") : null;
-        if (currentMap !== "lake" && (!waterLayer || !waterLayer.intGridCsv)) return;
+        const wCsv = waterLayer && waterLayer.intGridCsv;
+        if (currentMap !== "lake" && !wCsv) return;
         if (currentMap === "lake" && !lakeLandGrid) return;
 
         const minC = Math.max(0, Math.floor(camera.x / TILE_SIZE));
-        const maxC = Math.min(cWid - 1, Math.ceil((camera.x + canvas.width / activeZoom) / TILE_SIZE));
+        const maxC = Math.min(cWid - 1, Math.ceil((camera.x + viewW) / TILE_SIZE));
         const minR = Math.max(0, Math.floor(camera.y / TILE_SIZE));
-        const maxR = Math.min(cHei - 1, Math.ceil((camera.y + canvas.height / activeZoom) / TILE_SIZE));
+        const maxR = Math.min(cHei - 1, Math.ceil((camera.y + viewH) / TILE_SIZE));
 
         const isOpenWater = (r, c) => {
           if (r < 0 || r >= cHei || c < 0 || c >= cWid) return false;
           if (currentMap === "lake") return !lakeLandGrid[r][c];
-          return waterLayer.intGridCsv[r * cWid + c] > 0;
+          return wCsv[r * cWid + c] > 0;
         };
 
-        ctx.save();
         for (let r = minR; r <= maxR; r++) {
+          const driftX = Math.sin(t * 0.7 + r) * 1.8;
           for (let c = minC; c <= maxC; c++) {
             if (!isOpenWater(r, c)) continue;
             const insideWater = isOpenWater(r - 1, c) && isOpenWater(r + 1, c) && isOpenWater(r, c - 1) && isOpenWater(r, c + 1);
             const px = c * TILE_SIZE;
             const py = r * TILE_SIZE;
             const phase = t + c * 1.17 + r * 0.83;
-            const waveAlpha = Math.max(0, Math.sin(phase));
+            const waveAlpha = Math.sin(phase);
             if (waveAlpha > 0.15) {
-              const driftX = Math.sin(t * 0.7 + r) * 1.8;
               const wx = px + (insideWater ? 4 : 6) + driftX;
               const wy = py + (insideWater ? 5 + ((c + r) % 3) * 3 : 8);
               const len = insideWater ? (2 + waveAlpha * 2.2) : 2;
-              ctx.fillStyle = `rgba(210, 246, 255, ${(waveAlpha * 0.38).toFixed(3)})`;
+              const tier = waveAlpha > 0.8 ? 3 : (waveAlpha > 0.58 ? 2 : (waveAlpha > 0.36 ? 1 : 0));
+              ctx.fillStyle = WATER_WAVE_STYLES[tier];
               ctx.fillRect(Math.round(wx), Math.round(wy), Math.round(len), 1);
             }
             if (insideWater && ((c * 7 + r * 13) % 5 === 0)) {
-              const spk = Math.max(0, Math.sin(t * 1.45 + c * 2.1 - r * 1.7));
+              const spk = Math.sin(t * 1.45 + c * 2.1 - r * 1.7);
               if (spk > 0.65) {
-                ctx.fillStyle = `rgba(255, 255, 255, ${((spk - 0.65) * 1.4).toFixed(3)})`;
+                ctx.fillStyle = spk > 0.84 ? WATER_SPARK_STYLES[1] : WATER_SPARK_STYLES[0];
                 ctx.fillRect(px + 10, py + 11, 2, 1);
               }
             }
           }
         }
-        ctx.restore();
       })();
 
       // Viền ranh giới bản đồ
@@ -15932,163 +16627,87 @@
         renderTimeStopGroundEffects(ctx);
       }
 
+      grassRenderPoolLen = 0;
+
       // --- VẼ CÁC THỰC THỂ CÓ ĐỘ SÂU THEO TRỤC Y (Y-SORTING LAYER LOGIC) ---
       // Gom tất cả các đối tượng: Vật thể (Cây, Đá, Lò rèn), Heo Rừng và Player vào danh sách renderable
       const renderables = [];
 
-      // 0. Thêm cây & vật thể HD từ map home (dùng Tree1.png & home_props_hd.png có Y-sorting)
-      if (currentMap === "home" && homeMapData && homeMapData.layerInstances) {
-        const plainsLayer = homeMapData.layerInstances.find(l => l.__identifier === "Plains");
-        if (plainsLayer && plainsLayer.autoLayerTiles) {
-          for (const tile of plainsLayer.autoLayerTiles) {
-            const sx = tile.src[0];
-            const sy = tile.src[1];
-            const px = tile.px[0];
-            const py = tile.px[1];
-            if (sy === 64 && sx === 64) continue; // Cầu gỗ đã vẽ ở nền
+      // 0. Vẽ vật thể HD tĩnh của bản đồ (đã tiền xử lý + cắt theo viewport + dùng Glow Sprite cache)
+      const nowMs = performance.now();
+      const staticProps = staticRenderPropsByMap[currentMap];
+      if (staticProps && staticProps.length > 0) {
+        const treeImg = images.tree1;
+        const hPropImg = images.home_props_hd;
+        const fPropImg = images.forest_props_hd;
+        const lPropImg = images.lake_props_hd;
+        const hasTree = treeImg && treeImg.complete && treeImg.naturalWidth > 0;
+        const hasHProp = hPropImg && hPropImg.complete && hPropImg.naturalWidth > 0;
+        const hasFProp = fPropImg && fPropImg.complete && fPropImg.naturalWidth > 0;
+        const hasLProp = lPropImg && lPropImg.complete && lPropImg.naturalWidth > 0;
 
-            if (sy === 64 && (sx === 0 || sx === 16)) {
-              renderables.push({
-                sortY: py + 16,
-                draw: () => {
-                  const treeImg = images.tree1;
-                  if (treeImg && treeImg.complete && treeImg.naturalWidth > 0) {
-                    ctx.drawImage(treeImg, 37, 51, 119, 190, px - 14, py - 44, 44, 60);
-                  }
-                }
-              });
-            } else {
-              // Map src -> slot in home_props_hd.png (512x64, 8 slots of 64x64)
-              let slot = -1, ox = 0, oy = 0, dw = 16, dh = 16;
-              if (sy === 48 && sx === 0) { slot = 0; ox = -4; oy = -10; dw = 24; dh = 26; } // Đèn đường
-              else if (sy === 48 && sx === 16) { slot = 1; ox = -5; oy = -10; dw = 26; dh = 26; } // Giếng nước làng quê
-              else if (sy === 64 && sx === 32) { slot = 2; ox = -3; oy = -4; dw = 22; dh = 20; } // Bụi hoa vườn
-              else if (sy === 64 && sx === 48) { slot = 3; ox = -3; oy = -4; dw = 22; dh = 20; } // Đá rêu
-              else if (sy === 48 && sx === 64) { slot = 4; ox = -3; oy = -4; dw = 22; dh = 20; } // Thùng gỗ & chậu hoa
-              else if (sy === 64 && sx === 80) { slot = 5; ox = 0; oy = -2; dw = 16; dh = 18; } // Hàng rào
-              else if (sy === 64 && sx === 96) { slot = 6; ox = -2; oy = -6; dw = 20; dh = 22; } // Biển chỉ dẫn
-              else if (sy === 64 && sx === 112) { slot = 7; ox = -3; oy = -6; dw = 22; dh = 22; } // Lửa trại
+        for (let i = 0; i < staticProps.length; i++) {
+          const p = staticProps[i];
+          if (p.px < viewLeft || p.px > viewRight || p.py < viewTop || p.py > viewBottom) continue;
 
-              if (slot >= 0) {
-                renderables.push({
-                  sortY: py + 16,
-                  draw: () => {
-                    const propImg = images.home_props_hd;
-                    if (propImg && propImg.complete && propImg.naturalWidth > 0) {
-                      if (slot === 0 || slot === 7) {
-                        const pulse = 0.88 + 0.12 * Math.sin(performance.now() * 0.007 + px);
-                        const gy = slot === 0 ? py + 2 : py + 8;
-                        const grad = ctx.createRadialGradient(px + 8, gy, 2, px + 8, gy, 20 * pulse);
-                        grad.addColorStop(0, "rgba(255, 180, 60, 0.32)");
-                        grad.addColorStop(1, "rgba(255, 120, 20, 0)");
-                        ctx.fillStyle = grad;
-                        ctx.beginPath();
-                        ctx.arc(px + 8, gy, 20 * pulse, 0, Math.PI * 2);
-                        ctx.fill();
-                      }
-                      ctx.drawImage(propImg, slot * 64, 0, 64, 64, px + ox, py + oy, dw, dh);
-                    }
-                  }
-                });
-              }
-            }
-          }
-        }
-      }
-
-      // 0b. Thêm vật thể HD từ map Rừng (bia đá cổ, đền phát sáng, khúc gỗ mục, dương xỉ...) với Y-sorting
-      if (currentMap === "forest" && forestMapData && forestMapData.layerInstances) {
-        const fencesLayer = forestMapData.layerInstances.find(l => l.__identifier === "Fences");
-        if (fencesLayer && fencesLayer.autoLayerTiles) {
-          for (const tile of fencesLayer.autoLayerTiles) {
-            const sx = tile.src[0];
-            const sy = tile.src[1];
-            const px = tile.px[0];
-            const py = tile.px[1];
-            if (sy === 64 && sx === 48) continue; // Cầu gỗ đã vẽ ở nền
-
-            let slot = -1, ox = -3, oy = -6, dw = 22, dh = 22;
-            if (sy === 64 && sx === 0) { slot = 0; ox = -3; oy = -8; dw = 22; dh = 24; } // Bia đá cổ
-            else if (sy === 64 && sx === 16) { slot = 1; ox = -3; oy = -8; dw = 22; dh = 24; } // Đền phát sáng
-            else if (sy === 64 && sx === 32) { slot = 2; ox = -4; oy = -4; dw = 24; dh = 20; } // Khúc gỗ mục
-            else if (sy === 64 && sx === 64) { slot = 3; ox = -3; oy = -4; dw = 22; dh = 20; } // Bụi dương xỉ & nấm
-            else if (sy === 48 && sx === 0) { slot = 4; ox = -2; oy = -6; dw = 20; dh = 22; } // Cọc rào gỗ
-            else if (sy === 64 && sx === 80) { slot = 5; ox = -2; oy = -6; dw = 20; dh = 22; } // Biển chỉ dẫn
-            else if (sy === 64 && sx === 96) { slot = 6; ox = -3; oy = -4; dw = 22; dh = 20; } // Mỏm đá rêu
-            else if (sy === 64 && sx === 112) { slot = 7; ox = -3; oy = -4; dw = 22; dh = 20; } // Bụi gai rừng
-
-            if (slot >= 0) {
-              renderables.push({
-                sortY: py + 16,
-                draw: () => {
-                  const fPropImg = images.forest_props_hd;
-                  if (fPropImg && fPropImg.complete && fPropImg.naturalWidth > 0) {
-                    if (slot === 1) {
-                      const pulse = 0.85 + 0.15 * Math.sin(performance.now() * 0.006 + px);
-                      const grad = ctx.createRadialGradient(px + 8, py + 4, 2, px + 8, py + 4, 24 * pulse);
-                      grad.addColorStop(0, "rgba(76, 224, 255, 0.38)");
-                      grad.addColorStop(1, "rgba(34, 211, 238, 0)");
-                      ctx.fillStyle = grad;
-                      ctx.beginPath();
-                      ctx.arc(px + 8, py + 4, 24 * pulse, 0, Math.PI * 2);
-                      ctx.fill();
-                    }
-                    ctx.drawImage(fPropImg, slot * 64, 0, 64, 64, px + ox, py + oy, dw, dh);
-                  }
-                }
-              });
-            }
-          }
-        }
-      }
-
-      // 0c. Thêm vật thể HD từ map Hồ (giá cần câu, thùng cá, hoa súng, lau sậy, đá cuội, đèn bến, biển chỉ dẫn, cọc neo)
-      if (currentMap === "lake" && lakeMapData && lakeMapData.layerInstances) {
-        const propsLayer = lakeMapData.layerInstances.find(l => l.__identifier === "Props");
-        if (propsLayer && propsLayer.autoLayerTiles) {
-          for (const tile of propsLayer.autoLayerTiles) {
-            const slot = Math.floor(tile.src[0] / TILE_SIZE);
-            const px = tile.px[0];
-            const py = tile.px[1];
-            let ox = -3, oy = -6, dw = 22, dh = 22;
-            if (slot === 0) { ox = -4; oy = -8; dw = 24; dh = 24; } // Giá treo cần câu
-            else if (slot === 1) { ox = -4; oy = -6; dw = 24; dh = 22; } // Thùng gỗ & xô cá
-            else if (slot === 2) { ox = -4; oy = -2; dw = 24; dh = 20; } // Hoa súng & lá sen (trên mặt nước)
-            else if (slot === 3) { ox = -3; oy = -8; dw = 22; dh = 24; } // Bụi lau sậy
-            else if (slot === 4) { ox = -3; oy = -4; dw = 22; dh = 20; } // Mỏm đá rêu ẩm
-            else if (slot === 5) { ox = -4; oy = -10; dw = 24; dh = 26; } // Đèn bến thuyền
-            else if (slot === 6) { ox = -2; oy = -6; dw = 20; dh = 22; } // Biển chỉ dẫn
-            else if (slot === 7) { ox = -2; oy = -4; dw = 20; dh = 20; } // Cọc neo thuyền
-
+          if (p.kind === "tree") {
+            if (!hasTree) continue;
             renderables.push({
-              sortY: slot === 2 ? py - 10 : py + 16,
+              sortY: p.sortY,
               draw: () => {
-                const lPropImg = images.lake_props_hd;
-                if (lPropImg && lPropImg.complete && lPropImg.naturalWidth > 0) {
-                  if (slot === 5) {
-                    const pulse = 0.88 + 0.12 * Math.sin(performance.now() * 0.007 + px);
-                    const grad = ctx.createRadialGradient(px + 8, py + 2, 2, px + 8, py + 2, 22 * pulse);
-                    grad.addColorStop(0, "rgba(255, 190, 70, 0.35)");
-                    grad.addColorStop(1, "rgba(255, 130, 30, 0)");
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(px + 8, py + 2, 22 * pulse, 0, Math.PI * 2);
-                    ctx.fill();
-                  }
-                  if (slot === 2) {
-                    const tLily = performance.now() * 0.002 + px * 0.07 + py * 0.05;
-                    const bobX = Math.sin(tLily * 0.85) * 1.1;
-                    const bobY = Math.cos(tLily * 1.15) * 0.85;
-                    const ringR = 8 + Math.sin(tLily * 1.3) * 1.8;
-                    ctx.strokeStyle = `rgba(196, 244, 255, ${(0.22 + 0.10 * Math.cos(tLily * 1.3)).toFixed(3)})`;
-                    ctx.lineWidth = 0.7;
-                    ctx.beginPath();
-                    ctx.ellipse(px + 8 + bobX, py + 9 + bobY, ringR, ringR * 0.55, 0, 0, Math.PI * 2);
-                    ctx.stroke();
-                    ctx.drawImage(lPropImg, slot * 64, 0, 64, 64, px + ox + bobX, py + oy + bobY, dw, dh);
-                  } else {
-                    ctx.drawImage(lPropImg, slot * 64, 0, 64, 64, px + ox, py + oy, dw, dh);
-                  }
+                ctx.drawImage(treeImg, 37, 51, 119, 190, p.px - 14, p.py - 44, 44, 60);
+              }
+            });
+          } else if (p.kind === "home_prop") {
+            if (!hasHProp) continue;
+            renderables.push({
+              sortY: p.sortY,
+              draw: () => {
+                if (p.hasGlow) {
+                  const pulse = 0.88 + 0.12 * Math.sin(nowMs * 0.007 + p.px);
+                  const r = 20 * pulse;
+                  const gy = p.slot === 0 ? p.py + 2 : p.py + 8;
+                  ctx.drawImage(getGlowSprite("amber"), p.px + 8 - r, gy - r, r * 2, r * 2);
+                }
+                ctx.drawImage(hPropImg, p.slot * 64, 0, 64, 64, p.px + p.ox, p.py + p.oy, p.dw, p.dh);
+              }
+            });
+          } else if (p.kind === "forest_prop") {
+            if (!hasFProp) continue;
+            renderables.push({
+              sortY: p.sortY,
+              draw: () => {
+                if (p.hasGlow) {
+                  const pulse = 0.85 + 0.15 * Math.sin(nowMs * 0.006 + p.px);
+                  const r = 24 * pulse;
+                  ctx.drawImage(getGlowSprite("cyan"), p.px + 8 - r, p.py + 4 - r, r * 2, r * 2);
+                }
+                ctx.drawImage(fPropImg, p.slot * 64, 0, 64, 64, p.px + p.ox, p.py + p.oy, p.dw, p.dh);
+              }
+            });
+          } else if (p.kind === "lake_prop") {
+            if (!hasLProp) continue;
+            renderables.push({
+              sortY: p.sortY,
+              draw: () => {
+                if (p.hasGlow) {
+                  const pulse = 0.88 + 0.12 * Math.sin(nowMs * 0.007 + p.px);
+                  const r = 22 * pulse;
+                  ctx.drawImage(getGlowSprite("amber"), p.px + 8 - r, p.py + 2 - r, r * 2, r * 2);
+                }
+                if (p.slot === 2) {
+                  const tLily = nowMs * 0.002 + p.px * 0.07 + p.py * 0.05;
+                  const bobX = Math.sin(tLily * 0.85) * 1.1;
+                  const bobY = Math.cos(tLily * 1.15) * 0.85;
+                  const ringR = 8 + Math.sin(tLily * 1.3) * 1.8;
+                  ctx.strokeStyle = "rgba(196, 244, 255, 0.25)";
+                  ctx.lineWidth = 0.7;
+                  ctx.beginPath();
+                  ctx.ellipse(p.px + 8 + bobX, p.py + 9 + bobY, ringR, ringR * 0.55, 0, 0, Math.PI * 2);
+                  ctx.stroke();
+                  ctx.drawImage(lPropImg, p.slot * 64, 0, 64, 64, p.px + p.ox + bobX, p.py + p.oy + bobY, p.dw, p.dh);
+                } else {
+                  ctx.drawImage(lPropImg, p.slot * 64, 0, 64, 64, p.px + p.ox, p.py + p.oy, p.dw, p.dh);
                 }
               }
             });
@@ -16096,57 +16715,73 @@
         }
       }
 
-      // 0d. Bụi cỏ cao kiểu Pokémon (sprite 4 frame chuyển động + che nửa chân nhân vật)
-      const activeTallGrass = tallGrassByMap[currentMap];
-      const tgImg = images.tall_grass;
-      if (activeTallGrass && activeTallGrass.size > 0 && tgImg && tgImg.complete && tgImg.naturalWidth > 0) {
-        const tWind = performance.now() * 0.0028;
-        const minGC = Math.max(0, Math.floor(camera.x / TILE_SIZE) - 1);
-        const maxGC = Math.min(63, Math.ceil((camera.x + canvas.width / activeZoom) / TILE_SIZE) + 1);
-        const minGR = Math.max(0, Math.floor(camera.y / TILE_SIZE) - 1);
-        const maxGR = Math.min(63, Math.ceil((camera.y + canvas.height / activeZoom) / TILE_SIZE) + 1);
+      // 0d. Bụi cỏ cao 3 lớp giả lập 3D (Độ trong suốt & tốc độ rung khác nhau giữa các lớp; đứng yên 100% khi chưa chạm)
+      const activeGrassRows = tallGrassRowsByMap[currentMap];
+      const tgAtlas = tallGrassAtlasCanvas || buildPokemonTallGrassAtlas();
+      if (activeGrassRows && tgAtlas) {
+        const minGC = Math.max(0, Math.floor(camDrawX / TILE_SIZE) - 1);
+        const maxGC = Math.min(TG_GRID_SIZE - 1, Math.ceil((camDrawX + viewW) / TILE_SIZE) + 1);
+        const minGR = Math.max(0, Math.floor(camDrawY / TILE_SIZE) - 1);
+        const maxGR = Math.min(TG_GRID_SIZE - 1, Math.ceil((camDrawY + viewH) / TILE_SIZE) + 1);
 
         for (let gr = minGR; gr <= maxGR; gr++) {
-          for (let gc = minGC; gc <= maxGC; gc++) {
-            const gt = activeTallGrass.get(`${gc},${gr}`);
-            if (!gt) continue;
-            const gx = gc * TILE_SIZE;
-            const gy = gr * TILE_SIZE;
+          const rowObj = activeGrassRows[gr];
+          if (!rowObj || rowObj.maxCol < minGC || rowObj.minCol > maxGC) continue;
+          const gy = gr * TILE_SIZE;
+          const dy = gy - 6;
 
-            let frame = 0;
-            if (gt.rustle > 0.68) {
-              frame = 3; // Frame tách lá khi vừa bước vào
-            } else if (gt.rustle > 0.34) {
-              frame = gt.swayDir < 0 ? 1 : 2; // Nghiêng theo hướng di chuyển
-            } else if (gt.rustle > 0.02) {
-              frame = gt.swayDir < 0 ? 2 : 1; // Nhún bật lại
-            } else {
-              const w = Math.sin(tWind + gc * 0.45 + gr * 0.35);
-              frame = w > 0.58 ? 2 : (w < -0.58 ? 1 : 0); // Đung đưa nhẹ theo gió
+          if (rowObj.activeCount === 0 && rowObj.restBackCanvas && rowObj.restMidCanvas && rowObj.restFrontCanvas) {
+            // Toàn bộ hàng cỏ đang đứng yên -> vẽ 3 dải lớp (back/mid/front đã nhúng alpha) bằng 3 drawImage gộp sẵn
+            const stripDx = rowObj.minCol * TILE_SIZE - 4;
+            const stripW = rowObj.restBackCanvas.width;
+            pushGrassRenderable(renderables, gy + TG_LAYER_SORT_OFFSETS[0], rowObj.restBackCanvas, 0, 0, stripW, TG_CELL, stripDx, dy + TG_LAYER_DY_OFFSETS[0], stripW, TG_CELL, 1);
+            pushGrassRenderable(renderables, gy + TG_LAYER_SORT_OFFSETS[1], rowObj.restMidCanvas, 0, 0, stripW, TG_CELL, stripDx, dy + TG_LAYER_DY_OFFSETS[1], stripW, TG_CELL, 1);
+            pushGrassRenderable(renderables, gy + TG_LAYER_SORT_OFFSETS[2], rowObj.restFrontCanvas, 0, 0, stripW, TG_CELL, stripDx, dy + TG_LAYER_DY_OFFSETS[2], stripW, TG_CELL, 1);
+          } else {
+            const tiles = rowObj.tiles;
+            for (let ti = 0; ti < tiles.length; ti++) {
+              const gt = tiles[ti];
+              if (gt.col < minGC || gt.col > maxGC) continue;
+              let frame0 = TG_IDLE_FRAME;
+              let frame1 = TG_IDLE_FRAME;
+              let frame2 = TG_IDLE_FRAME;
+              if (gt.active) {
+                if (gt.part > 0.14) {
+                  const p0 = Math.min(TG_PART_COUNT - 1, Math.max(0, Math.round(gt.part * 0.80 * (TG_PART_COUNT - 1))));
+                  const p1 = Math.min(TG_PART_COUNT - 1, Math.max(0, Math.round(gt.part * 0.92 * (TG_PART_COUNT - 1))));
+                  const p2 = Math.min(TG_PART_COUNT - 1, Math.max(0, Math.round(gt.part * (TG_PART_COUNT - 1))));
+                  frame0 = TG_SWAY_COUNT + p0;
+                  frame1 = TG_SWAY_COUNT + p1;
+                  frame2 = TG_SWAY_COUNT + p2;
+                } else {
+                  if (gt.disp0 > 0.02 || gt.disp0 < -0.02) {
+                    const s0 = Math.max(-1, Math.min(1, gt.disp0));
+                    frame0 = Math.max(0, Math.min(TG_SWAY_COUNT - 1, Math.round((s0 + 1) * 0.5 * (TG_SWAY_COUNT - 1))));
+                  }
+                  if (gt.disp1 > 0.02 || gt.disp1 < -0.02) {
+                    const s1 = Math.max(-1, Math.min(1, gt.disp1));
+                    frame1 = Math.max(0, Math.min(TG_SWAY_COUNT - 1, Math.round((s1 + 1) * 0.5 * (TG_SWAY_COUNT - 1))));
+                  }
+                  if (gt.disp2 > 0.02 || gt.disp2 < -0.02) {
+                    const s2 = Math.max(-1, Math.min(1, gt.disp2));
+                    frame2 = Math.max(0, Math.min(TG_SWAY_COUNT - 1, Math.round((s2 + 1) * 0.5 * (TG_SWAY_COUNT - 1))));
+                  }
+                }
+              }
+              const yBase = gt.variant * TG_LAYERS * TG_CELL;
+              const dx = gt.col * TILE_SIZE - 4;
+              pushGrassRenderable(renderables, gy + TG_LAYER_SORT_OFFSETS[0], tgAtlas, frame0 * TG_CELL, yBase, TG_CELL, TG_CELL, dx, dy + TG_LAYER_DY_OFFSETS[0], TG_CELL, TG_CELL, TG_LAYER_ALPHAS[0]);
+              pushGrassRenderable(renderables, gy + TG_LAYER_SORT_OFFSETS[1], tgAtlas, frame1 * TG_CELL, yBase + TG_CELL, TG_CELL, TG_CELL, dx, dy + TG_LAYER_DY_OFFSETS[1], TG_CELL, TG_CELL, TG_LAYER_ALPHAS[1]);
+              pushGrassRenderable(renderables, gy + TG_LAYER_SORT_OFFSETS[2], tgAtlas, frame2 * TG_CELL, yBase + TG_CELL * 2, TG_CELL, TG_CELL, dx, dy + TG_LAYER_DY_OFFSETS[2], TG_CELL, TG_CELL, TG_LAYER_ALPHAS[2]);
             }
-
-            const sx = frame * 64;
-            // Lớp cỏ sau (nửa trên bụi cỏ, phía sau nhân vật)
-            renderables.push({
-              sortY: gy + 5,
-              draw: () => {
-                ctx.drawImage(tgImg, sx, 0, 64, 37, gx - 2, gy - 3, 20, 11.5);
-              }
-            });
-
-            // Lớp cỏ trước (nửa dưới bụi cỏ, che nửa chân nhân vật khi bước vào)
-            renderables.push({
-              sortY: gy + 18,
-              draw: () => {
-                ctx.drawImage(tgImg, sx, 37, 64, 27, gx - 2, gy + 8.5, 20, 8.5);
-              }
-            });
           }
         }
       }
 
-      // 1. Thêm các vật thể bản đồ
-      for (const obj of currentObjects) {
+      // 1. Thêm các vật thể bản đồ (có viewport culling)
+      for (let oi = 0; oi < currentObjects.length; oi++) {
+        const obj = currentObjects[oi];
+        if (obj.x < viewLeft || obj.x > viewRight || obj.y < viewTop || obj.y > viewBottom) continue;
         // Tọa độ Y chân tiếp đất của vật thể để so sánh lớp
         const sortY = obj.y + (obj.height || 16);
         renderables.push({
@@ -16258,9 +16893,11 @@
       }
 
       
-      // Vẽ vật phẩm rơi trên mặt đất (Pixel art bồng bềnh nhẹ nhàng - dùng Cache Image để chống lag)
-      for (const gi of droppedItems) {
+      // Vẽ vật phẩm rơi trên mặt đất (có viewport culling)
+      for (let giIdx = 0; giIdx < droppedItems.length; giIdx++) {
+        const gi = droppedItems[giIdx];
         if (gi.mapId && gi.mapId !== currentMap) continue;
+        if (gi.x < viewLeft || gi.x > viewRight || gi.y < viewTop || gi.y > viewBottom) continue;
         const iconSrc = getItemIcon(gi.item);
         const floatY = Math.sin(gi.bobTimer) * 2;
 
@@ -16337,8 +16974,10 @@
         };
       };
 
-      // 2. Thêm Heo Rừng & Gà Rừng
-      for (const mob of currentMobs) {
+      // 2. Thêm Heo Rừng & Gà Rừng (có viewport culling)
+      for (let mi = 0; mi < currentMobs.length; mi++) {
+        const mob = currentMobs[mi];
+        if (mob.x < viewLeft || mob.x > viewRight || mob.y < viewTop || mob.y > viewBottom) continue;
         
         if (mob.type === "chicken") {
           const sortY = mob.y + mob.height;
@@ -16536,9 +17175,9 @@
 
             const drawX = player.x + drawOffsetX + castLungeX;
             const drawY = player.y + drawOffsetY + castLungeY;
-            const pDrawX = snapPx(drawX);
-            const pDrawY = snapPx(drawY);
-            const pFlipCenterX = snapPx(player.x + player.width / 2 + castLungeX);
+            const pDrawX = camDrawX + snapPx(drawX - camDrawX);
+            const pDrawY = camDrawY + snapPx(drawY - camDrawY);
+            const pFlipCenterX = camDrawX + snapPx(player.x + player.width / 2 + castLungeX - camDrawX);
 
             if (player.direction === 'left' && player.action !== 'die') {
               // Lật ngược Canvas theo trục X khi quay sang trái (căn pixel nguyên chống mất nét viền)
@@ -16550,7 +17189,6 @@
                 sx, sy, frameWidth, frameHeight,
                 -destWidth / 2, pDrawY, destWidth, destHeight
               );
-              drawHelmetOverlay(ctx, -destWidth / 2, pDrawY, player.direction, player.frameX, player.action);
               ctx.restore();
             } else {
               // Hướng thường: down, right, up
@@ -16559,7 +17197,6 @@
                 sx, sy, frameWidth, frameHeight,
                 pDrawX, pDrawY, destWidth, destHeight
               );
-              drawHelmetOverlay(ctx, pDrawX, pDrawY, player.direction, player.frameX, player.action);
             }
           } else {
             ctx.fillStyle = player.color;
@@ -16763,21 +17400,14 @@
           window._campfireSpriteCache = { baseCv, flameCanvases };
         }
 
-        // Vẽ ánh sáng ấm quanh Lửa Trại
+        // Vẽ ánh sáng ấm quanh Lửa Trại (dùng Glow Sprite cache)
         const nowSec = performance.now() * 0.001;
         const isCooking = HOME_CAMPFIRE.fuelRemaining > 0;
         const flicker = Math.sin(nowSec * 9.5) * 2.4 + Math.cos(nowSec * 15.2) * 1.1;
         const cx = HOME_CAMPFIRE.x;
         const cy = HOME_CAMPFIRE.y;
         const lightR = HOME_CAMPFIRE.lightRadius + (isCooking ? 8 : 0) + flicker;
-        const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, lightR);
-        grad.addColorStop(0, isCooking ? "rgba(253, 186, 116, 0.42)" : "rgba(251, 146, 60, 0.30)");
-        grad.addColorStop(0.55, "rgba(245, 158, 11, 0.13)");
-        grad.addColorStop(1, "rgba(245, 158, 11, 0)");
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, lightR, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.drawImage(getGlowSprite("amber"), cx - lightR, cy - lightR, lightR * 2, lightR * 2);
 
         renderables.push({
           sortY: cy + 6,
@@ -16830,14 +17460,8 @@
           const altarHighlighted = isHoveringWandAltar || distPlayerAltar <= 28;
           const auraR = altarHighlighted ? 26 : 21;
 
-          const altarGrad = ctx.createRadialGradient(ax, ay, 2, ax, ay, auraR);
-          altarGrad.addColorStop(0, altarHighlighted ? "rgba(192, 132, 252, 0.42)" : "rgba(168, 85, 247, 0.24)");
-          altarGrad.addColorStop(0.6, "rgba(126, 34, 206, 0.12)");
-          altarGrad.addColorStop(1, "rgba(126, 34, 206, 0)");
-          ctx.fillStyle = altarGrad;
-          ctx.beginPath();
-          ctx.arc(ax, ay, auraR, 0, Math.PI * 2);
-          ctx.fill();
+          const altarGradR = auraR;
+          ctx.drawImage(getGlowSprite("purple"), ax - altarGradR, ay - altarGradR, altarGradR * 2, altarGradR * 2);
 
           // Vẽ bệ đá + vòng cổ ngữ xoay nhẹ trên mặt đất (không chặn bước chân)
           ctx.save();
@@ -17232,13 +17856,20 @@
         item.draw();
       }
 
-      // Vẽ lá cỏ bay khi nhân vật/sinh vật lướt qua bụi cỏ kiểu Pokémon
-      for (const lf of tallGrassLeaves) {
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, Math.min(1, lf.life / lf.maxLife));
-        ctx.fillStyle = lf.color;
-        ctx.fillRect(Math.round(lf.x), Math.round(lf.y), 3, 2);
-        ctx.restore();
+      // Vẽ lá cỏ pixel 2 tông màu bay lượn nhẹ nhàng khi lướt qua bụi cỏ
+      if (tallGrassLeaves.length > 0) {
+        for (let i = 0; i < tallGrassLeaves.length; i++) {
+          const lf = tallGrassLeaves[i];
+          ctx.globalAlpha = Math.max(0, Math.min(1, lf.life / lf.maxLife));
+          const lx = Math.round(lf.x);
+          const ly = Math.round(lf.y);
+          const flip = Math.sin(lf.phase) > 0;
+          ctx.fillStyle = lf.c2;
+          ctx.fillRect(lx, ly, 3, 2);
+          ctx.fillStyle = lf.c1;
+          ctx.fillRect(flip ? lx : lx + 1, ly, 2, 1);
+        }
+        ctx.globalAlpha = 1;
       }
 
       // --- VẼ CÁC MŨI TÊN & CẦU MA PHÁP ĐANG BAY TRÊN KHÔNG (PROJECTILES) ---
@@ -17558,20 +18189,22 @@
       }
       const hpPct = Math.max(0, Math.min(1, player.hp / safeMaxHp));
       if (hpPct > 0) {
-        const hpGrad = ctx.createLinearGradient(barX, hpBarY, barX, hpBarY + hpBarH);
-        hpGrad.addColorStop(0, "#f87171");
-        hpGrad.addColorStop(1, "#dc2626");
-        ctx.fillStyle = hpGrad;
-        ctx.fillRect(barX + 1, hpBarY + 1, (barW - 2) * hpPct, hpBarH - 2);
+        const fillW = (barW - 2) * hpPct;
+        ctx.fillStyle = "#dc2626";
+        ctx.fillRect(barX + 1, hpBarY + 1, fillW, hpBarH - 2);
+        ctx.fillStyle = "#f87171";
+        ctx.fillRect(barX + 1, hpBarY + 1, fillW, Math.max(2, Math.floor((hpBarH - 2) * 0.42)));
       }
       drawHudHeartIcon(barX + 12, hpBarY + hpBarH / 2, mobile ? 10 : 12);
       ctx.save();
       ctx.font = mobile ? "700 11px 'Segoe UI', system-ui, sans-serif" : "700 13px 'Segoe UI', system-ui, sans-serif";
       ctx.textBaseline = "middle";
+      const hpStr = `${Math.round(player.hp)} / ${player.maxHp}`;
+      const hpTy = hpBarY + hpBarH / 2 + 0.5;
+      ctx.fillStyle = "rgba(0,0,0,0.85)";
+      ctx.fillText(hpStr, barX + 25, hpTy + 1);
       ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0,0,0,0.85)";
-      ctx.shadowBlur = 3;
-      ctx.fillText(`${Math.round(player.hp)} / ${player.maxHp}`, barX + 24, hpBarY + hpBarH / 2 + 0.5);
+      ctx.fillText(hpStr, barX + 24, hpTy);
       ctx.restore();
 
       // --- 2. THANH GIÁP (ARMOR BAR - MẶC ĐỊNH 50 GIÁP) ---
@@ -17584,20 +18217,22 @@
       }
       const armPct = Math.max(0, Math.min(1, playerArmor / maxArm));
       if (armPct > 0) {
-        const armGrad = ctx.createLinearGradient(barX, armorBarY, barX, armorBarY + armorBarH);
-        armGrad.addColorStop(0, "#38bdf8");
-        armGrad.addColorStop(1, "#0284c7");
-        ctx.fillStyle = armGrad;
-        ctx.fillRect(barX + 1, armorBarY + 1, (barW - 2) * armPct, armorBarH - 2);
+        const fillAW = (barW - 2) * armPct;
+        ctx.fillStyle = "#0284c7";
+        ctx.fillRect(barX + 1, armorBarY + 1, fillAW, armorBarH - 2);
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillRect(barX + 1, armorBarY + 1, fillAW, Math.max(2, Math.floor((armorBarH - 2) * 0.42)));
       }
       drawHudShieldIcon(barX + 12, armorBarY + armorBarH / 2, mobile ? 9 : 11);
       ctx.save();
       ctx.font = mobile ? "700 10.5px 'Segoe UI', system-ui, sans-serif" : "700 12px 'Segoe UI', system-ui, sans-serif";
       ctx.textBaseline = "middle";
+      const armStr = `${Math.round(playerArmor)} / ${playerMaxArmor}`;
+      const armTy = armorBarY + armorBarH / 2 + 0.5;
+      ctx.fillStyle = "rgba(0,0,0,0.85)";
+      ctx.fillText(armStr, barX + 25, armTy + 1);
       ctx.fillStyle = "#f0f9ff";
-      ctx.shadowColor = "rgba(0,0,0,0.85)";
-      ctx.shadowBlur = 3;
-      ctx.fillText(`${Math.round(playerArmor)} / ${playerMaxArmor}`, barX + 24, armorBarY + armorBarH / 2 + 0.5);
+      ctx.fillText(armStr, barX + 24, armTy);
       ctx.restore();
 
       // --- 3. HAI Ô SÁT THƯƠNG & TỐC CHẠY RÕ NÉT ---
@@ -17652,8 +18287,16 @@
       ctx.restore();
     }
 
+    let lastMinimapRenderAt = 0;
+    let lastMinimapMapId = "";
+
     function renderMinimap() {
       if (!isMinimapEnabled || !minimapCanvas || !minimapCtx) return;
+
+      const nowMs = performance.now();
+      if (currentMap === lastMinimapMapId && nowMs - lastMinimapRenderAt < 85) return;
+      lastMinimapRenderAt = nowMs;
+      lastMinimapMapId = currentMap;
 
       const size = minimapCanvas.width; // 128
       const scale = size / MAP_SIZE;

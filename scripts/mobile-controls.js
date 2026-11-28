@@ -67,16 +67,30 @@
   let activeJoystickPointerId = null;
   let activeActionPointerId = null;
   let hotbarLabelTimer = null;
+  let cachedJoyRect = null;
+  let lastActiveSector = -2;
+  let lastJoyX = null;
+  let lastJoyY = null;
+  let lastJoyActive = false;
+
+  function invalidateJoystickRect() {
+    cachedJoyRect = null;
+  }
+  window.addEventListener("resize", invalidateJoystickRect, { passive: true });
+  window.addEventListener("orientationchange", invalidateJoystickRect, { passive: true });
 
   function setActiveSectorTick(sectorIndex) {
-    for (let i = 0; i < tickEls.length; i++) {
-      const el = tickEls[i];
-      const idx = Number(el.getAttribute("data-sector"));
-      if (idx === sectorIndex) {
-        el.classList.add("active");
-      } else {
-        el.classList.remove("active");
-      }
+    if (sectorIndex === lastActiveSector) return;
+    if (lastActiveSector >= 0 && lastActiveSector < tickEls.length) {
+      const prev = tickEls.find((el) => Number(el.getAttribute("data-sector")) === lastActiveSector);
+      if (prev) prev.classList.remove("active");
+    } else if (lastActiveSector === -2) {
+      for (let i = 0; i < tickEls.length; i++) tickEls[i].classList.remove("active");
+    }
+    lastActiveSector = sectorIndex;
+    if (sectorIndex >= 0) {
+      const next = tickEls.find((el) => Number(el.getAttribute("data-sector")) === sectorIndex);
+      if (next) next.classList.add("active");
     }
   }
 
@@ -120,25 +134,39 @@
       return;
     }
 
-    const rect = joystickEl.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+    if (!cachedJoyRect) {
+      cachedJoyRect = joystickEl.getBoundingClientRect();
+    }
+    const rect = cachedJoyRect;
+    const centerX = rect.left + rect.width * 0.5;
+    const centerY = rect.top + rect.height * 0.5;
     const maxRadius = Math.max(24, rect.width * 0.36);
 
     const dx = clientX - centerX;
     const dy = clientY - centerY;
-    const dist = Math.hypot(dx, dy);
+    const distSq = dx * dx + dy * dy;
+    const dist = Math.sqrt(distSq);
 
-    const clampedDist = Math.min(dist, maxRadius);
+    const clampedDist = dist > maxRadius ? maxRadius : dist;
     const angle = Math.atan2(dy, dx);
     const visualX = dist > 0.5 ? Math.cos(angle) * clampedDist : 0;
     const visualY = dist > 0.5 ? Math.sin(angle) * clampedDist : 0;
 
-    thumbEl.style.setProperty("--joy-x", `${visualX.toFixed(1)}px`);
-    thumbEl.style.setProperty("--joy-y", `${visualY.toFixed(1)}px`);
-    joystickEl.classList.add("active");
+    const qx = Math.round(visualX * 2) * 0.5;
+    const qy = Math.round(visualY * 2) * 0.5;
+    if (qx !== lastJoyX || qy !== lastJoyY) {
+      lastJoyX = qx;
+      lastJoyY = qy;
+      thumbEl.style.setProperty("--joy-x", `${qx}px`);
+      thumbEl.style.setProperty("--joy-y", `${qy}px`);
+    }
+    if (!lastJoyActive) {
+      lastJoyActive = true;
+      joystickEl.classList.add("active");
+    }
 
-    if (dist < maxRadius * DEADZONE_RATIO) {
+    const deadzone = maxRadius * DEADZONE_RATIO;
+    if (distSq < deadzone * deadzone) {
       applySectorDirection(-1);
       return;
     }
@@ -150,8 +178,14 @@
 
   function resetJoystick() {
     activeJoystickPointerId = null;
-    if (joystickEl) joystickEl.classList.remove("active");
-    if (thumbEl) {
+    cachedJoyRect = null;
+    if (lastJoyActive && joystickEl) {
+      joystickEl.classList.remove("active");
+    }
+    lastJoyActive = false;
+    if (thumbEl && (lastJoyX !== 0 || lastJoyY !== 0)) {
+      lastJoyX = 0;
+      lastJoyY = 0;
       thumbEl.style.setProperty("--joy-x", "0px");
       thumbEl.style.setProperty("--joy-y", "0px");
     }
@@ -166,6 +200,7 @@
       e.preventDefault();
       if (activeJoystickPointerId !== null) return;
       activeJoystickPointerId = e.pointerId;
+      cachedJoyRect = joystickEl.getBoundingClientRect();
       try {
         joystickEl.setPointerCapture(e.pointerId);
       } catch (_) {}
@@ -475,6 +510,20 @@
     }
   ];
 
+  let prevSyncState = {
+    isWand: null,
+    resKey: null,
+    actionIconKey: null,
+    actionCap: null,
+    interactCap: null,
+    interactReady: null,
+    dropCap: null,
+    dashCap: null,
+    dashCdText: null,
+    dashDeg: null,
+    wandSlots: ["", "", ""]
+  };
+
   window.onMobileHudSync = function () {
     const equipped = typeof playerInventory !== "undefined" ? playerInventory[activeHotbarIndex] : null;
     const itemData = equipped && typeof getItemData === "function" ? getItemData(equipped.id || equipped.name) : null;
@@ -482,58 +531,101 @@
       ? window.getWandSkillButtonsState()
       : { isWand: Boolean(equipped && equipped.id === "magic_wand"), slots: [] };
 
-    document.body.classList.toggle("wand-equipped", Boolean(wandState.isWand));
+    const isWand = Boolean(wandState.isWand);
+    if (prevSyncState.isWand !== isWand) {
+      prevSyncState.isWand = isWand;
+      document.body.classList.toggle("wand-equipped", isWand);
+      prevSyncState.wandSlots = ["", "", ""];
+      prevSyncState.interactCap = null;
+      prevSyncState.interactReady = null;
+      prevSyncState.dropCap = null;
+      prevSyncState.dashCap = null;
+      prevSyncState.dashCdText = null;
+      prevSyncState.dashDeg = null;
+    }
 
     // 1. Nút đánh bự nhất (#btnAction)
     if (btnAction) {
-      if (wandState.isWand && wandState.resonance) {
-        btnAction.classList.add("has-resonance");
-        btnAction.style.setProperty("--res-color", wandState.resonance.color || "#f97316");
-        btnAction.style.setProperty("--res-glow", wandState.resonance.glow || "#fde047");
-      } else {
-        btnAction.classList.remove("has-resonance");
-        btnAction.style.removeProperty("--res-color");
-        btnAction.style.removeProperty("--res-glow");
+      const resKey = (isWand && wandState.resonance)
+        ? `${wandState.resonance.color || ""}|${wandState.resonance.glow || ""}`
+        : "";
+      if (resKey !== prevSyncState.resKey) {
+        prevSyncState.resKey = resKey;
+        if (resKey) {
+          btnAction.classList.add("has-resonance");
+          btnAction.style.setProperty("--res-color", wandState.resonance.color || "#f97316");
+          btnAction.style.setProperty("--res-glow", wandState.resonance.glow || "#fde047");
+        } else {
+          btnAction.classList.remove("has-resonance");
+          btnAction.style.removeProperty("--res-color");
+          btnAction.style.removeProperty("--res-glow");
+        }
       }
     }
 
     if (btnActionIcon && btnActionCap) {
+      let nextIconKey = "sword";
+      let nextSvg = SVG_SWORD;
+      let nextCap = "Đánh";
+
       if (!equipped) {
-        btnActionIcon.innerHTML = SVG_HAND;
-        btnActionCap.textContent = "Đánh";
-      } else if (wandState.isWand) {
-        btnActionIcon.innerHTML = SVG_WAND;
-        btnActionCap.textContent = (wandState.resonance && wandState.resonance.shortCap) || "Đánh";
+        nextIconKey = "hand";
+        nextSvg = SVG_HAND;
+        nextCap = "Đánh";
+      } else if (isWand) {
+        nextIconKey = "wand";
+        nextSvg = SVG_WAND;
+        nextCap = (wandState.resonance && wandState.resonance.shortCap) || "Đánh";
       } else if (equipped.id === "fishing_rod" || (itemData && itemData.toolType === "fishing_rod")) {
-        btnActionIcon.innerHTML = SVG_FISHING_ROD;
+        nextIconKey = "rod";
+        nextSvg = SVG_FISHING_ROD;
         const fishPhase = typeof window.getFishingPhase === "function" ? window.getFishingPhase() : "idle";
-        if (fishPhase === "biting") btnActionCap.textContent = "Kéo!";
-        else if (fishPhase === "waiting" || fishPhase === "casting") btnActionCap.textContent = "Thu cần";
-        else btnActionCap.textContent = "Câu";
+        if (fishPhase === "biting") nextCap = "Kéo!";
+        else if (fishPhase === "waiting" || fishPhase === "casting") nextCap = "Thu cần";
+        else nextCap = "Câu";
       } else if (equipped.id === "hunting_bow" || (equipped.name && equipped.name.includes("Cung"))) {
-        btnActionIcon.innerHTML = SVG_BOW;
-        btnActionCap.textContent = "Bắn";
+        nextIconKey = "bow";
+        nextSvg = SVG_BOW;
+        nextCap = "Bắn";
       } else if (itemData && itemData.toolType === "axe") {
-        btnActionIcon.innerHTML = SVG_AXE;
-        btnActionCap.textContent = "Chặt";
+        nextIconKey = "axe";
+        nextSvg = SVG_AXE;
+        nextCap = "Chặt";
       } else if (itemData && itemData.toolType === "pickaxe") {
-        btnActionIcon.innerHTML = SVG_PICKAXE;
-        btnActionCap.textContent = "Đào";
+        nextIconKey = "pickaxe";
+        nextSvg = SVG_PICKAXE;
+        nextCap = "Đào";
       } else if (equipped.id === "chest" || equipped.id === "crafting_table" || (equipped.name && equipped.name.includes("Bàn Chế Tạo"))) {
-        btnActionIcon.innerHTML = SVG_HAND;
-        btnActionCap.textContent = "Đặt";
-      } else {
-        btnActionIcon.innerHTML = SVG_SWORD;
-        btnActionCap.textContent = "Đánh";
+        nextIconKey = "hand";
+        nextSvg = SVG_HAND;
+        nextCap = "Đặt";
+      }
+
+      if (prevSyncState.actionIconKey !== nextIconKey) {
+        prevSyncState.actionIconKey = nextIconKey;
+        btnActionIcon.innerHTML = nextSvg;
+      }
+      if (prevSyncState.actionCap !== nextCap) {
+        prevSyncState.actionCap = nextCap;
+        btnActionCap.textContent = nextCap;
       }
     }
 
     // 2. 3 nút xung quanh: biến thành Chiêu 1, 2, 3 khi cầm Đũa Phép
-    if (wandState.isWand) {
+    if (isWand) {
       for (let i = 0; i < 3; i++) {
         const ui = satSlots[i];
         const info = wandState.slots[i] || { spell: null, cd: 0, maxCd: 0 };
         if (!ui.btn) continue;
+
+        const spellId = info.spell ? info.spell.id : "__empty__";
+        const cdStr = info.cd > 0.03 ? info.cd.toFixed(1) : "";
+        const maxCd = info.spell ? Math.max(0.1, info.maxCd || info.spell.cooldown || 0.5) : 1;
+        const degStr = cdStr ? Math.min(360, Math.max(0, (info.cd / maxCd) * 360)).toFixed(0) : "";
+        const slotSig = `${spellId}|${cdStr}|${degStr}`;
+        if (prevSyncState.wandSlots[i] === slotSig) continue;
+        prevSyncState.wandSlots[i] = slotSig;
+
         ui.btn.classList.remove("ready", "is-muted");
 
         if (info.spell) {
@@ -545,12 +637,10 @@
           }
           if (ui.capEl) ui.capEl.textContent = info.spell.shortName;
 
-          if (info.cd > 0.03) {
-            const maxCd = Math.max(0.1, info.maxCd || info.spell.cooldown || 0.5);
-            const deg = Math.min(360, Math.max(0, (info.cd / maxCd) * 360));
+          if (cdStr) {
             ui.btn.classList.add("is-on-cooldown");
-            if (ui.veilEl) ui.veilEl.style.setProperty("--cd-deg", `${deg.toFixed(1)}deg`);
-            if (ui.cdTextEl) ui.cdTextEl.textContent = info.cd.toFixed(1);
+            if (ui.veilEl) ui.veilEl.style.setProperty("--cd-deg", `${degStr}deg`);
+            if (ui.cdTextEl) ui.cdTextEl.textContent = cdStr;
           } else {
             ui.btn.classList.remove("is-on-cooldown");
             if (ui.cdTextEl) ui.cdTextEl.textContent = "";
@@ -574,10 +664,10 @@
     for (let i = 0; i < 3; i++) {
       const ui = satSlots[i];
       if (!ui.btn) continue;
-      ui.btn.classList.remove("is-wand-empty", "is-on-cooldown");
-      ui.btn.style.removeProperty("--skill-color");
-      if (ui.cdTextEl) ui.cdTextEl.textContent = "";
       if (ui.iconEl && ui.iconEl.dataset.spellId !== "__default__") {
+        ui.btn.classList.remove("is-wand-empty", "is-on-cooldown");
+        ui.btn.style.removeProperty("--skill-color");
+        if (ui.cdTextEl) ui.cdTextEl.textContent = "";
         ui.iconEl.dataset.spellId = "__default__";
         ui.iconEl.innerHTML = ui.defaultIcon;
       }
@@ -591,45 +681,52 @@
       const isChestItem = Boolean(equipped && equipped.id === "chest");
       const isTable = Boolean(equipped && (equipped.id === "crafting_table" || (equipped.name && equipped.name.includes("Bàn Chế Tạo"))));
 
-      if (nearAltar) {
-        btnInteract.classList.add("ready");
-        btnInteractCap.textContent = "Khảm";
-      } else if (nearChest) {
-        btnInteract.classList.add("ready");
-        btnInteractCap.textContent = "Mở Rương";
-      } else if (nearTable) {
-        btnInteract.classList.add("ready");
-        btnInteractCap.textContent = "Chế tạo";
-      } else if (isChestItem) {
-        btnInteract.classList.add("ready");
-        btnInteractCap.textContent = "Đặt rương";
-      } else if (isTable) {
-        btnInteract.classList.add("ready");
-        btnInteractCap.textContent = "Đặt bàn";
-      } else if (canEat) {
-        btnInteract.classList.add("ready");
-        btnInteractCap.textContent = "Ăn";
-      } else {
-        btnInteract.classList.remove("ready");
-        btnInteractCap.textContent = "Dùng";
+      let nextCap = "Dùng";
+      let nextReady = false;
+      if (nearAltar) { nextReady = true; nextCap = "Khảm"; }
+      else if (nearChest) { nextReady = true; nextCap = "Mở Rương"; }
+      else if (nearTable) { nextReady = true; nextCap = "Chế tạo"; }
+      else if (isChestItem) { nextReady = true; nextCap = "Đặt rương"; }
+      else if (isTable) { nextReady = true; nextCap = "Đặt bàn"; }
+      else if (canEat) { nextReady = true; nextCap = "Ăn"; }
+
+      if (prevSyncState.interactReady !== nextReady) {
+        prevSyncState.interactReady = nextReady;
+        btnInteract.classList.toggle("ready", nextReady);
+      }
+      if (prevSyncState.interactCap !== nextCap) {
+        prevSyncState.interactCap = nextCap;
+        btnInteractCap.textContent = nextCap;
       }
     }
 
-    if (btnDropCap) btnDropCap.textContent = "Vứt";
+    if (btnDropCap && prevSyncState.dropCap !== "Vứt") {
+      prevSyncState.dropCap = "Vứt";
+      btnDropCap.textContent = "Vứt";
+    }
 
     if (btnDash && btnDashCap) {
-      btnDash.classList.remove("is-muted");
-      btnDashCap.textContent = "Lướt";
+      if (prevSyncState.dashCap !== "Lướt") {
+        prevSyncState.dashCap = "Lướt";
+        btnDash.classList.remove("is-muted");
+        btnDashCap.textContent = "Lướt";
+      }
       const dashState = typeof window.getPlayerDashState === "function" ? window.getPlayerDashState() : { cd: 0, maxCd: 1.4 };
-      if (dashState.cd > 0.03) {
-        const maxCd = Math.max(0.1, dashState.maxCd || 1.4);
-        const deg = Math.min(360, Math.max(0, (dashState.cd / maxCd) * 360));
-        btnDash.classList.add("is-on-cooldown");
-        if (sat3CdVeil) sat3CdVeil.style.setProperty("--cd-deg", `${deg.toFixed(1)}deg`);
-        if (sat3CdText) sat3CdText.textContent = dashState.cd.toFixed(1);
-      } else {
-        btnDash.classList.remove("is-on-cooldown");
-        if (sat3CdText) sat3CdText.textContent = "";
+      const cdStr = dashState.cd > 0.03 ? dashState.cd.toFixed(1) : "";
+      const maxCd = Math.max(0.1, dashState.maxCd || 1.4);
+      const degInt = cdStr ? Math.min(360, Math.max(0, Math.round((dashState.cd / maxCd) * 360))) : 0;
+
+      if (prevSyncState.dashCdText !== cdStr || prevSyncState.dashDeg !== degInt) {
+        prevSyncState.dashCdText = cdStr;
+        prevSyncState.dashDeg = degInt;
+        if (cdStr) {
+          btnDash.classList.add("is-on-cooldown");
+          if (sat3CdVeil) sat3CdVeil.style.setProperty("--cd-deg", `${degInt}deg`);
+          if (sat3CdText) sat3CdText.textContent = cdStr;
+        } else {
+          btnDash.classList.remove("is-on-cooldown");
+          if (sat3CdText) sat3CdText.textContent = "";
+        }
       }
     }
   };
@@ -645,7 +742,7 @@
     }
   });
 
-  // Periodic sync (90ms) so radial cooldown sweeps and contextual states stay responsive
+  // Periodic sync (110ms) with diffing so idle frames cause zero DOM mutations
   setInterval(() => {
     const paused = typeof isPaused !== "undefined" && isPaused;
     if (paused && activeActionPointerId !== null) {
@@ -654,7 +751,7 @@
     if (!paused && typeof isMobileMode === "function" && isMobileMode() && window.onMobileHudSync) {
       window.onMobileHudSync();
     }
-  }, 90);
+  }, 110);
 
   if (window.onMobileHudSync) window.onMobileHudSync();
 })();

@@ -916,8 +916,7 @@ html, body {
   color: #f8fafc;
 }
 
-#wand-socket-modal .wand-gem-slot,
-#wand-socket-modal .wand-gem-socket-slot {
+#wand-socket-modal .wand-gem-slot {
   width: 46px;
   height: 46px;
   background: #0b101b;
@@ -933,16 +932,14 @@ html, body {
   -webkit-touch-callout: none;
 }
 
-#wand-socket-modal .wand-gem-slot[data-has-item="true"],
-#wand-socket-modal .wand-gem-socket-slot[data-has-item="true"] {
+#wand-socket-modal .wand-gem-slot[data-has-item="true"] {
   border-style: solid;
   border-color: var(--gem-color, #38bdf8);
   background: #0f1b2e;
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.24), inset 0 0 6px rgba(255, 255, 255, 0.06);
 }
 
-#wand-socket-modal .wand-gem-slot:hover,
-#wand-socket-modal .wand-gem-socket-slot:hover {
+#wand-socket-modal .wand-gem-slot:hover {
   border-color: #fde68a;
 }
 
@@ -1093,13 +1090,6 @@ html, body {
   border-color: #fde68a;
 }
 
-.wand-owned-empty {
-  grid-column: 1 / -1;
-  text-align: center;
-  font-size: 11px;
-  color: var(--ui-text-muted);
-  padding: 12px 6px;
-}
 
 /* ============================================================
    MOBILE CONTROLS HIDDEN BY DEFAULT ON DESKTOP
