@@ -354,7 +354,7 @@
                   mapTilesetImages[relPath] = null;
                   resolve(null);
                 };
-                img.src = relPath + "?v=20261125_5";
+                img.src = relPath + "?v=20261128_5";
               });
               mapTilesetImages[relPath] = true; // Đánh dấu đang tải
               tilesetPromises.push(p);
@@ -4775,6 +4775,9 @@
         y: (typeof player !== "undefined" && Number.isFinite(player.y)) ? Math.round(player.y) : 268,
         placedObjects: exportPlacedStructures(),
         campfire: safeCampfire,
+        linhThuParty: (window.LinhThuSystem && typeof window.LinhThuSystem.exportParty === "function")
+          ? window.LinhThuSystem.exportParty()
+          : null,
         updatedAt: nowTs
       };
     }

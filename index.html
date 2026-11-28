@@ -50,6 +50,10 @@
     <kbd class="hud-kbd">E</kbd>
   </button>
   <button id="btnMobileHudInfo" type="button" title="Xem chỉ số nhân vật [I]">📊 INFO</button>
+  <button id="linhThuPartyBtn" type="button" onclick="if(window.LinhThuSystem && window.LinhThuSystem.openParty) window.LinhThuSystem.openParty();" title="Mở Đội Hình Linh Thú [P]" style="position:fixed;top:12px;right:386px;z-index:260;display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:10px;border:1px solid rgba(45,212,191,0.5);background:rgba(15,23,42,0.88);color:#5eead4;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+    <span>🐾</span>
+    <span>Linh Thú</span>
+  </button>
   <button id="quickSaveGameBtn" type="button" onclick="manualSaveGameProgress()" title="Lưu tiến trình game ngay (Máy & Cloud)" style="position:fixed;top:12px;right:292px;z-index:260;display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:10px;border:1px solid rgba(74,222,128,0.45);background:rgba(15,23,42,0.88);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);">
     <span>💾</span>
     <span id="quickSaveBtnLabel">Lưu Game</span>
@@ -787,7 +791,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="scripts/firebase-config.js"></script>
   <script src="scripts/game-core.js?v=20261128_7"></script>
-  <script src="scripts/linh-thu-system.js?v=9"></script>
+  <script src="scripts/linh-thu-system.js?v=10"></script>
   <script src="scripts/mobile-controls.js"></script>
 
 </body>

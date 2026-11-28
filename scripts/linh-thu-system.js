@@ -129,6 +129,19 @@
         { moveId: 'tidal_horn', lv: 32 },
         { moveId: 'tsunami_wrath', lv: 50 }
       ]
+    },
+    '010_chuon_chuon_kim': {
+      id: '010_chuon_chuon_kim', dex: '#010', name: 'Chuồn Chuồn Kim', element: 'PHI HÀNH',
+      imgSrc: 'linh-thu/010_chuon_chuon_kim/base.png?v=1',
+      evolveTo: null, evolveLevel: null,
+      baseStats: { hp: 74, atk: 88, def: 64, spAtk: 92, spDef: 72, spd: 126 },
+      learnset: [
+        { moveId: 'tackle_seed', lv: 1 },
+        { moveId: 'quick_dash', lv: 5 },
+        { moveId: 'wind_cutter', lv: 12 },
+        { moveId: 'aerial_ace', lv: 22 },
+        { moveId: 'cyclone_tempest', lv: 50 }
+      ]
     }
   };
 
@@ -154,7 +167,11 @@
     mud_stomp: { id: 'mud_stomp', name: 'Giậm Đất Lở', cls: 'ATK', power: 80, color: '#d97706' },
     hydro_pump_tm: { id: 'hydro_pump_tm', name: 'Vòi Rồng Thủy Lực', cls: 'SP.ATK', power: 110, color: '#0284c7' },
     tidal_horn: { id: 'tidal_horn', name: 'Sừng Thủy Thần', cls: 'ATK', power: 115, color: '#7dd3fc' },
-    tsunami_wrath: { id: 'tsunami_wrath', name: 'Đại Hồng Thủy', cls: 'SP.ATK', power: 135, color: '#0ea5e9' }
+    tsunami_wrath: { id: 'tsunami_wrath', name: 'Đại Hồng Thủy', cls: 'SP.ATK', power: 135, color: '#0ea5e9' },
+    quick_dash: { id: 'quick_dash', name: 'Lao Tốc Độ', cls: 'ATK', power: 55, color: '#bae6fd' },
+    wind_cutter: { id: 'wind_cutter', name: 'Lưỡi Gió Bạc', cls: 'SP.ATK', power: 75, color: '#7dd3fc' },
+    aerial_ace: { id: 'aerial_ace', name: 'Phi Không Kích', cls: 'ATK', power: 90, color: '#e0f2fe' },
+    cyclone_tempest: { id: 'cyclone_tempest', name: 'Cuồng Phong Bão Tố', cls: 'SP.ATK', power: 130, color: '#38bdf8' }
   };
 
   const imgCache = {};
@@ -244,19 +261,22 @@
     home: [
       { id: 'w_home_1', speciesId: '001_hat_lua', level: 4, x: 282, y: 268, vx: 8, vy: 4, facing: -1, timer: 2.5 },
       { id: 'w_home_2', speciesId: '004_kien_lua', level: 5, x: 266, y: 254, vx: -7, vy: 4, facing: 1, timer: 2.8 },
-      { id: 'w_home_3', speciesId: '007_nghe', level: 5, x: 224, y: 274, vx: 6, vy: -5, facing: -1, timer: 3.0 }
+      { id: 'w_home_3', speciesId: '007_nghe', level: 5, x: 224, y: 274, vx: 6, vy: -5, facing: -1, timer: 3.0 },
+      { id: 'w_home_4', speciesId: '010_chuon_chuon_kim', level: 8, x: 245, y: 235, vx: 9, vy: 4, facing: -1, timer: 2.6 }
     ],
     forest: [
       { id: 'w_for_1', speciesId: '001_hat_lua', level: 6, x: 220, y: 210, vx: 8, vy: -5, facing: -1, timer: 2.5 },
       { id: 'w_for_2', speciesId: '004_kien_lua', level: 9, x: 320, y: 295, vx: -8, vy: 6, facing: 1, timer: 2.8 },
       { id: 'w_for_3', speciesId: '002_bong_lua', level: 17, x: 290, y: 150, vx: 9, vy: 5, facing: -1, timer: 2.5 },
       { id: 'w_for_4', speciesId: '005_kien_canh', level: 18, x: 175, y: 270, vx: 7, vy: -6, facing: -1, timer: 2.6 },
-      { id: 'w_for_5', speciesId: '006_kien_ba_khoang', level: 32, x: 400, y: 245, vx: -7, vy: -5, facing: 1, timer: 3.0 }
+      { id: 'w_for_5', speciesId: '006_kien_ba_khoang', level: 32, x: 400, y: 245, vx: -7, vy: -5, facing: 1, timer: 3.0 },
+      { id: 'w_for_6', speciesId: '010_chuon_chuon_kim', level: 12, x: 255, y: 185, vx: 10, vy: 5, facing: -1, timer: 2.4 }
     ],
     lake: [
       { id: 'w_lake_1', speciesId: '007_nghe', level: 7, x: 210, y: 220, vx: 7, vy: 5, facing: -1, timer: 2.8 },
       { id: 'w_lake_2', speciesId: '008_suu_nhi', level: 18, x: 310, y: 260, vx: -7, vy: -5, facing: 1, timer: 2.6 },
-      { id: 'w_lake_3', speciesId: '009_trau_nuoc', level: 32, x: 260, y: 175, vx: 6, vy: 4, facing: -1, timer: 3.0 }
+      { id: 'w_lake_3', speciesId: '009_trau_nuoc', level: 32, x: 260, y: 175, vx: 6, vy: 4, facing: -1, timer: 3.0 },
+      { id: 'w_lake_4', speciesId: '010_chuon_chuon_kim', level: 14, x: 185, y: 165, vx: 9, vy: -4, facing: -1, timer: 2.5 }
     ]
   };
 
@@ -560,6 +580,26 @@
   });
 
   window.LinhThuSystem = {
+    openParty() {
+      mountUI();
+      openPartyModal();
+    },
+    exportParty() {
+      return {
+        party: Array.isArray(party) ? JSON.parse(JSON.stringify(party)) : [],
+        activePartyIdx: typeof activePartyIdx === 'number' ? activePartyIdx : 0
+      };
+    },
+    importParty(saved) {
+      if (!saved || !Array.isArray(saved.party)) return;
+      party.length = 0;
+      saved.party.forEach(p => { if (p) party.push(p); });
+      if (typeof saved.activePartyIdx === 'number' && saved.activePartyIdx >= 0 && saved.activePartyIdx < party.length) {
+        activePartyIdx = saved.activePartyIdx;
+      } else {
+        activePartyIdx = 0;
+      }
+    },
     setActive(idx) {
       activePartyIdx = idx;
       openPartyModal();
@@ -607,7 +647,7 @@
             const ready = crispCache[m.speciesId] ? true : (im.complete && im.naturalWidth > 0);
             const isMoving = Math.abs(m.vx) > 0.5 || Math.abs(m.vy) > 0.5;
             const calmSway = isMoving ? Math.sin(now * 0.008 + m.x) * 0.04 : 0;
-            const drawSize = (m.speciesId === '001_hat_lua' || m.speciesId === '004_kien_lua' || m.speciesId === '007_nghe') ? 11 : (m.speciesId === '002_bong_lua' || m.speciesId === '005_kien_canh' || m.speciesId === '008_suu_nhi') ? 13 : 15;
+            const drawSize = (m.speciesId === '001_hat_lua' || m.speciesId === '004_kien_lua' || m.speciesId === '007_nghe' || m.speciesId === '010_chuon_chuon_kim') ? 11 : (m.speciesId === '002_bong_lua' || m.speciesId === '005_kien_canh' || m.speciesId === '008_suu_nhi') ? 13 : 15;
             const cx = m.x + 8;
             const footY = m.y + 8;
 
