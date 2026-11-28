@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>#029 Pháo Tết — Spine 2D HD Studio (Live 60 FPS • Thần Long Tràng Pháo & Đại Hỏa Pháo)</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#12080c;color:#f1f5f9;font-family:system-ui,-apple-system,sans-serif;padding:18px 22px}
+h1{margin:0 0 4px;color:#fef08a;font-size:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tag{background:linear-gradient(135deg,#dc2626,#d97706);font-size:12px;padding:3px 10px;border-radius:99px;color:#fff}
+.sub{color:#cbd5e1;font-size:13.5px;margin-bottom:12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#211016;padding:10px 14px;border-radius:12px;border:1px solid #6b2737;margin-bottom:10px}
+button{background:#331620;color:#fde68a;border:1px solid #883344;padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:600;font-size:13px;transition:.15s}
+button:hover{border-color:#fde047;color:#fff}button.active{background:linear-gradient(135deg,#dc2626,#ca8a04);border-color:#fef08a;color:#fff;box-shadow:0 0 14px rgba(239,68,68,.5)}
+.layout{display:grid;grid-template-columns:minmax(380px,1.25fr) minmax(320px,1fr);gap:16px;align-items:start}
+@media(max-width:920px){.layout{grid-template-columns:1fr}}
+.panel{background:#211016;border:1px solid #6b2737;border-radius:14px;padding:14px;text-align:center}
+.panel h3{margin:0 0 10px;color:#fde047;font-size:15px}
+canvas.bg-tet{background:radial-gradient(circle at 50% 44%,#451a24 0%,#17090d 74%)}
+canvas.bg-night{background:linear-gradient(180deg,#0f172a 0%,#31102f 60%,#450a0a 86%,#090508 100%)}
+canvas.bg-checker{background:repeating-conic-gradient(#cbd5e1 0% 25%,#f1f5f9 0% 50%) 50%/22px 22px}
+canvas{border-radius:10px;max-width:100%;border:1px solid #7f2d3c;cursor:crosshair}
+.sliders{text-align:left;display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:10px;padding:10px;background:#2b141c;border-radius:10px;font-size:12px}
+.sliders label{display:flex;flex-direction:column;gap:3px;color:#fde68a}
+.badge{margin-top:8px;font-weight:700;color:#fde047;font-size:13.5px;min-height:20px}
+.grid20{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;margin-top:12px}
+.fbox{background:#211016;border:1px solid #57202d;border-radius:9px;padding:8px;text-align:center;font-size:11px;cursor:pointer}
+.fbox:hover,.fbox.cur{border-color:#fde047;background:#3b1822}
+.fbox img{max-height:126px;object-fit:contain;display:block;margin:4px auto}
+</style>
+</head>
+<body>
+<h1>🧧 #029 Pháo Tết — Spine 2D HD Studio <span class="tag">1113×1113 Master • 18 Bones • Khớp Hàm & Đại Hỏa Pháo • 60 FPS</span></h1>
+<div class="sub">Hệ khung xương Thần Long Tràng Pháo 18 khớp: Khớp hàm dưới đóng kín / há gầm phun lửa 0%..165%, Thân pháo uốn lượn chữ S, Đuôi mây lụa vàng, Pháo nổ trắng vàng & Mưa xác pháo hồng!</div>
+<div class="bar" id="animBar">
+  <button class="active" onclick="selectAnim('attack',this)">🔥 1. Tuyệt Kỹ Đại Hỏa Pháo (Attack)</button>
+  <button onclick="selectAnim('roar',this)">🎆 2. Khai Pháo Giao Thừa! (Roar)</button>
+  <button onclick="selectAnim('fly',this)">🐉 3. Thần Long Múa Lượn (Fly / Dance)</button>
+  <button onclick="selectAnim('idle',this)">🧧 4. Rồng Pháo Du Xuân (Idle)</button>
+  <button onclick="selectAnim('custom',this)">🎛️ 5. Tự Kéo Hàm, Cỡ Lửa & Uốn Rồng (Live Rig)</button>
+</div>
+<div class="bar">
+  <label style="color:#86efac;font-weight:600"><input type="checkbox" id="chkBones" checked> 🦴 Hiện 18 Xương Spine</label>
+  <label style="color:#7dd3fc;margin-left:8px"><input type="checkbox" id="chkMesh"> 🕸️ Hiện Lưới Soft-Mesh</label>
+  <label style="color:#fde047;margin-left:8px"><input type="checkbox" id="chkVfx" checked> ✨ Pháo Hoa & Hỏa Long Trảm</label>
+  <label style="margin-left:8px"><input type="checkbox" id="chkFlip"> ↔ Lật Hướng (Chuẩn NRO)</label>
+  <label style="margin-left:8px">Nền: <select id="bgSel" onchange="updateBg()" style="background:#331620;color:#fff;border:1px solid #883344;padding:4px 8px;border-radius:6px"><option value="bg-tet">Đỏ Xuân Rực Rỡ</option><option value="bg-night">Đêm Giao Thừa</option><option value="bg-checker">Caro Trong Suốt (QA)</option></select></label>
+  <label style="margin-left:8px">Tốc độ Live: <input id="spd" type="range" min="0.3" max="2.0" step="0.1" value="1.0" style="width:90px"> <b id="spdVal">1.0x</b></label>
+</div>
+<div class="layout">
+  <div class="panel">
+    <h3>⚡ Real-Time 60-FPS Articulated Jaw, Serpentine Coils & Firecracker Engine</h3>
+    <canvas id="liveCv" class="bg-tet" width="540" height="500"></canvas>
+    <div class="badge" id="liveLbl">Đang tải 6 lớp HD 512×512...</div>
+    <div class="sliders">
+      <label>Khép / Há Hàm Rồng (-18°..+12°): <input type="range" id="sJaw" min="-18" max="12" value="-4"></label>
+      <label>Cỡ Lửa Đại Hỏa Pháo (0%..165%): <input type="range" id="sFlame" min="0" max="165" value="85"></label>
+      <label>Uốn Sóng Thân Tràng Pháo: <input type="range" id="sCoil" min="-24" max="24" value="0"></label>
+      <label>Quẫy Đuôi Lụa Vàng & Mây: <input type="range" id="sTail" min="-28" max="28" value="0"></label>
+      <label>Bờm Rồng & Tua Rua Đỏ: <input type="range" id="sMane" min="-24" max="24" value="0"></label>
+      <label><input type="checkbox" id="chkMouse" checked> 👁️ Đầu Rồng & Lửa hướng theo chuột</label>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>🎞️ Trình Kiểm Duyệt 20 Frame PNG Đã Xuất Chuẩn Game (<span id="packName">attack</span>)</h3>
+    <canvas id="frameCv" class="bg-tet" width="400" height="388"></canvas>
+    <div class="badge" id="frameLbl"></div>
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px;align-items:center">
+      <button id="btnFPlay" onclick="toggleFPlay()">⏸ Dừng</button>
+      <button onclick="stepF(-1)">◀</button>
+      <input id="fScrub" type="range" min="1" max="20" value="1" style="width:120px">
+      <button onclick="stepF(1)">▶</button>
+      <b id="fNum">01/20</b>
+      <label style="font-size:12px;margin-left:6px"><input id="fFps" type="range" min="5" max="24" value="13" style="width:65px"> <span id="fFpsV">13</span>fps</label>
+    </div>
+  </div>
+</div>
+<h3 style="margin:18px 0 6px;color:#fde047">Bảng Chi Tiết 20 Frame Của Bộ Đang Chọn (Nhấp vào bất kỳ ô nào để soi từng pixel)</h3>
+<div class="grid20" id="grid"></div>
+<script>
+const META={"idle": [{"n": "01. Lơ lửng đón xuân • Hàm ngậm hờ, tim pháo cháy đỏ", "bx": 0.0, "by": 2.81, "pitch": 0.0, "coilW": -4.08, "head": -2.15, "jaw": 4.5, "flame": 0.37, "mane": -6.27, "tas": -6.21, "cloudL": -2.92, "tailR": -10.1, "sparkSc": 0.88, "confSpread": 0.0, "confRot": 0.0, "rip": 0.0, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Nhịp thở rồng lửa • Thân tràng pháo uốn nhẹ", "bx": 1.08, "by": -0.13, "pitch": 0.68, "coilW": -1.57, "head": -1.07, "jaw": 4.28, "flame": 0.387, "mane": -4.42, "tas": 0.31, "cloudL": -0.64, "tailR": -7.6, "sparkSc": 1.026, "confSpread": 1.24, "confRot": 4.33, "rip": 0.628, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Hé hàm phun tia lửa nhỏ • Đuôi lụa vàng vẫy sóng", "bx": 2.06, "by": -3.06, "pitch": 1.29, "coilW": 1.09, "head": 0.11, "jaw": 3.64, "flame": 0.437, "mane": -2.15, "tas": 6.72, "cloudL": 1.7, "tailR": -4.36, "sparkSc": 1.051, "confSpread": 2.35, "confRot": 8.23, "rip": 1.257, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Khói mây cát tường cuộn xoắn • Tua rua đỏ đung đưa", "bx": 2.83, "by": -5.69, "pitch": 1.78, "coilW": 3.64, "head": 1.28, "jaw": 2.65, "flame": 0.514, "mane": 0.34, "tas": 10.55, "cloudL": 3.87, "tailR": -0.69, "sparkSc": 0.936, "confSpread": 3.24, "confRot": 11.33, "rip": 1.885, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Đỉnh lơ lửng nhịp 1 • Bờm trắng & dải đỏ bay mềm", "bx": 3.33, "by": -7.76, "pitch": 2.09, "coilW": 5.84, "head": 2.32, "jaw": 1.39, "flame": 0.612, "mane": 2.79, "tas": 10.36, "cloudL": 5.67, "tailR": 3.05, "sparkSc": 0.774, "confSpread": 3.8, "confRot": 13.31, "rip": 2.513, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. Pháo đuôi nổ lách tách! • Xác pháo hồng xoay nhẹ", "bx": 3.5, "by": -9.08, "pitch": 2.2, "coilW": 7.46, "head": 3.14, "jaw": 0.0, "flame": 0.72, "mane": 4.97, "tas": 6.21, "cloudL": 6.91, "tailR": 6.48, "sparkSc": 0.7, "confSpread": 4.0, "confRot": 14.0, "rip": 3.142, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. Khép nhẹ hàm vàng • Thẻ khánh vàng rung rinh", "bx": 3.33, "by": -9.5, "pitch": 2.09, "coilW": 8.35, "head": 3.65, "jaw": -1.39, "flame": 0.828, "mane": 6.67, "tas": -0.31, "cloudL": 7.47, "tailR": 9.29, "sparkSc": 0.774, "confSpread": 3.8, "confRot": 13.31, "rip": 3.77, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "08. Lượn sóng thân pháo chữ S • Mây khói bồng bềnh", "bx": 2.83, "by": -8.99, "pitch": 1.78, "coilW": 8.43, "head": 3.8, "jaw": -2.65, "flame": 0.926, "mane": 7.71, "tas": -6.72, "cloudL": 7.31, "tailR": 11.18, "sparkSc": 0.936, "confSpread": 3.24, "confRot": 11.33, "rip": 4.398, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "09. Nghiêng đầu oai vệ • Mắt rồng ánh lửa đầu năm", "bx": 2.06, "by": -7.61, "pitch": 1.29, "coilW": 7.68, "head": 3.58, "jaw": -3.64, "flame": 1.003, "mane": 7.99, "tas": -10.55, "cloudL": 6.42, "tailR": 11.98, "sparkSc": 1.051, "confSpread": 2.35, "confRot": 8.23, "rip": 5.027, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "10. Nhịp lơ lửng trầm • Tàn lửa vàng lấp lánh", "bx": 1.08, "by": -5.47, "pitch": 0.68, "coilW": 6.18, "head": 3.01, "jaw": -4.28, "flame": 1.053, "mane": 7.5, "tas": -10.36, "cloudL": 4.91, "tailR": 11.61, "sparkSc": 1.026, "confSpread": 1.24, "confRot": 4.33, "rip": 5.655, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "11. Hít sâu nhịp 2 • Mở hàm thở luồng hỏa khí ấm", "bx": 0.0, "by": -2.81, "pitch": 0.0, "coilW": 4.08, "head": 2.15, "jaw": -4.5, "flame": 1.07, "mane": 6.27, "tas": -6.21, "cloudL": 2.92, "tailR": 10.1, "sparkSc": 0.88, "confSpread": 0.0, "confRot": 0.0, "rip": 6.283, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "12. Tia lửa miệng bập bùng • Đuôi lụa uốn ngược pha", "bx": -1.08, "by": 0.13, "pitch": -0.68, "coilW": 1.57, "head": 1.07, "jaw": -4.28, "flame": 1.053, "mane": 4.42, "tas": 0.31, "cloudL": 0.64, "tailR": 7.6, "sparkSc": 0.734, "confSpread": -1.24, "confRot": -4.33, "rip": 6.912, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "13. Ngẩng cao sừng vàng • Ba chùm tua rua vẫy đều", "bx": -2.06, "by": 3.06, "pitch": -1.29, "coilW": -1.09, "head": -0.11, "jaw": -3.64, "flame": 1.003, "mane": 2.15, "tas": 6.72, "cloudL": -1.7, "tailR": 4.36, "sparkSc": 0.709, "confSpread": -2.35, "confRot": -8.23, "rip": 7.54, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "14. Đỉnh lơ lửng nhịp 2 • Linh khí Thần Long ngày Tết", "bx": -2.83, "by": 5.69, "pitch": -1.78, "coilW": -3.64, "head": -1.28, "jaw": -2.65, "flame": 0.926, "mane": -0.34, "tas": 10.55, "cloudL": -3.87, "tailR": 0.69, "sparkSc": 0.824, "confSpread": -3.24, "confRot": -11.33, "rip": 8.168, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Chớp mắt rồng sắc lẹm • Lửa miệng thu gọn", "bx": -3.33, "by": 7.76, "pitch": -2.09, "coilW": -5.84, "head": -2.32, "jaw": -1.39, "flame": 0.828, "mane": -2.79, "tas": 10.36, "cloudL": -5.67, "tailR": -3.05, "sparkSc": 0.986, "confSpread": -3.8, "confRot": -13.31, "rip": 8.796, "blink": 0.92, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Khép sát hàm rồng (0% lửa) • Giữ nhịp tĩnh uy nghiêm", "bx": -3.5, "by": 9.08, "pitch": -2.2, "coilW": -7.46, "head": -3.14, "jaw": 5.5, "flame": 0.07, "mane": -4.97, "tas": 6.21, "cloudL": -6.91, "tailR": -6.48, "sparkSc": 1.06, "confSpread": -4.0, "confRot": -14.0, "rip": 9.425, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Mở bừng mắt sáng • Tim pháo xẹt tia chớp vàng!", "bx": -3.33, "by": 9.5, "pitch": -2.09, "coilW": -8.35, "head": -3.65, "jaw": 6.89, "flame": 0.0, "mane": -6.67, "tas": -0.31, "cloudL": -7.47, "tailR": -9.29, "sparkSc": 0.986, "confSpread": -3.8, "confRot": -13.31, "rip": 10.053, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Khói mây lượn mềm hồi vị • Xác pháo bay lượn", "bx": -2.83, "by": 8.99, "pitch": -1.78, "coilW": -8.43, "head": -3.8, "jaw": 2.65, "flame": 0.514, "mane": -7.71, "tas": -6.72, "cloudL": -7.31, "tailR": -11.18, "sparkSc": 0.824, "confSpread": -3.24, "confRot": -11.33, "rip": 10.681, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Hạ dần độ cao êm ái • Tràng pháo thu nhịp", "bx": -2.06, "by": 7.61, "pitch": -1.29, "coilW": -7.68, "head": -3.58, "jaw": 3.64, "flame": 0.437, "mane": -7.99, "tas": -10.55, "cloudL": -6.42, "tailR": -11.98, "sparkSc": 0.709, "confSpread": -2.35, "confRot": -8.23, "rip": 11.31, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Khép mượt chu kỳ → Nối liền hoàn hảo Frame 01", "bx": -1.08, "by": 5.47, "pitch": -0.68, "coilW": -6.18, "head": -3.01, "jaw": 4.28, "flame": 0.387, "mane": -7.5, "tas": -10.36, "cloudL": -4.91, "tailR": -11.61, "sparkSc": 0.734, "confSpread": -1.24, "confRot": -4.33, "rip": 11.938, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}], "fly": [{"n": "01. Nghiêng mình xuất hành • Bắt đầu điệu Múa Rồng Xuân!", "bx": -9.0, "by": -0.0, "pitch": -5.5, "coilW": -11.6, "head": -2.14, "jaw": 1.5, "flame": 0.75, "mane": -16.78, "tas": -22.76, "cloudL": -10.04, "tailR": -20.5, "sparkSc": 0.95, "confSpread": 0.0, "confRot": 0.0, "rip": 0.0, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Cuộn khúc thân pháo trên • Đẩy mình lướt tới trước", "bx": -8.56, "by": -4.33, "pitch": -4.11, "coilW": -6.77, "head": -0.47, "jaw": 0.55, "flame": 0.915, "mane": -9.66, "tas": -14.56, "cloudL": -6.54, "tailR": -17.04, "sparkSc": 1.188, "confSpread": 2.78, "confRot": 7.42, "rip": 0.942, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Quất sóng thân giữa chữ S • Mây khói kéo vệt dài!", "bx": -7.28, "by": -8.23, "pitch": -2.85, "coilW": -1.29, "head": 1.24, "jaw": -1.95, "flame": 1.016, "mane": -2.67, "tas": -5.39, "cloudL": -2.39, "tailR": -11.9, "sparkSc": 1.097, "confSpread": 5.29, "confRot": 14.11, "rip": 1.885, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Đuôi lụa vàng vút cao • Bờm trắng tung bay đón gió", "bx": -5.29, "by": -11.33, "pitch": -1.86, "coilW": 4.32, "head": 2.84, "jaw": -5.05, "flame": 1.016, "mane": 1.51, "tas": 1.26, "cloudL": 1.99, "tailR": -5.6, "sparkSc": 0.803, "confSpread": 7.28, "confRot": 19.42, "rip": 2.827, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Đỉnh sải lượn 1 • Phun luồng lửa rồng dẫn đường!", "bx": -2.78, "by": -13.31, "pitch": -1.22, "coilW": 9.51, "head": 4.16, "jaw": -7.55, "flame": 0.915, "mane": 1.3, "tas": 2.85, "cloudL": 6.17, "tailR": 1.25, "sparkSc": 0.712, "confSpread": 8.56, "confRot": 22.83, "rip": 3.77, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. Đảo pha uốn lượn như rồng múa hội • Xác pháo bay theo", "bx": -0.0, "by": -14.0, "pitch": -1.0, "coilW": 13.77, "head": 5.07, "jaw": -8.5, "flame": 0.75, "mane": -3.22, "tas": -1.24, "cloudL": 9.75, "tailR": 7.97, "sparkSc": 0.95, "confSpread": 9.0, "confRot": 24.0, "rip": 4.712, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. Lướt nhanh giữa trời xuân • Tua rua đỏ bay phần phật", "bx": 2.78, "by": -13.31, "pitch": -1.22, "coilW": 16.68, "head": 5.48, "jaw": -7.55, "flame": 0.585, "mane": -10.34, "tas": -9.44, "cloudL": 12.38, "tailR": 13.92, "sparkSc": 1.188, "confSpread": 8.56, "confRot": 22.83, "rip": 5.655, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "08. Pháo nổ đì đùng mở lối • Tia chớp vàng xẹt sáng!", "bx": 5.29, "by": -11.33, "pitch": -1.86, "coilW": 17.95, "head": 5.36, "jaw": -5.05, "flame": 0.484, "mane": -17.33, "tas": -18.61, "cloudL": 13.79, "tailR": 18.5, "sparkSc": 1.097, "confSpread": 7.28, "confRot": 19.42, "rip": 6.597, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "09. Chuyển hướng lượn mềm • Khánh vàng chao nghiêng", "bx": 7.28, "by": -8.23, "pitch": -2.85, "coilW": 17.47, "head": 4.71, "jaw": -1.95, "flame": 0.484, "mane": -21.51, "tas": -25.26, "cloudL": 13.86, "tailR": 21.27, "sparkSc": 0.803, "confSpread": 5.29, "confRot": 14.11, "rip": 7.54, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "10. Chuẩn bị nhịp uốn rồng thứ 2 (Dragon Dance Glide)", "bx": 8.56, "by": -4.33, "pitch": -4.11, "coilW": 15.28, "head": 3.6, "jaw": 0.55, "flame": 0.585, "mane": -21.3, "tas": -26.85, "cloudL": 12.57, "tailR": 21.96, "sparkSc": 0.712, "confSpread": 2.78, "confRot": 7.42, "rip": 8.482, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "11. Nâng cao đầu rồng • Hàm hé gầm vang chúc Tết", "bx": 9.0, "by": -0.0, "pitch": -5.5, "coilW": 11.6, "head": 2.14, "jaw": 1.5, "flame": 0.75, "mane": -16.78, "tas": -22.76, "cloudL": 10.04, "tailR": 20.5, "sparkSc": 0.95, "confSpread": 0.0, "confRot": 0.0, "rip": 9.425, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "12. Thân tràng pháo uốn lượn liên hoàn 3 khúc!", "bx": 8.56, "by": 4.33, "pitch": -6.89, "coilW": 6.77, "head": 0.47, "jaw": 0.55, "flame": 0.915, "mane": -9.66, "tas": -14.56, "cloudL": 6.54, "tailR": 17.04, "sparkSc": 1.188, "confSpread": -2.78, "confRot": -7.42, "rip": 10.367, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "13. Đuôi mây cát tường quẫy rộng • Sắc đỏ rực rỡ", "bx": 7.28, "by": 8.23, "pitch": -8.15, "coilW": 1.29, "head": -1.24, "jaw": -1.95, "flame": 1.016, "mane": -2.67, "tas": -5.39, "cloudL": 2.39, "tailR": 11.9, "sparkSc": 1.097, "confSpread": -5.29, "confRot": -14.11, "rip": 11.31, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "14. Đỉnh sải lượn 2 • Rồng Pháo bay bổng trên mây!", "bx": 5.29, "by": 11.33, "pitch": -9.14, "coilW": -4.32, "head": -2.84, "jaw": -5.05, "flame": 1.016, "mane": 1.51, "tas": 1.26, "cloudL": -1.99, "tailR": 5.6, "sparkSc": 0.803, "confSpread": -7.28, "confRot": -19.42, "rip": 12.252, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Phóng tia lửa vàng ấm áp • Sừng rồng rẽ gió", "bx": 2.78, "by": 13.31, "pitch": -9.78, "coilW": -9.51, "head": -4.16, "jaw": -7.55, "flame": 0.915, "mane": 1.3, "tas": 2.85, "cloudL": -6.17, "tailR": -1.25, "sparkSc": 0.712, "confSpread": -8.56, "confRot": -22.83, "rip": 13.195, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Lượn vòng giữ thăng bằng • Bờm & dải đỏ rũ mượt", "bx": 0.0, "by": 14.0, "pitch": -10.0, "coilW": -13.77, "head": -5.07, "jaw": -8.5, "flame": 0.75, "mane": -3.22, "tas": -1.24, "cloudL": -9.75, "tailR": -7.97, "sparkSc": 0.95, "confSpread": -9.0, "confRot": -24.0, "rip": 14.137, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Nghiêng đầu nhìn xuống phố phường ngày xuân", "bx": -2.78, "by": 13.31, "pitch": -9.78, "coilW": -16.68, "head": -5.48, "jaw": -7.55, "flame": 0.585, "mane": -10.34, "tas": -9.44, "cloudL": -12.38, "tailR": -13.92, "sparkSc": 1.188, "confSpread": -8.56, "confRot": -22.83, "rip": 15.08, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Thu dần biên độ múa lượn • Khói pháo cuộn tròn", "bx": -5.29, "by": 11.33, "pitch": -9.14, "coilW": -17.95, "head": -5.36, "jaw": -5.05, "flame": 0.484, "mane": -17.33, "tas": -18.61, "cloudL": -13.79, "tailR": -18.5, "sparkSc": 1.097, "confSpread": -7.28, "confRot": -19.42, "rip": 16.022, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Hồi phục thế bay chuẩn • Xác pháo lắng nhịp", "bx": -7.28, "by": 8.23, "pitch": -8.15, "coilW": -17.47, "head": -4.71, "jaw": -1.95, "flame": 0.484, "mane": -21.51, "tas": -25.26, "cloudL": -13.86, "tailR": -21.27, "sparkSc": 0.803, "confSpread": -5.29, "confRot": -14.11, "rip": 16.965, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Hoàn tất vòng múa rồng → Nối liền Frame 01", "bx": -8.56, "by": 4.33, "pitch": -6.89, "coilW": -15.28, "head": -3.6, "jaw": 0.55, "flame": 0.585, "mane": -21.3, "tas": -26.85, "cloudL": -12.57, "tailR": -21.96, "sparkSc": 0.712, "confSpread": -2.78, "confRot": -7.42, "rip": 17.907, "blink": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}], "roar": [{"n": "01. Thu mình tĩnh lặng • Chờ khắc Giao Thừa điểm!", "bx": 0.0, "by": 0.0, "pitch": 0.0, "coilW": -0.0, "head": -0.0, "jaw": 0.0, "flame": 0.55, "mane": -0.0, "tas": 0.0, "cloudL": -0.0, "tailR": -0.0, "sparkSc": 0.75, "confSpread": 0.0, "confRot": -0.0, "rip": 0.0, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Ngậm chặt hàm vàng (0% lửa) • Nén thuốc pháo cực độ!", "bx": 1.15, "by": 3.06, "pitch": 1.72, "coilW": -3.83, "head": -2.3, "jaw": 4.21, "flame": 0.308, "mane": -3.06, "tas": 0.08, "cloudL": -2.68, "tailR": -3.83, "sparkSc": 0.75, "confSpread": 0.0, "confRot": -7.27, "rip": 0.942, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Toàn bộ tràng pháo co nén • Tia điện chớp trên trán!", "bx": 2.12, "by": 5.66, "pitch": 3.18, "coilW": -7.07, "head": -4.24, "jaw": 7.78, "flame": 0.103, "mane": -5.66, "tas": -0.66, "cloudL": -4.95, "tailR": -7.07, "sparkSc": 0.75, "confSpread": 0.0, "confRot": -13.44, "rip": 1.885, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Khói mây tụ đặc • Ánh sáng trắng vàng rực trong bụng pháo!", "bx": 2.77, "by": 7.39, "pitch": 4.16, "coilW": -9.24, "head": -5.54, "jaw": 10.16, "flame": 0.0, "mane": -7.39, "tas": -2.61, "cloudL": -6.47, "tailR": -9.24, "sparkSc": 0.75, "confSpread": 0.0, "confRot": -17.55, "rip": 2.827, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Nén cực hạn 3... 2... 1... • Dây cháy chậm bén lửa!", "bx": 3.0, "by": 8.0, "pitch": 4.5, "coilW": -10.0, "head": -6.0, "jaw": 11.0, "flame": 0.0, "mane": -8.0, "tas": -5.47, "cloudL": -7.0, "tailR": -10.0, "sparkSc": 1.2, "confSpread": 0.0, "confRot": -19.0, "rip": 3.77, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. KHAI PHÁO GIAO THỪA! Vạn pháo cùng nổ vang trời!", "bx": 0.0, "by": 3.14, "pitch": -1.46, "coilW": 3.4, "head": 2.55, "jaw": 4.68, "flame": 0.345, "mane": 3.89, "tas": 4.37, "cloudL": 3.4, "tailR": 4.86, "sparkSc": 0.335, "confSpread": 5.35, "confRot": 9.23, "rip": 4.712, "blink": 0.0, "aura": 0.46, "roar": 0.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. Há ngoác hàm rồng • Phóng luồng lửa khai xuân rực rỡ!", "bx": 1.22, "by": -1.43, "pitch": -1.73, "coilW": 9.03, "head": 6.17, "jaw": -1.26, "flame": 0.742, "mane": 7.54, "tas": 4.96, "cloudL": 6.6, "tailR": 9.43, "sparkSc": 0.742, "confSpread": 10.37, "confRot": 17.91, "rip": 5.655, "blink": 0.0, "aura": 0.65, "roar": 0.1, "slash": -1.0, "sAlpha": 0.0}, {"n": "08. Pháo hoa kim tuyến bung nở tầng 1 • Xác pháo tung bay!", "bx": -1.69, "by": -5.43, "pitch": -5.55, "coilW": 6.01, "head": 5.36, "jaw": -6.46, "flame": 1.055, "mane": 10.74, "tas": 6.38, "cloudL": 9.4, "tailR": 13.43, "sparkSc": 1.054, "confSpread": 14.77, "confRot": 25.52, "rip": 6.597, "blink": 0.0, "aura": 0.82, "roar": 0.2, "slash": -1.0, "sAlpha": 0.0}, {"n": "09. ĐỈNH NỔ GIAO THỪA • Hào quang Đỏ-Vàng chói lọi!", "bx": 1.27, "by": -8.63, "pitch": -3.85, "coilW": 14.18, "head": 10.0, "jaw": -10.62, "flame": 1.257, "mane": 13.3, "tas": 9.26, "cloudL": 11.64, "tailR": 16.63, "sparkSc": 1.243, "confSpread": 18.29, "confRot": 31.6, "rip": 7.54, "blink": 0.0, "aura": 0.96, "roar": 0.3, "slash": -1.0, "sAlpha": 0.0}, {"n": "10. Đuôi pháo & đầu rồng đồng loạt rực sáng 150%!", "bx": -0.26, "by": -10.83, "pitch": -5.88, "coilW": 12.66, "head": 9.62, "jaw": -13.48, "flame": 1.353, "mane": 15.06, "tas": 13.42, "cloudL": 13.18, "tailR": 18.83, "sparkSc": 1.319, "confSpread": 20.71, "confRot": 35.78, "rip": 8.482, "blink": 0.0, "aura": 1.05, "roar": 0.4, "slash": -1.0, "sAlpha": 0.0}, {"n": "11. Vòng sóng pháo hoa tầng 2 • Thần Long ngửa đầu gầm vang!", "bx": -0.75, "by": -11.9, "pitch": -6.65, "coilW": 12.43, "head": 9.7, "jaw": -14.87, "flame": 1.458, "mane": 15.92, "tas": 17.91, "cloudL": 13.93, "tailR": 19.9, "sparkSc": 1.43, "confSpread": 21.89, "confRot": 37.82, "rip": 9.425, "blink": 0.0, "aura": 1.1, "roar": 0.5, "slash": -1.0, "sAlpha": 0.0}, {"n": "12. Dư chấn tiếng pháo đì đùng • Mưa xác pháo hồng rợp trời!", "bx": 1.26, "by": -12.0, "pitch": -4.87, "coilW": 16.51, "head": 11.76, "jaw": -15.0, "flame": 1.495, "mane": 16.0, "tas": 21.53, "cloudL": 14.0, "tailR": 20.0, "sparkSc": 1.474, "confSpread": 22.0, "confRot": 38.0, "rip": 10.367, "blink": 0.0, "aura": 1.1, "roar": 0.6, "slash": -1.0, "sAlpha": 0.0}, {"n": "13. Mây cát tường tỏa sáng • Khí thế Thần Thú Mùa Xuân!", "bx": -1.07, "by": -12.0, "pitch": -6.96, "coilW": 11.87, "head": 9.43, "jaw": -15.0, "flame": 1.484, "mane": 16.0, "tas": 23.71, "cloudL": 14.0, "tailR": 20.0, "sparkSc": 1.46, "confSpread": 22.0, "confRot": 38.0, "rip": 11.31, "blink": 0.0, "aura": 1.1, "roar": 0.7, "slash": -1.0, "sAlpha": 0.0}, {"n": "14. Hạ dần góc ngửa đầu • Lửa miệng dịu về nhịp thở", "bx": 0.0, "by": -11.54, "pitch": -5.77, "coilW": 13.47, "head": 10.1, "jaw": -14.26, "flame": 1.38, "mane": 15.39, "tas": 23.02, "cloudL": 13.47, "tailR": 19.24, "sparkSc": 1.361, "confSpread": 21.16, "confRot": 36.55, "rip": 12.252, "blink": 0.0, "aura": 1.07, "roar": 0.78, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Sóng pháo hoa tan thành bụi sao vàng lấp lánh", "bx": 0.0, "by": -10.24, "pitch": -5.12, "coilW": 11.95, "head": 8.96, "jaw": -12.14, "flame": 1.266, "mane": 13.66, "tas": 18.89, "cloudL": 11.95, "tailR": 17.07, "sparkSc": 1.307, "confSpread": 18.78, "confRot": 32.44, "rip": 13.195, "blink": 0.0, "aura": 0.98, "roar": 0.87, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Ba chùm tua rua đỏ đung đưa theo dư âm tiếng nổ", "bx": 0.0, "by": -8.3, "pitch": -4.15, "coilW": 9.68, "head": 7.26, "jaw": -8.98, "flame": 1.096, "mane": 11.06, "tas": 12.44, "cloudL": 9.68, "tailR": 13.83, "sparkSc": 1.226, "confSpread": 15.21, "confRot": 26.27, "rip": 14.137, "blink": 0.0, "aura": 0.84, "roar": 0.95, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Khép nhẹ hàm rồng • Bờm trắng rũ mượt mà", "bx": 0.0, "by": -6.0, "pitch": -3.0, "coilW": 7.0, "head": 5.25, "jaw": -5.25, "flame": 0.895, "mane": 8.0, "tas": 5.47, "cloudL": 7.0, "tailR": 10.0, "sparkSc": 1.13, "confSpread": 11.0, "confRot": 19.0, "rip": 15.08, "blink": 0.0, "aura": 0.68, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Thân tràng pháo lơ lửng ổn định lại thế đứng", "bx": 0.0, "by": -3.7, "pitch": -1.85, "coilW": 4.32, "head": 3.24, "jaw": -1.52, "flame": 0.694, "mane": 4.94, "tas": -0.15, "cloudL": 4.32, "tailR": 6.17, "sparkSc": 1.034, "confSpread": 6.79, "confRot": 11.73, "rip": 16.022, "blink": 0.0, "aura": 0.51, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Khói hương ngày Tết thơm lừng lắng dịu", "bx": 0.0, "by": -1.76, "pitch": -0.88, "coilW": 2.05, "head": 1.54, "jaw": 1.64, "flame": 0.524, "mane": 2.34, "tas": -3.07, "cloudL": 2.05, "tailR": 2.93, "sparkSc": 0.953, "confSpread": 3.22, "confRot": 5.56, "rip": 16.965, "blink": 0.0, "aura": 0.37, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Trở về thế nghênh xuân → Nối liền hoàn hảo Frame 01", "bx": 0.0, "by": -0.46, "pitch": -0.23, "coilW": 0.53, "head": 0.4, "jaw": 3.76, "flame": 0.41, "mane": 0.61, "tas": -2.84, "cloudL": 0.53, "tailR": 0.76, "sparkSc": 0.899, "confSpread": 0.84, "confRot": 1.45, "rip": 17.907, "blink": 0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}], "attack": [{"n": "01. Khóa chặt mục tiêu • Mắt rồng rực lửa chiến đấu!", "bx": 0.0, "by": -0.0, "pitch": 0.0, "coilW": -0.0, "head": -0.0, "jaw": 0.0, "flame": 0.5, "mane": 0.0, "tas": 0.0, "cloudL": -0.0, "tailR": -0.0, "sparkSc": 0.85, "confSpread": 0.0, "confRot": -0.0, "rip": 0.0, "blink": 0.0, "aura": 0.25, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Cuộn lùi thân tràng pháo lấy đà • Khép chặt hàm nén hỏa!", "bx": 2.81, "by": -1.25, "pitch": 1.25, "coilW": -2.19, "head": -0.94, "jaw": 1.64, "flame": 0.414, "mane": 2.0, "tas": 2.25, "cloudL": -1.75, "tailR": -2.25, "sparkSc": 0.905, "confSpread": 0.0, "confRot": -4.0, "rip": 0.628, "blink": 0.0, "aura": 0.34, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Dồn nén hỏa dược vào cổ họng • Bờm dựng đứng!", "bx": 9.0, "by": -4.0, "pitch": 4.0, "coilW": -7.0, "head": -3.0, "jaw": 5.25, "flame": 0.225, "mane": 6.4, "tas": 7.2, "cloudL": -5.6, "tailR": -7.2, "sparkSc": 1.025, "confSpread": 0.0, "confRot": -12.8, "rip": 1.257, "blink": 0.0, "aura": 0.55, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Đuôi pháo nổ lấy phản lực đẩy! • Tia sét trán chớp giật!", "bx": 15.19, "by": -6.75, "pitch": 6.75, "coilW": -11.81, "head": -5.06, "jaw": 8.86, "flame": 0.036, "mane": 10.8, "tas": 12.15, "cloudL": -9.45, "tailR": -12.15, "sparkSc": 1.145, "confSpread": 0.0, "confRot": -21.6, "rip": 1.885, "blink": 0.0, "aura": 0.76, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Đỉnh tụ lực (Windup) • Toàn thân rực hồng sắp phát nổ!", "bx": 18.0, "by": -8.0, "pitch": 8.0, "coilW": -14.0, "head": -6.0, "jaw": 10.5, "flame": 0.0, "mane": 12.8, "tas": 14.4, "cloudL": -11.2, "tailR": -14.4, "sparkSc": 1.2, "confSpread": 0.0, "confRot": -25.6, "rip": 2.513, "blink": 0.0, "aura": 0.85, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. LAO VÚT TẤN CÔNG! Thần Long phóng mình xé gió!", "bx": 6.93, "by": -4.12, "pitch": 2.88, "coilW": -5.14, "head": -2.54, "jaw": 3.03, "flame": 0.421, "mane": 4.16, "tas": 4.68, "cloudL": -3.64, "tailR": -4.68, "sparkSc": 0.401, "confSpread": 0.0, "confRot": -8.33, "rip": 3.142, "blink": 0.0, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. HÁ RỘNG HÀM RỒNG — Khởi phát ĐẠI HỎA PHÁO 135%!", "bx": -3.28, "by": -0.55, "pitch": -1.84, "coilW": 3.03, "head": 0.65, "jaw": -3.86, "flame": 0.871, "mane": -3.8, "tas": -4.27, "cloudL": 3.32, "tailR": 4.27, "sparkSc": 0.771, "confSpread": 4.27, "confRot": 7.6, "rip": 3.77, "blink": 0.0, "aura": 0.43, "roar": -1.0, "slash": 0.0, "sAlpha": 0.78}, {"n": "08. LUỒNG LỬA ĐẠI PHÁO 155% • Quét rực cả bầu trời!", "bx": -11.83, "by": 2.44, "pitch": -5.79, "coilW": 9.86, "head": 3.32, "jaw": -9.63, "flame": 1.239, "mane": -10.46, "tas": -11.77, "cloudL": 9.16, "tailR": 11.77, "sparkSc": 1.081, "confSpread": 11.77, "confRot": 20.93, "rip": 4.398, "blink": 0.0, "aura": 0.74, "roar": -1.0, "slash": 0.17, "sAlpha": 0.96}, {"n": "09. BÙNG NỔ LIÊN HOÀN PHÁO! Sóng lửa & xác pháo cuốn phăng!", "bx": -18.04, "by": 4.61, "pitch": -8.67, "coilW": 14.83, "head": 5.26, "jaw": -13.83, "flame": 1.489, "mane": -15.31, "tas": -17.22, "cloudL": 13.4, "tailR": 17.22, "sparkSc": 1.306, "confSpread": 17.22, "confRot": 30.62, "rip": 5.027, "blink": 0.0, "aura": 0.97, "roar": -1.0, "slash": 0.33, "sAlpha": 1.0}, {"n": "10. ĐỈNH SÁT THƯƠNG 162% • Pháo hoa kim hoàng nổ tung!", "bx": -21.43, "by": 5.8, "pitch": -10.24, "coilW": 17.55, "head": 6.32, "jaw": -16.12, "flame": 1.598, "mane": -17.96, "tas": -20.2, "cloudL": 15.71, "tailR": 20.2, "sparkSc": 1.43, "confSpread": 20.2, "confRot": 35.92, "rip": 5.655, "blink": 0.0, "aura": 1.09, "roar": -1.0, "slash": 0.5, "sAlpha": 0.98}, {"n": "11. Kình lực Hỏa Long Trảm • Đuôi lụa vàng quất bồi!", "bx": -22.0, "by": 6.0, "pitch": -10.5, "coilW": 18.0, "head": 6.5, "jaw": -16.5, "flame": 1.57, "mane": -18.4, "tas": -20.7, "cloudL": 16.1, "tailR": 20.7, "sparkSc": 1.45, "confSpread": 20.7, "confRot": 36.8, "rip": 6.283, "blink": 0.0, "aura": 1.11, "roar": -1.0, "slash": 0.67, "sAlpha": 0.88}, {"n": "12. Dư chấn đại pháo • Tàn lửa & xác pháo bay tản mạn!", "bx": -22.0, "by": 6.0, "pitch": -10.5, "coilW": 18.0, "head": 6.5, "jaw": -16.5, "flame": 1.533, "mane": -18.4, "tas": -20.7, "cloudL": 16.1, "tailR": 20.7, "sparkSc": 1.45, "confSpread": 20.7, "confRot": 36.8, "rip": 6.912, "blink": 0.0, "aura": 1.11, "roar": -1.0, "slash": 0.83, "sAlpha": 0.65}, {"n": "13. Ngắt luồng lửa • Bật lùi đàn hồi giữ thế trên không", "bx": -17.78, "by": 4.59, "pitch": -8.47, "coilW": 14.56, "head": 5.17, "jaw": -12.67, "flame": 1.207, "mane": -15.02, "tas": -16.9, "cloudL": 13.15, "tailR": 16.9, "sparkSc": 1.356, "confSpread": 16.9, "confRot": 30.05, "rip": 7.54, "blink": 0.0, "aura": 0.95, "roar": -1.0, "slash": 1.0, "sAlpha": 0.28}, {"n": "14. Đóng dứt khoát hàm vàng • Khói trắng bốc nhẹ quanh mép", "bx": -8.5, "by": 1.5, "pitch": -4.0, "coilW": 7.0, "head": 2.25, "jaw": -4.25, "flame": 0.562, "mane": -7.6, "tas": -8.55, "cloudL": 6.65, "tailR": 8.55, "sparkSc": 1.15, "confSpread": 8.55, "confRot": 15.2, "rip": 8.168, "blink": 0.0, "aura": 0.61, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Uốn cong thân tràng pháo hãm đà • Tua rua tung bay", "bx": 0.78, "by": -1.59, "pitch": 0.47, "coilW": -0.56, "head": -0.67, "jaw": 4.17, "flame": 0.0, "mane": -0.17, "tas": -0.2, "cloudL": 0.15, "tailR": 0.2, "sparkSc": 0.944, "confSpread": 0.2, "confRot": 0.35, "rip": 8.796, "blink": 0.0, "aura": 0.26, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Ngẩng đầu kiêu hãnh • Pháo đuôi lách tách mừng công", "bx": 5.0, "by": -3.0, "pitch": 2.5, "coilW": -4.0, "head": -2.0, "jaw": 8.0, "flame": 0.0, "mane": 3.2, "tas": 3.6, "cloudL": -2.8, "tailR": -3.6, "sparkSc": 0.85, "confSpread": 0.0, "confRot": -6.4, "rip": 9.425, "blink": 0.0, "aura": 0.4, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Đuôi mây cát tường lượn chữ S hồi phục tư thế", "bx": 4.52, "by": -2.71, "pitch": 2.26, "coilW": -3.62, "head": -1.81, "jaw": 7.67, "flame": 0.035, "mane": 2.89, "tas": 3.26, "cloudL": -2.53, "tailR": -3.26, "sparkSc": 0.88, "confSpread": 0.0, "confRot": -5.79, "rip": 10.053, "blink": 0.0, "aura": 0.39, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Hé nhẹ hàm thở điều hòa • Dải lụa đỏ bay êm", "bx": 3.27, "by": -1.96, "pitch": 1.64, "coilW": -2.62, "head": -1.31, "jaw": 6.79, "flame": 0.128, "mane": 2.09, "tas": 2.36, "cloudL": -1.83, "tailR": -2.36, "sparkSc": 0.88, "confSpread": 0.0, "confRot": -4.19, "rip": 10.681, "blink": 0.0, "aura": 0.35, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Hạ độ cao về vị trí lơ lửng chuẩn", "bx": 1.73, "by": -1.04, "pitch": 0.86, "coilW": -1.38, "head": -0.69, "jaw": 5.71, "flame": 0.242, "mane": 1.11, "tas": 1.24, "cloudL": -0.97, "tailR": -1.24, "sparkSc": 0.88, "confSpread": 0.0, "confRot": -2.21, "rip": 11.31, "blink": 0.0, "aura": 0.3, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Hoàn tất tuyệt kỹ → Nối mượt về Frame 01", "bx": 0.48, "by": -0.29, "pitch": 0.24, "coilW": -0.38, "head": -0.19, "jaw": 4.83, "flame": 0.335, "mane": 0.31, "tas": 0.34, "cloudL": -0.27, "tailR": -0.34, "sparkSc": 0.88, "confSpread": 0.0, "confRot": -0.61, "rip": 11.938, "blink": 0.0, "aura": 0.26, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}]};
+const CELLS={"sm": [197, 218, 219, 220, 221, 241, 242, 243, 244, 245, 246, 247, 248, 265, 266, 267, 268, 269, 270, 271, 272, 289, 290, 291, 292, 293, 294, 295, 313, 314, 315, 316, 317, 318, 319, 337, 338, 339, 340, 341, 342, 343, 350, 373, 374, 375, 376, 377, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 464, 465, 466, 468, 469, 470, 471, 472, 473, 474, 493, 494, 495, 496, 497, 519, 520, 521], "dc": [158, 159, 160, 161, 182, 183, 184, 185, 186, 187, 206, 207, 208, 209, 210, 211, 212, 230, 231, 232, 233, 234, 235, 236, 246, 247, 248, 249, 250, 254, 255, 256, 257, 258, 259, 260, 262, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 399, 400, 401, 402, 403, 410, 411, 412, 413, 414, 415, 416, 417, 436, 437, 438, 439, 440, 441, 442, 460, 461, 462, 463, 464, 465, 466, 467, 468, 484, 485, 486, 487, 488, 489, 490, 491, 492, 509, 510, 511, 512, 513, 514, 515, 534], "jr": [151, 152, 153, 154, 155, 156, 176, 177, 178, 179, 180, 181, 182, 183, 200, 201, 202, 203, 204, 205, 206, 207, 225, 226, 227, 228, 229, 230, 231, 251, 252, 253, 254, 255, 277, 278], "hm": [59, 60, 61, 62, 63, 64, 65, 81, 82, 83, 84, 85, 86, 87, 88, 89, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 203, 204, 205, 206, 207]};
+const SPB=[{"box": [84, 38, 206, 126], "pu": 172.0, "pv": 98.0, "kind": "head_spark"}, {"box": [92, 362, 182, 470], "pu": 138.0, "pv": 414.0, "kind": "muzzle_spark"}, {"box": [428, 190, 476, 246], "pu": 436.0, "pv": 208.0, "kind": "upper_spark"}, {"box": [52, 145, 88, 188], "pu": 70.0, "pv": 166.0, "kind": "confetti"}, {"box": [34, 375, 78, 410], "pu": 56.0, "pv": 392.0, "kind": "confetti"}, {"box": [254, 442, 308, 472], "pu": 280.0, "pv": 458.0, "kind": "confetti"}, {"box": [432, 146, 472, 186], "pu": 452.0, "pv": 166.0, "kind": "confetti"}, {"box": [102, 216, 126, 240], "pu": 114.0, "pv": 228.0, "kind": "confetti"}, {"box": [422, 332, 462, 362], "pu": 442.0, "pv": 348.0, "kind": "confetti"}];
+const DIRS={attack:'20_frames_full_action',roar:'20_frames_roar_newyear',fly:'20_frames_fly_dance',idle:'20_frames_floating_idle'};
+const texSM=new Image(),texDC=new Image(),texJR=new Image(),texMF=new Image(),texHM=new Image(),texSC=new Image();
+let loaded=0;
+const GW=24,GH=24;
+let tSM=[],tDC=[],tJR=[],tHM=[];
+function buildTris(list){
+  const out=[];
+  for(const c of list){
+    const gy=(c/GW)|0, gx=c%GW, i00=gy*(GW+1)+gx, i10=i00+1, i01=i00+(GW+1), i11=i01+1;
+    out.push([i00,i10,i11],[i00,i11,i01]);
+  }
+  return out;
+}
+const onTex=()=>{
+  loaded++;
+  if(loaded===6){
+    tSM=buildTris(CELLS.sm); tDC=buildTris(CELLS.dc); tJR=buildTris(CELLS.jr); tHM=buildTris(CELLS.hm);
+    const tot=tSM.length+tDC.length+tJR.length+tHM.length;
+    document.getElementById('liveLbl').textContent='⚡ Đang chạy Live 60 FPS • 18 Xương & 6 Lớp ('+tot+' tam giác Soft-Mesh + 9 mảnh pháo bay)';
+  }
+};
+[texSM,texDC,texJR,texMF,texHM,texSC].forEach(im=>im.onload=onTex);
+texSM.src='spine2d_project/images/smoke_tail_back_hd.png';
+texDC.src='spine2d_project/images/dragon_coils_hd.png';
+texJR.src='spine2d_project/images/dragon_jaw_ruff_hd.png';
+texMF.src='spine2d_project/images/mouth_flame_hd.png';
+texHM.src='spine2d_project/images/dragon_head_mane_hd.png';
+texSC.src='spine2d_project/images/sparks_confetti_hd.png';
+
+const FRAMES={};
+for(const k of Object.keys(DIRS)){
+  FRAMES[k]=[];
+  for(let i=1;i<=20;i++){
+    const im=new Image();
+    im.src=DIRS[k]+'/aligned_400x388/frame_'+String(i).padStart(2,'0')+'.png';
+    FRAMES[k].push(im);
+  }
+}
+
+let curAnim='attack',curPack='attack',fIdx=0,fPlaying=true,lastFTime=0;
+let mouseX=210,mouseY=180,mouseInside=false;
+const liveCv=document.getElementById('liveCv'),lctx=liveCv.getContext('2d');
+const frameCv=document.getElementById('frameCv'),fctx=frameCv.getContext('2d');
+liveCv.addEventListener('mousemove',e=>{
+  const r=liveCv.getBoundingClientRect();
+  mouseX=(e.clientX-r.left)*(liveCv.width/r.width);
+  mouseY=(e.clientY-r.top)*(liveCv.height/r.height);
+  mouseInside=true;
+});
+liveCv.addEventListener('mouseleave',()=>{mouseInside=false;});
+document.getElementById('spd').oninput=e=>document.getElementById('spdVal').textContent=parseFloat(e.target.value).toFixed(1)+'x';
+document.getElementById('fFps').oninput=e=>document.getElementById('fFpsV').textContent=e.target.value;
+document.getElementById('fScrub').oninput=e=>{fPlaying=false;document.getElementById('btnFPlay').textContent='▶ Phát';fIdx=parseInt(e.target.value,10)-1;drawExportedFrame();};
+function updateBg(){const v=document.getElementById('bgSel').value;liveCv.className=v;frameCv.className=v;}
+function toggleFPlay(){fPlaying=!fPlaying;document.getElementById('btnFPlay').textContent=fPlaying?'⏸ Dừng':'▶ Phát';}
+function stepF(d){fPlaying=false;document.getElementById('btnFPlay').textContent='▶ Phát';fIdx=(fIdx+d+20)%20;drawExportedFrame();}
+function selectAnim(a,btn){
+  curAnim=a;
+  if(a!=='custom'){curPack=a;fIdx=0;document.getElementById('packName').textContent=a;buildGrid();drawExportedFrame();}
+  document.querySelectorAll('#animBar button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function buildGrid(){
+  const g=document.getElementById('grid');g.innerHTML='';
+  for(let i=0;i<20;i++){
+    const fn='frame_'+String(i+1).padStart(2,'0')+'.png';
+    const d=document.createElement('div');d.className='fbox'+(i===fIdx?' cur':'');
+    d.onclick=()=>{fPlaying=false;document.getElementById('btnFPlay').textContent='▶ Phát';fIdx=i;drawExportedFrame();};
+    d.innerHTML='<b>'+META[curPack][i].n+'</b><img src="'+DIRS[curPack]+'/aligned_400x388/'+fn+'"><div>'+fn+'</div>';
+    g.appendChild(d);
+  }
+}
+function drawExportedFrame(){
+  fctx.clearRect(0,0,400,388);
+  const im=FRAMES[curPack][fIdx];
+  if(im&&im.complete){
+    fctx.save();if(document.getElementById('chkFlip').checked){fctx.translate(400,0);fctx.scale(-1,1);}
+    fctx.drawImage(im,0,0);fctx.restore();
+  }
+  document.getElementById('fScrub').value=fIdx+1;
+  document.getElementById('fNum').textContent=String(fIdx+1).padStart(2,'0')+'/20';
+  document.getElementById('frameLbl').textContent=META[curPack][fIdx].n;
+  document.querySelectorAll('.fbox').forEach((el,k)=>el.classList.toggle('cur',k===fIdx));
+}
+
+const ss=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
+function drawTri(ctx,img,u0,v0,u1,v1,u2,v2,x0,y0,x1,y1,x2,y2){
+  const cx=(x0+x1+x2)/3,cy=(y0+y1+y2)/3;
+  const ex=(x,c)=>{const d=x-c,l=Math.abs(d);return l>0.01?x+(d/l)*0.65:x;};
+  const det=(u1-u0)*(v2-v0)-(u2-u0)*(v1-v0); if(Math.abs(det)<1e-3)return;
+  const a=((x1-x0)*(v2-v0)-(x2-x0)*(v1-v0))/det, b=((y1-y0)*(v2-v0)-(y2-y0)*(v1-v0))/det;
+  const c=((u1-u0)*(x2-x0)-(u2-u0)*(x1-x0))/det, d=((u1-u0)*(y2-y0)-(u2-u0)*(y1-y0))/det;
+  ctx.save();ctx.beginPath();
+  ctx.moveTo(ex(x0,cx),ex(y0,cy));ctx.lineTo(ex(x1,cx),ex(y1,cy));ctx.lineTo(ex(x2,cx),ex(y2,cy));ctx.closePath();ctx.clip();
+  ctx.transform(a,b,c,d,x0-a*u0-c*v0,y0-b*u0-d*v0);ctx.drawImage(img,0,0);ctx.restore();
+}
+
+function samplePoseAt(anim,t){
+  let mx=0,my=0;
+  if(document.getElementById('chkMouse').checked&&mouseInside){mx=(mouseX-250)/24;my=(mouseY-190)/24;}
+  if(anim==='custom'){
+    const jw=parseFloat(document.getElementById('sJaw').value);
+    const fl=parseFloat(document.getElementById('sFlame').value)/100.0;
+    const cl=parseFloat(document.getElementById('sCoil').value);
+    const tl=parseFloat(document.getElementById('sTail').value);
+    const mn=parseFloat(document.getElementById('sMane').value);
+    return {
+      bx:mx*0.6, by:-8*Math.sin(t*2.5)+my*0.5, pitch:mx*0.3,
+      coilW:cl+8*Math.sin(t*3.2), head:-my*0.8+3*Math.sin(t*2.5),
+      jaw:jw, flame:fl*(0.92+0.08*Math.sin(t*14)),
+      mane:mn+8*Math.sin(t*3.6), tas:mn+10*Math.sin(t*4.0),
+      cloudL:tl*0.6+6*Math.sin(t*3.0), tailR:tl+10*Math.sin(t*3.2-0.8),
+      sparkSc:0.95+0.18*Math.sin(t*11), confSpread:6*Math.sin(t*2.2), confRot:16*Math.sin(t*2.2),
+      rip:t*4.8, blink:0, aura:0.35, roar:-1, slash:-1, sAlpha:0
+    };
+  }
+  const arr=META[anim],pos=((t*8.0)%20+20)%20,i0=pos|0,i1=(i0+1)%20,fr=pos-i0,A=arr[i0],B=arr[i1];
+  const lp=(a,b)=>a+(b-a)*fr;
+  return {
+    bx:lp(A.bx,B.bx)+mx*0.4, by:lp(A.by,B.by)+my*0.4, pitch:lp(A.pitch,B.pitch),
+    coilW:lp(A.coilW,B.coilW), head:lp(A.head,B.head)-my*0.5,
+    jaw:lp(A.jaw,B.jaw), flame:lp(A.flame,B.flame),
+    mane:lp(A.mane,B.mane), tas:lp(A.tas,B.tas),
+    cloudL:lp(A.cloudL,B.cloudL), tailR:lp(A.tailR,B.tailR),
+    sparkSc:lp(A.sparkSc,B.sparkSc), confSpread:lp(A.confSpread,B.confSpread), confRot:lp(A.confRot,B.confRot),
+    rip:t*5.2, blink:lp(A.blink,B.blink), aura:lp(A.aura,B.aura), roar:A.roar, slash:A.slash, sAlpha:lp(A.sAlpha,B.sAlpha)
+  };
+}
+
+function renderLive60(ts){
+  const spd=parseFloat(document.getElementById('spd').value);
+  if(fPlaying&&ts-lastFTime>=1000/parseInt(document.getElementById('fFps').value,10)){
+    lastFTime=ts; fIdx=(fIdx+1)%20; drawExportedFrame();
+  }
+  if(loaded===6){
+    const t=(ts*0.001)*spd, P=samplePoseAt(curAnim,t);
+    lctx.clearRect(0,0,540,500);
+    lctx.save();
+    if(document.getElementById('chkFlip').checked){lctx.translate(540,0);lctx.scale(-1,1);}
+    const S=0.80, OX=66, OY=44;
+
+    const ccX=268+P.bx, ccY=286+P.by, pr=P.pitch*Math.PI/180, cp=Math.cos(pr), sp=Math.sin(pr);
+    const upr=(P.pitch+P.coilW*0.35)*Math.PI/180, cu=Math.cos(upr), su=Math.sin(upr);
+    const lor=(P.pitch-P.coilW*0.40)*Math.PI/180, cl=Math.cos(lor), sl=Math.sin(lor);
+    const nX=ccX+(312-268)*cu-(158-286)*su, nY=ccY+(312-268)*su+(158-286)*cu;
+    const hr=(P.pitch+P.coilW*0.25+P.head)*Math.PI/180, ch=Math.cos(hr), sh=Math.sin(hr);
+    const hX=nX+(252-312)*cu-(138-158)*su, hY=nY+(252-312)*su+(138-158)*cu;
+    const jwX=hX+(236-252)*ch-(152-138)*sh, jwY=hY+(236-252)*sh+(152-138)*ch, jwr=hr+P.jaw*Math.PI/180;
+    const mfX=hX+(186-252)*ch-(158-138)*sh, mfY=hY+(186-252)*sh+(158-138)*ch;
+    const mzX=ccX+(138-268)*cl-(414-286)*sl, mzY=ccY+(138-268)*sl+(414-286)*cl;
+
+    const coilPt=(u,v)=>{
+      let wu=1-ss(220,310,v), wlo=ss(270,360,v)*(1-ss(220,290,u)), wm=Math.max(0,1-wu-wlo);
+      const st=wu+wlo+wm; wu/=st; wlo/=st; wm/=st;
+      const rx=u-268, ry=v-286, swm=Math.sin(v/95-P.rip)*(P.coilW*0.25);
+      let bx=wu*(ccX+rx*cu-ry*su)+wlo*(ccX+rx*cl-ry*sl)+wm*(ccX+(rx+swm)*cp-ry*sp);
+      let by=wu*(ccY+rx*su+ry*cu)+wlo*(ccY+rx*sl+ry*cl)+wm*(ccY+(rx+swm)*sp+ry*cp);
+      const wtr=ss(402,435,u)*ss(220,250,v), wtb=ss(375,415,v)*ss(160,185,u)*(1-ss(255,280,u));
+      bx+=(wtr+wtb)*(P.tas*0.45+Math.sin(P.rip)*3.5); by+=(wtr-wtb)*(P.tas*0.25);
+      return [bx,by];
+    };
+    const [tpivX,tpivY]=coilPt(245,368);
+
+    if(document.getElementById('chkVfx').checked){
+      if(P.aura>0.28){
+        const g=lctx.createRadialGradient(OX+ccX*S,OY+(ccY-20)*S,14,OX+ccX*S,OY+(ccY-20)*S,165*P.aura);
+        g.addColorStop(0,'rgba(251,146,60,'+Math.min(0.34,(P.aura-0.2)*0.38)+')');
+        g.addColorStop(1,'rgba(185,28,28,0)');
+        lctx.fillStyle=g; lctx.beginPath(); lctx.arc(OX+ccX*S,OY+(ccY-20)*S,165,0,6.28); lctx.fill();
+      }
+      if(P.roar>=0){
+        for(let rk=0;rk<2;rk++){
+          const prg=((t*0.95+rk*0.45)%1.0), rad=(55+prg*180)*S;
+          lctx.strokeStyle='rgba(253,224,71,'+(1-prg)*0.72+')'; lctx.lineWidth=2.6;
+          lctx.beginPath(); lctx.arc(OX+(ccX-10)*S,OY+(ccY-20)*S,rad,0,6.28); lctx.stroke();
+        }
+      }
+    }
+
+    const smx=[],smy=[],dcx=[],dcy=[],jrx=[],jry=[],hmx=[],hmy=[];
+    for(let gy=0;gy<=GH;gy++)for(let gx=0;gx<=GW;gx++){
+      const u=gx*512/GW, v=gy*512/GH;
+      const [cx0,cy0]=coilPt(u,v); dcx.push(OX+cx0*S); dcy.push(OY+cy0*S);
+
+      if(u<200&&v<328){
+        const d=Math.min(1,Math.max(0,(175-u)/145));
+        smx.push(OX+(cx0-P.cloudL*0.55*d+Math.sin(d*4-P.rip)*6*d)*S);
+        smy.push(OY+(cy0+P.cloudL*0.35*d+Math.cos(d*4-P.rip)*5*d)*S);
+      }else{
+        const d=Math.min(1,Math.max(0,(u-220)/215)), ang=P.tailR*0.65*d*d*Math.PI/180, dx=cx0-tpivX, dy=cy0-tpivY;
+        smx.push(OX+(tpivX+dx*Math.cos(ang)-dy*Math.sin(ang)+Math.sin(d*4.2-P.rip)*6.5*d)*S);
+        smy.push(OY+(tpivY+dx*Math.sin(ang)+dy*Math.cos(ang)+Math.cos(d*4.2-P.rip)*6.5*d)*S);
+      }
+
+      const wj=(1-ss(222,248,u))*(1-ss(182,205,v));
+      const xj=jwX+(u-236)*Math.cos(jwr)-(v-152)*Math.sin(jwr), yj=jwY+(u-236)*Math.sin(jwr)+(v-152)*Math.cos(jwr);
+      const rfd=ss(172,245,v), rfa=hr*(1-0.5*rfd)+upr*(0.5*rfd)+(P.mane*0.35*rfd)*Math.PI/180;
+      const xrf=hX+(u-252)*Math.cos(rfa)-(v-138)*Math.sin(rfa), yrf=hY+(u-252)*Math.sin(rfa)+(v-138)*Math.cos(rfa);
+      jrx.push(OX+(wj*xj+(1-wj)*xrf)*S); jry.push(OY+(wj*yj+(1-wj)*yrf)*S);
+
+      const dm=ss(292,440,u), ma=hr+(P.mane*dm*dm)*Math.PI/180, ry_m=Math.sin(dm*4.2-P.rip)*6.5*dm*dm;
+      hmx.push(OX+(hX+(u-252)*Math.cos(ma)-(v-138+ry_m)*Math.sin(ma))*S);
+      hmy.push(OY+(hY+(u-252)*Math.sin(ma)+(v-138+ry_m)*Math.cos(ma))*S);
+    }
+
+    const renderL=(im,tris,vx,vy)=>{for(const tr of tris){const a=tr[0],b=tr[1],c=tr[2];drawTri(lctx,im,(a%(GW+1))*512/GW,((a/(GW+1))|0)*512/GH,(b%(GW+1))*512/GW,((b/(GW+1))|0)*512/GH,(c%(GW+1))*512/GW,((c/(GW+1))|0)*512/GH,vx[a],vy[a],vx[b],vy[b],vx[c],vy[c]);}};
+    renderL(texSM,tSM,smx,smy);
+    renderL(texDC,tDC,dcx,dcy);
+    renderL(texJR,tJR,jrx,jry);
+
+    // Layer 4: Dynamic Mouth Flame Jet
+    if(P.flame>0.04){
+      lctx.save(); lctx.translate(OX+mfX*S,OY+mfY*S);
+      lctx.rotate(hr+Math.sin(P.rip*2.2)*0.05);
+      lctx.scale(S*P.flame, S*(0.85*P.flame+0.15));
+      lctx.drawImage(texMF,-186,-158); lctx.restore();
+    }
+
+    renderL(texHM,tHM,hmx,hmy);
+
+    // Layer 6: Crackling Starbursts & Tumbling Red Confetti Shards
+    SPB.forEach((spItem,idxS)=>{
+      const [x0,y0,x1,y1]=spItem.box, pu=spItem.pu, pv=spItem.pv, kd=spItem.kind;
+      let wx,wy,scs=1,deg=0;
+      if(kd==='head_spark'){wx=hX+(pu-252)*ch-(pv-138)*sh; wy=hY+(pu-252)*sh+(pv-138)*ch; scs=P.sparkSc; deg=hr*180/Math.PI+Math.sin(P.rip*2)*5;}
+      else if(kd==='muzzle_spark'){wx=mzX; wy=mzY; scs=P.sparkSc; deg=lor*180/Math.PI+Math.sin(t*18)*6;}
+      else if(kd==='upper_spark'){[wx,wy]=coilPt(pu,pv); scs=P.sparkSc*0.95; deg=P.pitch+Math.cos(P.rip*2)*8;}
+      else{const vx=pu-256,vy=pv-256,vl=Math.max(1,Math.hypot(vx,vy)); wx=pu+P.bx*0.45+(vx/vl)*P.confSpread+Math.sin(P.rip+idxS)*5.5; wy=pv+P.by*0.45+(vy/vl)*P.confSpread+Math.cos(P.rip+idxS*1.3)*6.5; deg=P.confRot*(idxS%2===0?1:-1)+Math.sin(P.rip+idxS)*14;}
+      lctx.save(); lctx.translate(OX+wx*S,OY+wy*S); lctx.rotate(deg*Math.PI/180); lctx.scale(S*scs,S*scs);
+      lctx.drawImage(texSC,x0,y0,x1-x0,y1-y0,x0-pu,y0-pv,x1-x0,y1-y0); lctx.restore();
+    });
+
+    if(document.getElementById('chkVfx').checked&&P.slash>=0&&P.sAlpha>0.04){
+      lctx.save(); lctx.translate(OX+(mfX-52-P.slash*32)*S,OY+(mfY+16+P.slash*12)*S);
+      lctx.rotate((14-P.slash*18)*Math.PI/180);
+      const rM=102*(0.85+0.32*Math.sin(P.slash*2.4)); lctx.globalAlpha=Math.min(1,P.sAlpha);
+      lctx.beginPath(); lctx.moveTo(14,-rM); lctx.bezierCurveTo(-rM*0.94,-rM*0.55,-rM*0.96,rM*0.55,12,rM);
+      lctx.bezierCurveTo(-44,rM*0.44,-42,-rM*0.44,14,-rM); lctx.closePath();
+      lctx.fillStyle='rgba(220,38,38,0.88)'; lctx.fill();
+      lctx.lineWidth=5; lctx.strokeStyle='#fde047'; lctx.stroke();
+      lctx.lineWidth=2; lctx.strokeStyle='#fffbeb'; lctx.stroke(); lctx.restore();
+    }
+
+    if(document.getElementById('chkMesh').checked){
+      lctx.strokeStyle='rgba(253,224,71,0.28)'; lctx.lineWidth=0.8;
+      for(const [vx,vy,tris] of [[smx,smy,tSM],[dcx,dcy,tDC],[hmx,hmy,tHM]]){
+        for(const tr of tris){lctx.beginPath();lctx.moveTo(vx[tr[0]],vy[tr[0]]);lctx.lineTo(vx[tr[1]],vy[tr[1]]);lctx.lineTo(vx[tr[2]],vy[tr[2]]);lctx.closePath();lctx.stroke();}
+      }
+    }
+
+    if(document.getElementById('chkBones').checked){
+      const B=(x,y)=>[OX+x*S,OY+y*S];
+      const bRoot=B(256,482), bCC=B(ccX,ccY), bN=B(nX,nY), bH=B(hX,hY), bJW=B(jwX,jwY), bMF=B(mfX,mfY), bMZ=B(mzX,mzY);
+      const bJWT=[bJW[0]+Math.cos(jwr+2.75)*48, bJW[1]+Math.sin(jwr+2.75)*48];
+      const bMFT=[bMF[0]+Math.cos(hr+3.08)*68*Math.max(0.25,P.flame), bMF[1]+Math.sin(hr+3.08)*68*Math.max(0.25,P.flame)];
+      const [uRx,uRy]=coilPt(348,204), bUR=B(uRx,uRy);
+      const [tRx,tRy]=coilPt(456,276), bTR=B(tRx,tRy);
+      const [lLx,lLy]=coilPt(156,326), bLL=B(lLx,lLy);
+      const [cLx,cLy]=coilPt(104,248), bCL=B(cLx,cLy);
+      const bTP=B(tpivX,tpivY), bTT=[bTP[0]+Math.cos((P.tailR*0.5-8)*Math.PI/180)*96, bTP[1]+Math.sin((P.tailR*0.5-8)*Math.PI/180)*96];
+      const bMN=[bH[0]+Math.cos(hr-0.18)*82, bH[1]+Math.sin(hr-0.18)*82];
+      const segs=[
+        [bRoot,bCC],[bCC,bLL],[bLL,bMZ],[bCC,bCL],[bCC,bTP],[bTP,bTT],
+        [bCC,bUR],[bUR,bTR],[bUR,bN],[bN,bH],[bH,bJW],[bJW,bJWT],[bH,bMF],[bMF,bMFT],[bH,bMN]
+      ];
+      lctx.lineWidth=2.1;
+      for(const [p1,p2] of segs){
+        lctx.strokeStyle='rgba(56,189,248,0.88)'; lctx.beginPath(); lctx.moveTo(p1[0],p1[1]); lctx.lineTo(p2[0],p2[1]); lctx.stroke();
+        lctx.fillStyle='#fde047'; lctx.beginPath(); lctx.arc(p1[0],p1[1],3.6,0,6.28); lctx.fill();
+        lctx.beginPath(); lctx.arc(p2[0],p2[1],3.0,0,6.28); lctx.fill();
+      }
+    }
+    lctx.restore();
+  }
+  requestAnimationFrame(renderLive60);
+}
+buildGrid();drawExportedFrame();requestAnimationFrame(renderLive60);
+</script>
+</body>
+</html>

@@ -1,0 +1,512 @@
+{
+  "skeleton": {
+    "hash": "u_mam_hd_18bone",
+    "spine": "3.8.99",
+    "x": -256,
+    "y": 0,
+    "width": 512,
+    "height": 512,
+    "images": "./images/",
+    "audio": ""
+  },
+  "bones": [
+    {
+      "name": "root",
+      "x": 0.0,
+      "y": 30.0
+    },
+    {
+      "name": "jar_base",
+      "parent": "root",
+      "x": 0.0,
+      "y": 14.0
+    },
+    {
+      "name": "jar_belly",
+      "parent": "jar_base",
+      "x": 0.0,
+      "y": 112.0
+    },
+    {
+      "name": "puddle_L",
+      "parent": "jar_base",
+      "x": -152.0,
+      "y": 52.0,
+      "length": 62,
+      "rotation": 175.0
+    },
+    {
+      "name": "tail_R_1",
+      "parent": "jar_base",
+      "x": 140.0,
+      "y": 76.0,
+      "length": 56,
+      "rotation": -65.0
+    },
+    {
+      "name": "tail_R_2",
+      "parent": "tail_R_1",
+      "x": 45.08,
+      "y": -45.3,
+      "length": 78,
+      "rotation": -93.0
+    },
+    {
+      "name": "slime_pelvis",
+      "parent": "jar_belly",
+      "x": 6.0,
+      "y": 124.0
+    },
+    {
+      "name": "slime_head",
+      "parent": "slime_pelvis",
+      "x": 4.0,
+      "y": 66.0
+    },
+    {
+      "name": "eye_L",
+      "parent": "slime_head",
+      "x": -29.0,
+      "y": -5.0,
+      "length": 18,
+      "rotation": 90.0
+    },
+    {
+      "name": "eye_R",
+      "parent": "slime_head",
+      "x": 32.0,
+      "y": 14.0,
+      "length": 18,
+      "rotation": 90.0
+    },
+    {
+      "name": "hat_pivot",
+      "parent": "slime_head",
+      "x": 6.0,
+      "y": 70.0
+    },
+    {
+      "name": "hat_brim_R",
+      "parent": "hat_pivot",
+      "x": 114.0,
+      "y": -52.0,
+      "length": 68,
+      "rotation": -42.0
+    },
+    {
+      "name": "tent_UL_1",
+      "parent": "slime_head",
+      "x": -74.0,
+      "y": -16.0,
+      "length": 68,
+      "rotation": 162.0
+    },
+    {
+      "name": "tent_UL_2",
+      "parent": "tent_UL_1",
+      "x": 74.23,
+      "y": 30.43,
+      "length": 78,
+      "rotation": -274.0
+    },
+    {
+      "name": "tent_UR_1",
+      "parent": "slime_head",
+      "x": 80.0,
+      "y": -26.0,
+      "length": 74,
+      "rotation": -18.0
+    },
+    {
+      "name": "tent_UR_2",
+      "parent": "tent_UR_1",
+      "x": 95.39,
+      "y": -15.27,
+      "length": 96,
+      "rotation": -68.0
+    },
+    {
+      "name": "tent_DL",
+      "parent": "slime_pelvis",
+      "x": -94.0,
+      "y": 16.0,
+      "length": 148,
+      "rotation": -116.0
+    },
+    {
+      "name": "tent_DC",
+      "parent": "slime_pelvis",
+      "x": -20.0,
+      "y": 8.0,
+      "length": 78,
+      "rotation": -96.0
+    }
+  ],
+  "slots": [
+    {
+      "name": "back_under",
+      "bone": "hat_pivot",
+      "attachment": "back_under"
+    },
+    {
+      "name": "slime_core",
+      "bone": "slime_head",
+      "attachment": "slime_core"
+    },
+    {
+      "name": "jar_body",
+      "bone": "jar_belly",
+      "attachment": "jar_body"
+    },
+    {
+      "name": "tail_front_right",
+      "bone": "jar_base",
+      "attachment": "tail_front_right"
+    },
+    {
+      "name": "front_tentacles",
+      "bone": "slime_pelvis",
+      "attachment": "front_tentacles"
+    },
+    {
+      "name": "hat_front",
+      "bone": "hat_pivot",
+      "attachment": "hat_front"
+    }
+  ],
+  "skins": [
+    {
+      "name": "default",
+      "attachments": {
+        "back_under": {
+          "back_under": {
+            "x": -25.0,
+            "y": -176.5,
+            "width": 402,
+            "height": 369
+          }
+        },
+        "slime_core": {
+          "slime_core": {
+            "x": 6.0,
+            "y": -45.0,
+            "width": 386,
+            "height": 266
+          }
+        },
+        "jar_body": {
+          "jar_body": {
+            "x": 2.0,
+            "y": 5.5,
+            "width": 310,
+            "height": 261
+          }
+        },
+        "tail_front_right": {
+          "tail_front_right": {
+            "x": 119.5,
+            "y": 29.0,
+            "width": 145,
+            "height": 100
+          }
+        },
+        "front_tentacles": {
+          "front_tentacles": {
+            "x": -29.0,
+            "y": -43.0,
+            "width": 268,
+            "height": 186
+          }
+        },
+        "hat_front": {
+          "hat_front": {
+            "x": -5.0,
+            "y": -3.5,
+            "width": 332,
+            "height": 153
+          }
+        }
+      }
+    }
+  ],
+  "animations": {
+    "idle": {
+      "bones": {
+        "slime_pelvis": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "x": 0.0,
+              "y": 12.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ]
+        },
+        "hat_pivot": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": -2.5,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": 3.5,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": -2.5
+            }
+          ],
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "x": 0.0,
+              "y": 5.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ]
+        },
+        "jar_belly": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": -1.2,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": 1.2,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": -1.2
+            }
+          ]
+        }
+      }
+    },
+    "hop": {
+      "bones": {
+        "jar_base": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "time": 0.3,
+              "x": -8.0,
+              "y": 36.0
+            },
+            {
+              "time": 0.65,
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "time": 1.05,
+              "x": 8.0,
+              "y": 32.0
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ]
+        },
+        "hat_pivot": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "time": 0.4,
+              "x": 0.0,
+              "y": 16.0
+            },
+            {
+              "time": 0.8,
+              "x": 0.0,
+              "y": -3.0
+            },
+            {
+              "time": 1.2,
+              "x": 0.0,
+              "y": 14.0
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ]
+        }
+      }
+    },
+    "roar": {
+      "bones": {
+        "slime_pelvis": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "time": 0.3,
+              "x": 0.0,
+              "y": -14.0
+            },
+            {
+              "time": 0.75,
+              "x": 0.0,
+              "y": 24.0
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ]
+        },
+        "hat_pivot": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "time": 0.3,
+              "x": 0.0,
+              "y": -4.0
+            },
+            {
+              "time": 0.75,
+              "x": 4.0,
+              "y": 22.0
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ],
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 0.0
+            },
+            {
+              "time": 0.75,
+              "angle": -12.0
+            },
+            {
+              "time": 1.6,
+              "angle": 0.0
+            }
+          ]
+        }
+      }
+    },
+    "attack": {
+      "bones": {
+        "jar_belly": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "time": 0.35,
+              "x": 18.0,
+              "y": 6.0
+            },
+            {
+              "time": 0.65,
+              "x": -28.0,
+              "y": 4.0
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ],
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 0.0
+            },
+            {
+              "time": 0.35,
+              "angle": -8.0
+            },
+            {
+              "time": 0.65,
+              "angle": 14.0
+            },
+            {
+              "time": 1.6,
+              "angle": 0.0
+            }
+          ]
+        },
+        "slime_pelvis": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "time": 0.35,
+              "x": 4.0,
+              "y": -8.0
+            },
+            {
+              "time": 0.65,
+              "x": -14.0,
+              "y": 20.0
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ]
+        }
+      }
+    }
+  }
+}

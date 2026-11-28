@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>#059 Ủ Mắm — Spine 2D HD Studio (Live 60 FPS • Nón Mê 3D, Chum Sành & 7 Xúc Tu Mắm)</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0e0b14;color:#f1f5f9;font-family:system-ui,-apple-system,sans-serif;padding:18px 22px}
+h1{margin:0 0 4px;color:#fef08a;font-size:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tag{background:linear-gradient(135deg,#b45309,#9333ea);font-size:12px;padding:3px 10px;border-radius:99px;color:#fff}
+.sub{color:#cbd5e1;font-size:13.5px;margin-bottom:12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#191426;padding:10px 14px;border-radius:12px;border:1px solid #443266;margin-bottom:10px}
+button{background:#261e3a;color:#e2e8f0;border:1px solid #5b4388;padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:600;font-size:13px;transition:.15s}
+button:hover{border-color:#fbbf24;color:#fff}button.active{background:linear-gradient(135deg,#ca8a04,#7e22ce);border-color:#fef08a;color:#fff;box-shadow:0 0 14px rgba(234,179,8,.42)}
+.layout{display:grid;grid-template-columns:minmax(380px,1.25fr) minmax(320px,1fr);gap:16px;align-items:start}
+@media(max-width:920px){.layout{grid-template-columns:1fr}}
+.panel{background:#191426;border:1px solid #443266;border-radius:14px;padding:14px;text-align:center}
+.panel h3{margin:0 0 10px;color:#fde047;font-size:15px}
+canvas.bg-dark{background:radial-gradient(circle at 50% 45%,#312047 0%,#120d1c 74%)}
+canvas.bg-kitchen{background:linear-gradient(180deg,#1c1917 0%,#292524 62%,#44403c 84%,#1c1917 100%)}
+canvas.bg-checker{background:repeating-conic-gradient(#cbd5e1 0% 25%,#f1f5f9 0% 50%) 50%/22px 22px}
+canvas{border-radius:10px;max-width:100%;border:1px solid #3d2c5e;cursor:crosshair}
+.sliders{text-align:left;display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:10px;padding:10px;background:#211a33;border-radius:10px;font-size:12px}
+.sliders label{display:flex;flex-direction:column;gap:3px;color:#e2e8f0}
+.badge{margin-top:8px;font-weight:700;color:#e9d5ff;font-size:13.5px;min-height:20px}
+.grid20{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;margin-top:12px}
+.fbox{background:#191426;border:1px solid #352752;border-radius:9px;padding:8px;text-align:center;font-size:11px;cursor:pointer}
+.fbox:hover,.fbox.cur{border-color:#fbbf24;background:#2b2044}
+.fbox img{max-height:126px;object-fit:contain;display:block;margin:4px auto}
+</style>
+</head>
+<body>
+<h1>🏺 #059 Ủ Mắm — Spine 2D HD Studio <span class="tag">1049×1049 Master • 18 Bones • Nón Mê & Chum Sành 3D • 60 FPS</span></h1>
+<div class="sub">Tách 6 lớp 3D chuẩn viền vẽ: Nón mê bao quanh đầu (mặt đan trước + lòng nón sau), Thân mắm nhô thụt miệng chum sành, 7 xúc tu & vũng mắm uốn độc lập!</div>
+<div class="bar" id="animBar">
+  <button class="active" onclick="selectAnim('attack',this)">⚔️ 1. Quất Roi Xúc Tu & Pháo Mắm (Attack)</button>
+  <button onclick="selectAnim('roar',this)">💥 2. Bung Nắp Dậy Hương! (Roar)</button>
+  <button onclick="selectAnim('hop',this)">🏺 3. Nhảy Lắc Chum Sành (Hop)</button>
+  <button onclick="selectAnim('idle',this)">🌙 4. Ủ Mắm Dậy Mùi (Idle + Chớp Mắt)</button>
+  <button onclick="selectAnim('custom',this)">🎛️ 5. Tự Nâng Nón Mê & Nhô Thụt Chum (Live Rig)</button>
+</div>
+<div class="bar">
+  <label style="color:#fde047;font-weight:600"><input type="checkbox" id="chkBones" checked> 🦴 Hiện 18 Xương Spine</label>
+  <label style="color:#7dd3fc;margin-left:8px"><input type="checkbox" id="chkMesh"> 🕸️ Hiện Lưới Soft-Mesh</label>
+  <label style="color:#f0abfc;margin-left:8px"><input type="checkbox" id="chkVfx" checked> ✨ Hiệu Ứng Bọt Hương & Bão Mắm Tôm</label>
+  <label style="margin-left:8px"><input type="checkbox" id="chkFlip"> ↔ Lật Hướng</label>
+  <label style="margin-left:8px">Nền: <select id="bgSel" onchange="updateBg()" style="background:#261e3a;color:#fff;border:1px solid #5b4388;padding:4px 8px;border-radius:6px"><option value="bg-dark">Đêm Tinh Quái</option><option value="bg-kitchen">Góc Bếp Làng Quê</option><option value="bg-checker">Caro Trong Suốt (QA)</option></select></label>
+  <label style="margin-left:8px">Tốc độ Live: <input id="spd" type="range" min="0.3" max="2.0" step="0.1" value="1.0" style="width:90px"> <b id="spdVal">1.0x</b></label>
+</div>
+<div class="layout">
+  <div class="panel">
+    <h3>⚡ Real-Time 60-FPS 3D Hat-Enclosure & Jar-Emergence Engine</h3>
+    <canvas id="liveCv" class="bg-dark" width="540" height="500"></canvas>
+    <div class="badge" id="liveLbl">Đang tải 6 lớp HD 512×512...</div>
+    <div class="sliders">
+      <label>Thân Mắm Nhô / Thụt Khỏi Chum: <input type="range" id="sEmerge" min="-22" max="26" value="0"></label>
+      <label>Tung / Nghiêng Nón Mê 3D: <input type="range" id="sHat" min="-18" max="26" value="0"></label>
+      <label>Lắc Nghiêng Chum Sành: <input type="range" id="sJar" min="-18" max="18" value="0"></label>
+      <label>Quất Đại Xúc Tu Hai Bên: <input type="range" id="sWhip" min="-28" max="28" value="0"></label>
+      <label>Uốn Xúc Tu Vắt Miệng & Đáy Chum: <input type="range" id="sDrape" min="-24" max="24" value="0"></label>
+      <label><input type="checkbox" id="chkMouse" checked> 👁️ Nhô đầu & Nghiêng nón theo chuột</label>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>🎞️ Trình Kiểm Duyệt 20 Frame PNG Đã Xuất Chuẩn Game (<span id="packName">attack</span>)</h3>
+    <canvas id="frameCv" class="bg-dark" width="400" height="388"></canvas>
+    <div class="badge" id="frameLbl"></div>
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px;align-items:center">
+      <button id="btnFPlay" onclick="toggleFPlay()">⏸ Dừng</button>
+      <button onclick="stepF(-1)">◀</button>
+      <input id="fScrub" type="range" min="1" max="20" value="1" style="width:120px">
+      <button onclick="stepF(1)">▶</button>
+      <b id="fNum">01/20</b>
+      <label style="font-size:12px;margin-left:6px"><input id="fFps" type="range" min="5" max="24" value="13" style="width:65px"> <span id="fFpsV">13</span>fps</label>
+    </div>
+  </div>
+</div>
+<h3 style="margin:18px 0 6px;color:#fde047">Bảng Chi Tiết 20 Frame Của Bộ Đang Chọn (Nhấp vào bất kỳ ô nào để soi từng pixel)</h3>
+<div class="grid20" id="grid"></div>
+<script>
+const META={"idle": [{"n": "01. Núp hũ rình mồi • Mắt lườm sắc dưới vành nón mê", "jx": 0.0, "jy": 0.0, "jtilt": 0.0, "jsqX": 1.012, "jstY": 0.988, "sx": -0.53, "sy": 2.1, "stilt": -1.09, "hatX": -1.57, "hatY": 2.72, "hatRot": -2.86, "tUL": -4.28, "tUR": 8.62, "tDL": -6.1, "tDC": 3.6, "pudL": -3.12, "tailR": -7.13, "rip": 0.0, "blink": 0.0, "eyeGlow": 0.16, "pupX": 0.0, "pupY": -0.8, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Mắm ủ sủi tăm • Thân tím nhô nhẹ khỏi miệng hũ", "jx": 0.68, "jy": 0.0, "jtilt": 0.56, "jsqX": 1.0114, "jstY": 0.9886, "sx": 0.03, "sy": -0.54, "stilt": -0.24, "hatX": -0.86, "hatY": 1.48, "hatRot": -1.77, "tUL": 2.49, "tUR": 2.95, "tDL": -3.97, "tDC": -0.96, "pudL": -1.2, "tailR": -5.66, "rip": 0.628, "blink": 0.0, "eyeGlow": 0.18, "pupX": 0.56, "pupY": -0.76, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Nón mê gật gù • Bảy xúc tu mắm uốn lượn mềm", "jx": 1.29, "jy": 0.0, "jtilt": 1.06, "jsqX": 1.0097, "jstY": 0.9903, "sx": 0.58, "sy": -3.14, "stilt": 0.63, "hatX": -0.06, "hatY": 0.1, "hatRot": -0.51, "tUL": 8.31, "tUR": -3.84, "tDL": -1.45, "tDC": -5.15, "pudL": 0.83, "tailR": -3.64, "rip": 1.257, "blink": 0.0, "eyeGlow": 0.21, "pupX": 1.06, "pupY": -0.65, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Hơi mắm thơm lừng bốc nhẹ • Hũ sành khẽ nghiêng", "jx": 1.78, "jy": 0.0, "jtilt": 1.46, "jsqX": 1.0071, "jstY": 0.9929, "sx": 1.08, "sy": -5.43, "stilt": 1.45, "hatX": 0.75, "hatY": -1.3, "hatRot": 0.8, "tUL": 10.96, "tUR": -9.17, "tDL": 1.21, "tDC": -7.37, "pudL": 2.78, "tailR": -1.25, "rip": 1.885, "blink": 0.0, "eyeGlow": 0.22, "pupX": 1.46, "pupY": -0.47, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Đỉnh nhịp thở lên • Hai xúc tu trên vươn đón gió", "jx": 2.09, "jy": 0.0, "jtilt": 1.71, "jsqX": 1.0037, "jstY": 0.9963, "sx": 1.47, "sy": -7.18, "stilt": 2.12, "hatX": 1.48, "hatY": -2.57, "hatRot": 2.04, "tUL": 9.42, "tUR": -10.99, "tDL": 3.75, "tDC": -6.78, "pudL": 4.46, "tailR": 1.25, "rip": 2.513, "blink": 0.0, "eyeGlow": 0.24, "pupX": 1.71, "pupY": -0.25, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. Mắt liếc tinh quái • Giọt mắm dưới đất rung rinh", "jx": 2.2, "jy": 0.0, "jtilt": 1.8, "jsqX": 1.0, "jstY": 1.0, "sx": 1.72, "sy": -8.24, "stilt": 2.58, "hatX": 2.07, "hatY": -3.58, "hatRot": 3.07, "tUL": 4.28, "tUR": -8.62, "tDL": 5.92, "tDC": -3.6, "pudL": 5.7, "tailR": 3.63, "rip": 3.142, "blink": 0.0, "eyeGlow": 0.24, "pupX": 1.8, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. Hạ nhẹ thân mắm vào chum • Nón mê trễ pha êm ái", "jx": 2.09, "jy": 0.0, "jtilt": 1.71, "jsqX": 0.9963, "jstY": 1.0037, "sx": 1.8, "sy": -8.48, "stilt": 2.79, "hatX": 2.45, "hatY": -4.25, "hatRot": 3.81, "tUL": -2.49, "tUR": -2.95, "tDL": 7.52, "tDC": 0.96, "pudL": 6.39, "tailR": 5.65, "rip": 3.77, "blink": 0.0, "eyeGlow": 0.24, "pupX": 1.71, "pupY": 0.25, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "08. Đuôi mắm quấn đáy chum trườn nhẹ chữ S", "jx": 1.78, "jy": 0.0, "jtilt": 1.46, "jsqX": 0.9929, "jstY": 1.0071, "sx": 1.7, "sy": -7.9, "stilt": 2.73, "hatX": 2.6, "hatY": -4.5, "hatRot": 4.17, "tUL": -8.31, "tUR": 3.84, "tDL": 8.38, "tDC": 5.15, "pudL": 6.45, "tailR": 7.13, "rip": 4.398, "blink": 0.0, "eyeGlow": 0.22, "pupX": 1.46, "pupY": 0.47, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "09. Chum sành lắc nhẹ • Vải bịt & dây rơm giữ nhịp", "jx": 1.29, "jy": 0.0, "jtilt": 1.06, "jsqX": 0.9903, "jstY": 1.0097, "sx": 1.44, "sy": -6.54, "stilt": 2.4, "hatX": 2.49, "hatY": -4.31, "hatRot": 4.12, "tUL": -10.96, "tUR": 9.17, "tDL": 8.41, "tDC": 7.37, "pudL": 5.87, "tailR": 7.9, "rip": 5.027, "blink": 0.0, "eyeGlow": 0.21, "pupX": 1.06, "pupY": 0.65, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "10. Tụ hơi lên men nhịp 2 • Bọt tím lấp lánh", "jx": 0.68, "jy": 0.0, "jtilt": 0.56, "jsqX": 0.9886, "jstY": 1.0114, "sx": 1.04, "sy": -4.54, "stilt": 1.83, "hatX": 2.14, "hatY": -3.7, "hatRot": 3.67, "tUL": -9.42, "tUR": 10.99, "tDL": 7.63, "tDC": 6.78, "pudL": 4.73, "tailR": 7.9, "rip": 5.655, "blink": 0.0, "eyeGlow": 0.18, "pupX": 0.56, "pupY": 0.76, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "11. Nhô cao gương mặt lém lỉnh • Miệng cười khoái chí", "jx": 0.0, "jy": 0.0, "jtilt": 0.0, "jsqX": 0.988, "jstY": 1.012, "sx": 0.53, "sy": -2.1, "stilt": 1.09, "hatX": 1.57, "hatY": -2.72, "hatRot": 2.86, "tUL": -4.28, "tUR": 8.62, "tDL": 6.1, "tDC": 3.6, "pudL": 3.12, "tailR": 7.13, "rip": 6.283, "blink": 0.0, "eyeGlow": 0.16, "pupX": 0.0, "pupY": 0.8, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "12. Xúc tu dài vắt miệng chum đung đưa nhịp nhàng", "jx": -0.68, "jy": 0.0, "jtilt": -0.56, "jsqX": 0.9886, "jstY": 1.0114, "sx": -0.03, "sy": 0.54, "stilt": 0.24, "hatX": 0.86, "hatY": -1.48, "hatRot": 1.77, "tUL": 2.49, "tUR": 2.95, "tDL": 3.97, "tDC": -0.96, "pudL": 1.2, "tailR": 5.66, "rip": 6.912, "blink": 0.0, "eyeGlow": 0.14, "pupX": -0.56, "pupY": 0.76, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "13. Nón mê nghiêng sang trái • Lộ trán mắm bóng loáng", "jx": -1.29, "jy": 0.0, "jtilt": -1.06, "jsqX": 0.9903, "jstY": 1.0097, "sx": -0.58, "sy": 3.14, "stilt": -0.63, "hatX": 0.06, "hatY": -0.1, "hatRot": 0.51, "tUL": 8.31, "tUR": -3.84, "tDL": 1.45, "tDC": -5.15, "pudL": -0.83, "tailR": 3.64, "rip": 7.54, "blink": 0.0, "eyeGlow": 0.11, "pupX": -1.06, "pupY": 0.65, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "14. Đỉnh nhịp nổi 2 • Đậm đà bản sắc dân gian Việt", "jx": -1.78, "jy": 0.0, "jtilt": -1.46, "jsqX": 0.9929, "jstY": 1.0071, "sx": -1.08, "sy": 5.43, "stilt": -1.45, "hatX": -0.75, "hatY": 1.3, "hatRot": -0.8, "tUL": 10.96, "tUR": -9.17, "tDL": -1.21, "tDC": -7.37, "pudL": -2.78, "tailR": 1.25, "rip": 8.168, "blink": 0.0, "eyeGlow": 0.1, "pupX": -1.46, "pupY": 0.47, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Nheo mắt tinh ranh (Half-Blink) • Xúc tu rũ mềm", "jx": -2.09, "jy": 0.0, "jtilt": -1.71, "jsqX": 0.9963, "jstY": 1.0037, "sx": -1.47, "sy": 7.18, "stilt": -2.12, "hatX": -1.48, "hatY": 2.57, "hatRot": -2.04, "tUL": 9.42, "tUR": -10.99, "tDL": -3.75, "tDC": -6.78, "pudL": -4.46, "tailR": -1.25, "rip": 8.796, "blink": 0.45, "eyeGlow": 0.08, "pupX": -1.71, "pupY": 0.25, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Chớp mắt lém lỉnh (Full-Blink) • Ủ hương trong chum", "jx": -2.2, "jy": 0.0, "jtilt": -1.8, "jsqX": 1.0, "jstY": 1.0, "sx": -1.72, "sy": 8.24, "stilt": -2.58, "hatX": -2.07, "hatY": 3.58, "hatRot": -3.07, "tUL": 4.28, "tUR": -8.62, "tDL": -5.92, "tDC": -3.6, "pudL": -5.7, "tailR": -3.63, "rip": 9.425, "blink": 0.96, "eyeGlow": 0.08, "pupX": -1.8, "pupY": 0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Mở bừng mắt sáng • Khóa chặt mục tiêu trước mặt", "jx": -2.09, "jy": 0.0, "jtilt": -1.71, "jsqX": 1.0037, "jstY": 0.9963, "sx": -1.8, "sy": 8.48, "stilt": -2.79, "hatX": -2.45, "hatY": 4.25, "hatRot": -3.81, "tUL": -2.49, "tUR": -2.95, "tDL": -7.52, "tDC": 0.96, "pudL": -6.39, "tailR": -5.65, "rip": 10.053, "blink": 0.32, "eyeGlow": 0.08, "pupX": -1.71, "pupY": -0.25, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Đuôi mắm phải thu nhẹ • Chum sành cân bằng", "jx": -1.78, "jy": 0.0, "jtilt": -1.46, "jsqX": 1.0071, "jstY": 0.9929, "sx": -1.7, "sy": 7.9, "stilt": -2.73, "hatX": -2.6, "hatY": 4.5, "hatRot": -4.17, "tUL": -8.31, "tUR": 3.84, "tDL": -8.38, "tDC": 5.15, "pudL": -6.45, "tailR": -7.13, "rip": 10.681, "blink": 0.0, "eyeGlow": 0.1, "pupX": -1.46, "pupY": -0.47, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Thân mắm lắng êm xuống miệng hũ sành", "jx": -1.29, "jy": 0.0, "jtilt": -1.06, "jsqX": 1.0097, "jstY": 0.9903, "sx": -1.44, "sy": 6.54, "stilt": -2.4, "hatX": -2.49, "hatY": 4.31, "hatRot": -4.12, "tUL": -10.96, "tUR": 9.17, "tDL": -8.41, "tDC": 7.37, "pudL": -5.87, "tailR": -7.9, "rip": 11.31, "blink": 0.0, "eyeGlow": 0.11, "pupX": -1.06, "pupY": -0.65, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Khép mượt chu kỳ → Nối liền hoàn hảo Frame 01", "jx": -0.68, "jy": 0.0, "jtilt": -0.56, "jsqX": 1.0114, "jstY": 0.9886, "sx": -1.04, "sy": 4.54, "stilt": -1.83, "hatX": -2.14, "hatY": 3.7, "hatRot": -3.67, "tUL": -9.42, "tUR": 10.99, "tDL": -7.63, "tDC": 6.78, "pudL": -4.73, "tailR": -7.9, "rip": 11.938, "blink": 0.0, "eyeGlow": 0.14, "pupX": -0.56, "pupY": -0.76, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}], "hop": [{"n": "01. Nén lùn chum sành lấy đà (Squash!) • Nón mê ép sát", "jx": -0.0, "jy": 8.0, "jtilt": 0.0, "jsqX": 1.08, "jstY": 0.92, "sx": 1.5, "sy": 6.0, "stilt": 0.0, "hatX": 2.0, "hatY": 4.0, "hatRot": 0.0, "tUL": -9.0, "tUR": 9.0, "tDL": -7.0, "tDC": -6.0, "pudL": 5.0, "tailR": -6.0, "rip": 0.0, "blink": 0.0, "eyeGlow": 0.28, "pupX": -2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. BẬT NHẢY LẮC CHUM! Hũ sành tung mình lên không!", "jx": -2.78, "jy": -11.89, "jtilt": -4.6, "jsqX": 0.9692, "jstY": 1.0308, "sx": -1.38, "sy": -3.24, "stilt": -2.3, "hatX": -1.84, "hatY": -2.66, "hatRot": -3.01, "tUL": 8.27, "tUR": -8.27, "tDL": 6.43, "tDC": 5.51, "pudL": -4.6, "tailR": 5.51, "rip": 0.628, "blink": 0.0, "eyeGlow": 0.28, "pupX": -2.0, "pupY": -1.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Nón mê bay bổng tách nhẹ khỏi đầu mắm (Lag)!", "jx": -5.29, "jy": -20.01, "jtilt": -7.73, "jsqX": 0.9618, "jstY": 1.0382, "sx": -2.32, "sy": -5.46, "stilt": -3.87, "hatX": -3.09, "hatY": -6.17, "hatRot": -7.0, "tUL": 13.92, "tUR": -13.92, "tDL": 10.82, "tDC": 9.28, "pudL": -7.73, "tailR": 9.28, "rip": 1.257, "blink": 0.0, "eyeGlow": 0.28, "pupX": -2.0, "pupY": -1.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Đỉnh cú nhảy 1 • Nghiêng chum 9° giữa không trung!", "jx": -7.28, "jy": -21.78, "jtilt": -8.41, "jsqX": 0.9602, "jstY": 1.0398, "sx": -2.52, "sy": -5.94, "stilt": -4.21, "hatX": -3.37, "hatY": -7.5, "hatRot": -8.5, "tUL": 15.14, "tUR": -15.14, "tDL": 11.78, "tDC": 10.1, "pudL": -8.41, "tailR": 10.1, "rip": 1.885, "blink": 0.0, "eyeGlow": 0.28, "pupX": -2.0, "pupY": -1.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Bảy xúc tu mắm vẫy tung tăng • Giọt mắm nảy cao!", "jx": -8.56, "jy": -16.63, "jtilt": -6.42, "jsqX": 0.9649, "jstY": 1.0351, "sx": -1.93, "sy": -4.53, "stilt": -3.21, "hatX": -2.57, "hatY": -6.17, "hatRot": -7.0, "tUL": 11.56, "tUR": -11.56, "tDL": 8.99, "tDC": 7.71, "pudL": -6.42, "tailR": 7.71, "rip": 2.513, "blink": 0.0, "eyeGlow": 0.28, "pupX": -2.0, "pupY": -1.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. Chum sành lao xuống • Nón mê vẫn lơ lửng phía trên!", "jx": -9.0, "jy": -6.2, "jtilt": -2.39, "jsqX": 0.9744, "jstY": 1.0256, "sx": -0.72, "sy": -1.69, "stilt": -1.2, "hatX": -0.96, "hatY": -2.66, "hatRot": -3.01, "tUL": 4.31, "tUR": -4.31, "tDL": 3.35, "tDC": 2.87, "pudL": -2.39, "tailR": 2.87, "rip": 3.142, "blink": 0.0, "eyeGlow": 0.28, "pupX": -2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. ĐẬP ĐẤT 'CỘP!' • Chum nén đàn hồi, nón sập xuống!", "jx": -8.56, "jy": 10.0, "jtilt": -2.0, "jsqX": 1.1, "jstY": 0.9, "sx": 1.95, "sy": 7.0, "stilt": -1.0, "hatX": 2.6, "hatY": -5.0, "hatRot": -5.0, "tUL": -11.7, "tUR": 11.7, "tDL": -9.1, "tDC": -7.8, "pudL": 6.5, "tailR": -7.8, "rip": 3.77, "blink": 0.0, "eyeGlow": 0.28, "pupX": -2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "08. Dư chấn sóng mắm • Xúc tu vắt miệng chum nảy bật!", "jx": -7.28, "jy": -2.83, "jtilt": 1.77, "jsqX": 1.0122, "jstY": 0.9878, "sx": -0.56, "sy": -2.25, "stilt": 0.88, "hatX": -0.75, "hatY": 2.12, "hatRot": 2.25, "tUL": 3.38, "tUR": -3.38, "tDL": 2.62, "tDC": 2.25, "pudL": -1.88, "tailR": 2.25, "rip": 4.398, "blink": 0.0, "eyeGlow": 0.28, "pupX": -2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "09. Nén lực nhịp 2 • Nghiêng đảo chiều tinh nghịch!", "jx": -5.29, "jy": -4.0, "jtilt": 2.5, "jsqX": 0.9938, "jstY": 1.0062, "sx": -0.38, "sy": -1.5, "stilt": 1.25, "hatX": -0.5, "hatY": 3.0, "hatRot": 1.5, "tUL": 2.25, "tUR": -2.25, "tDL": 1.75, "tDC": 1.5, "pudL": -1.25, "tailR": 1.5, "rip": 5.027, "blink": 0.0, "eyeGlow": 0.28, "pupX": -2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "10. BẬT NHẢY CÚ 2! Chum sành vươn cao hướng ngược lại!", "jx": -2.78, "jy": -2.83, "jtilt": 1.77, "jsqX": 0.9926, "jstY": 1.0074, "sx": -0.19, "sy": -0.75, "stilt": 0.88, "hatX": -0.25, "hatY": 2.12, "hatRot": 0.75, "tUL": 1.12, "tUR": -1.12, "tDL": 0.88, "tDC": 0.75, "pudL": -0.62, "tailR": 0.75, "rip": 5.655, "blink": 0.0, "eyeGlow": 0.28, "pupX": -2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "11. Thân mắm nhô cao cười tít • Nón mê tung bay!", "jx": 0.0, "jy": 8.0, "jtilt": 0.0, "jsqX": 1.08, "jstY": 0.92, "sx": -1.5, "sy": 6.0, "stilt": 0.0, "hatX": -2.0, "hatY": 4.0, "hatRot": 0.0, "tUL": -9.0, "tUR": 9.0, "tDL": -7.0, "tDC": -6.0, "pudL": 5.0, "tailR": -6.0, "rip": 6.283, "blink": 0.0, "eyeGlow": 0.28, "pupX": 2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "12. Đỉnh cú nhảy 2 • Đuôi mắm dưới đáy quẫy tít!", "jx": 2.78, "jy": -11.89, "jtilt": 4.6, "jsqX": 0.9692, "jstY": 1.0308, "sx": 1.38, "sy": -3.24, "stilt": 2.3, "hatX": 1.84, "hatY": -2.66, "hatRot": 3.01, "tUL": 8.27, "tUR": -8.27, "tDL": 6.43, "tDC": 5.51, "pudL": -4.6, "tailR": 5.51, "rip": 6.912, "blink": 0.0, "eyeGlow": 0.28, "pupX": 2.0, "pupY": -1.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "13. Xúc tu hai bên múa lượn trên không trung!", "jx": 5.29, "jy": -20.01, "jtilt": 7.73, "jsqX": 0.9618, "jstY": 1.0382, "sx": 2.32, "sy": -5.46, "stilt": 3.87, "hatX": 3.09, "hatY": -6.17, "hatRot": 7.0, "tUL": 13.92, "tUR": -13.92, "tDL": 10.82, "tDC": 9.28, "pudL": -7.73, "tailR": 9.28, "rip": 7.54, "blink": 0.0, "eyeGlow": 0.28, "pupX": 2.0, "pupY": -1.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "14. Hạ độ cao chuẩn bị tiếp đất nhịp 2!", "jx": 7.28, "jy": -21.78, "jtilt": 8.41, "jsqX": 0.9602, "jstY": 1.0398, "sx": 2.52, "sy": -5.94, "stilt": 4.21, "hatX": 3.37, "hatY": -7.5, "hatRot": 8.5, "tUL": 15.14, "tUR": -15.14, "tDL": 11.78, "tDC": 10.1, "pudL": -8.41, "tailR": 10.1, "rip": 8.168, "blink": 0.0, "eyeGlow": 0.28, "pupX": 2.0, "pupY": -1.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. TIẾP ĐẤT ĐÀN HỒI! Bọt mắm tím bắn nhẹ quanh hũ!", "jx": 8.56, "jy": -16.63, "jtilt": 6.42, "jsqX": 0.9649, "jstY": 1.0351, "sx": 1.93, "sy": -4.53, "stilt": 3.21, "hatX": 2.57, "hatY": -6.17, "hatRot": 7.0, "tUL": 11.56, "tUR": -11.56, "tDL": 8.99, "tDC": 7.71, "pudL": -6.42, "tailR": 7.71, "rip": 8.796, "blink": 0.0, "eyeGlow": 0.28, "pupX": 2.0, "pupY": -1.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Nón mê rơi chụp lại lên đầu mắm cực khớp!", "jx": 9.0, "jy": -6.2, "jtilt": 2.39, "jsqX": 0.9744, "jstY": 1.0256, "sx": 0.72, "sy": -1.69, "stilt": 1.2, "hatX": 0.96, "hatY": -2.66, "hatRot": 3.01, "tUL": 4.31, "tUR": -4.31, "tDL": 3.35, "tDC": 2.87, "pudL": -2.39, "tailR": 2.87, "rip": 9.425, "blink": 0.0, "eyeGlow": 0.28, "pupX": 2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Chum sành lắc lư trái-phải giải phóng quán tính", "jx": 8.56, "jy": 10.0, "jtilt": 2.0, "jsqX": 1.1, "jstY": 0.9, "sx": -1.95, "sy": 7.0, "stilt": 1.0, "hatX": -2.6, "hatY": -5.0, "hatRot": 5.0, "tUL": -11.7, "tUR": 11.7, "tDL": -9.1, "tDC": -7.8, "pudL": 6.5, "tailR": -7.8, "rip": 10.053, "blink": 0.0, "eyeGlow": 0.28, "pupX": 2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Sửa lại vành nón mê • Xúc tu vịn chặt miệng chum", "jx": 7.28, "jy": -2.83, "jtilt": -1.77, "jsqX": 1.0122, "jstY": 0.9878, "sx": 0.56, "sy": -2.25, "stilt": -0.88, "hatX": 0.75, "hatY": 2.12, "hatRot": -2.25, "tUL": 3.38, "tUR": -3.38, "tDL": 2.62, "tDC": 2.25, "pudL": -1.88, "tailR": 2.25, "rip": 10.681, "blink": 0.0, "eyeGlow": 0.28, "pupX": 2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Nhịp thở ổn định • Bọt mắm dịu dần", "jx": 5.29, "jy": -4.0, "jtilt": -2.5, "jsqX": 0.9938, "jstY": 1.0062, "sx": 0.38, "sy": -1.5, "stilt": -1.25, "hatX": 0.5, "hatY": 3.0, "hatRot": -1.5, "tUL": 2.25, "tUR": -2.25, "tDL": 1.75, "tDC": 1.5, "pudL": -1.25, "tailR": 1.5, "rip": 11.31, "blink": 0.0, "eyeGlow": 0.28, "pupX": 2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Sẵn sàng nhịp nhảy tiếp → Nối mượt Frame 01", "jx": 2.78, "jy": -2.83, "jtilt": -1.77, "jsqX": 0.9926, "jstY": 1.0074, "sx": 0.19, "sy": -0.75, "stilt": -0.88, "hatX": 0.25, "hatY": 2.12, "hatRot": -0.75, "tUL": 1.12, "tUR": -1.12, "tDL": 0.88, "tDC": 0.75, "pudL": -0.62, "tailR": 0.75, "rip": 11.938, "blink": 0.0, "eyeGlow": 0.28, "pupX": 2.0, "pupY": 0.5, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}], "roar": [{"n": "01. Im lìm giả làm hũ mắm quê vô hại", "jx": 0.0, "jy": 0.0, "jtilt": 0.0, "jsqX": 1.0, "jstY": 1.0, "sx": 0.0, "sy": 0.0, "stilt": -0.0, "hatX": 0.0, "hatY": 0.0, "hatRot": -0.0, "tUL": -0.0, "tUR": 0.0, "tDL": -0.0, "tDC": 0.0, "pudL": -0.0, "tailR": 0.0, "rip": 0.0, "blink": 0.0, "eyeGlow": 0.22, "pupX": 0.0, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Thụt sâu đầu vào chum • Kéo sụp nón mê đậy kín miệng!", "jx": 0.04, "jy": 1.91, "jtilt": 0.03, "jsqX": 1.023, "jstY": 0.9809, "sx": 0.0, "sy": 6.12, "stilt": -0.4, "hatX": 0.0, "hatY": 2.3, "hatRot": -1.15, "tUL": -5.97, "tUR": 5.97, "tDL": -4.48, "tDC": 3.48, "pudL": -2.98, "tailR": 3.48, "rip": 0.942, "blink": 0.15, "eyeGlow": 0.33, "pupX": 0.0, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Chum sành rung bần bật • Áp suất lên men nén chặt!", "jx": -0.13, "jy": 3.54, "jtilt": -0.1, "jsqX": 1.0424, "jstY": 0.9646, "sx": 0.0, "sy": 11.31, "stilt": -0.74, "hatX": 0.0, "hatY": 4.24, "hatRot": -2.12, "tUL": -11.03, "tUR": 11.03, "tDL": -8.27, "tDC": 6.43, "pudL": -5.52, "tailR": 6.43, "rip": 1.885, "blink": 0.28, "eyeGlow": 0.43, "pupX": 0.0, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Vết nứt hũ sành ánh tím • Mắt lóe sáng dưới gầm nón!", "jx": 0.25, "jy": 4.62, "jtilt": 0.2, "jsqX": 1.0554, "jstY": 0.9538, "sx": 0.0, "sy": 14.78, "stilt": -0.97, "hatX": 0.0, "hatY": 5.54, "hatRot": -2.77, "tUL": -14.41, "tUR": 14.41, "tDL": -10.81, "tDC": 8.41, "pudL": -7.21, "tailR": 8.41, "rip": 2.827, "blink": 0.37, "eyeGlow": 0.5, "pupX": 0.0, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Nén cực đại • Dây thừng rơm căng hết cỡ!", "jx": -0.36, "jy": 5.0, "jtilt": -0.29, "jsqX": 1.06, "jstY": 0.95, "sx": 0.0, "sy": 16.0, "stilt": -1.05, "hatX": 0.0, "hatY": 6.0, "hatRot": -3.0, "tUL": -15.6, "tUR": 15.6, "tDL": -11.7, "tDC": 9.1, "pudL": -7.8, "tailR": 9.1, "rip": 3.77, "blink": 0.4, "eyeGlow": 0.52, "pupX": 0.0, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. BUNG NẮP DẬY HƯƠNG! Thân mắm phóng vọt khỏi chum!", "jx": 0.0, "jy": -0.83, "jtilt": 0.0, "jsqX": 0.96, "jstY": 1.04, "sx": 0.0, "sy": 6.25, "stilt": 1.02, "hatX": 1.02, "hatY": 1.26, "hatRot": 2.91, "tUL": 6.98, "tUR": -6.98, "tDL": 5.23, "tDC": -4.07, "pudL": 3.49, "tailR": -4.07, "rip": 4.712, "blink": 0.0, "eyeGlow": 0.72, "pupX": 0.0, "pupY": -0.58, "aura": 0.53, "roar": 0.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. Hất tung nón mê lên cao • Mở toang toàn bộ xúc tu!", "jx": 1.45, "jy": -1.6, "jtilt": 1.85, "jsqX": 0.96, "jstY": 1.04, "sx": 0.0, "sy": -0.9, "stilt": 2.46, "hatX": 2.23, "hatY": -2.18, "hatRot": 7.04, "tUL": 15.31, "tUR": -15.31, "tDL": 11.48, "tDC": -8.93, "pudL": 7.65, "tailR": -8.93, "rip": 5.655, "blink": 0.0, "eyeGlow": 0.87, "pupX": 0.0, "pupY": -1.28, "aura": 0.82, "roar": 0.1, "slash": -1.0, "sAlpha": 0.0}, {"n": "08. Sóng hương mắm tôm đậm đặc lan tỏa tầng 1!", "jx": -1.81, "jy": -2.24, "jtilt": -2.31, "jsqX": 0.96, "jstY": 1.04, "sx": 0.0, "sy": -6.88, "stilt": 2.11, "hatX": 2.39, "hatY": -5.07, "hatRot": 6.02, "tUL": 16.42, "tUR": -16.42, "tDL": 12.31, "tDC": -9.58, "pudL": 8.21, "tailR": -9.58, "rip": 6.597, "blink": 0.0, "eyeGlow": 1.0, "pupX": 0.0, "pupY": -1.37, "aura": 0.86, "roar": 0.2, "slash": -1.0, "sAlpha": 0.0}, {"n": "09. ĐỈNH BÙNG NỔ Ủ MẮM • Mắt rực sáng uy áp tinh quái!", "jx": 0.98, "jy": -2.7, "jtilt": 1.25, "jsqX": 0.96, "jstY": 1.04, "sx": 0.0, "sy": -11.23, "stilt": 3.65, "hatX": 3.5, "hatY": -7.16, "hatRot": 10.44, "tUL": 23.99, "tUR": -23.99, "tDL": 17.99, "tDC": -13.99, "pudL": 11.99, "tailR": -13.99, "rip": 7.54, "blink": 0.0, "eyeGlow": 1.09, "pupX": 0.0, "pupY": -2.0, "aura": 1.13, "roar": 0.3, "slash": -1.0, "sAlpha": 0.0}, {"n": "10. Bảy xúc tu quẫy cuồng nhiệt • Chum sành nảy rung!", "jx": 0.35, "jy": -2.96, "jtilt": 0.45, "jsqX": 0.96, "jstY": 1.04, "sx": 0.0, "sy": -13.6, "stilt": 3.75, "hatX": 3.69, "hatY": -8.31, "hatRot": 10.7, "tUL": 25.3, "tUR": -25.3, "tDL": 18.98, "tDC": -14.76, "pudL": 12.65, "tailR": -14.76, "rip": 8.482, "blink": 0.0, "eyeGlow": 1.14, "pupX": 0.0, "pupY": -2.11, "aura": 1.18, "roar": 0.4, "slash": -1.0, "sAlpha": 0.0}, {"n": "11. Vòng xoáy hương tím tầng 2 • Nón mê xoay tít trên đầu!", "jx": -1.27, "jy": -3.0, "jtilt": -1.61, "jsqX": 0.96, "jstY": 1.04, "sx": 0.0, "sy": -14.0, "stilt": 3.23, "hatX": 3.43, "hatY": -8.5, "hatRot": 9.23, "tUL": 23.54, "tUR": -23.54, "tDL": 17.66, "tDC": -13.73, "pudL": 11.77, "tailR": -13.73, "rip": 9.425, "blink": 0.0, "eyeGlow": 1.15, "pupX": 0.0, "pupY": -1.96, "aura": 1.11, "roar": 0.5, "slash": -1.0, "sAlpha": 0.0}, {"n": "12. Dư chấn dậy mùi • Bọt mắm sủi trào quanh miệng hũ!", "jx": 1.25, "jy": -3.0, "jtilt": 1.59, "jsqX": 0.96, "jstY": 1.04, "sx": 0.0, "sy": -14.0, "stilt": 4.11, "hatX": 3.91, "hatY": -8.5, "hatRot": 11.75, "tUL": 26.83, "tUR": -26.83, "tDL": 20.12, "tDC": -15.65, "pudL": 13.42, "tailR": -15.65, "rip": 10.367, "blink": 0.0, "eyeGlow": 1.15, "pupX": 0.0, "pupY": -2.24, "aura": 1.23, "roar": 0.6, "slash": -1.0, "sAlpha": 0.0}, {"n": "13. Hào quang tím hồng rực rỡ • Khí thế Trùm Mắm Tôm!", "jx": 0.0, "jy": -2.91, "jtilt": 0.0, "jsqX": 0.9612, "jstY": 1.0388, "sx": 0.0, "sy": -13.58, "stilt": 3.56, "hatX": 3.56, "hatY": -8.24, "hatRot": 10.18, "tUL": 24.44, "tUR": -24.44, "tDL": 18.33, "tDC": -14.26, "pudL": 12.22, "tailR": -14.26, "rip": 11.31, "blink": 0.0, "eyeGlow": 1.08, "pupX": 0.0, "pupY": -2.04, "aura": 1.15, "roar": 0.68, "slash": -1.0, "sAlpha": 0.0}, {"n": "14. Thu dần độ vươn thân • Nón mê từ từ hạ xuống", "jx": 0.0, "jy": -2.65, "jtilt": 0.0, "jsqX": 0.9647, "jstY": 1.0353, "sx": 0.0, "sy": -12.36, "stilt": 3.25, "hatX": 3.25, "hatY": -7.51, "hatRot": 9.27, "tUL": 22.25, "tUR": -22.25, "tDL": 16.69, "tDC": -12.98, "pudL": 11.13, "tailR": -12.98, "rip": 12.252, "blink": 0.0, "eyeGlow": 1.0, "pupX": 0.0, "pupY": -1.85, "aura": 1.07, "roar": 0.76, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Đón chiếc nón mê đáp êm lại trên đỉnh đầu", "jx": 0.0, "jy": -2.25, "jtilt": 0.0, "jsqX": 0.97, "jstY": 1.03, "sx": 0.0, "sy": -10.5, "stilt": 2.76, "hatX": 2.76, "hatY": -6.38, "hatRot": 7.88, "tUL": 18.9, "tUR": -18.9, "tDL": 14.18, "tDC": -11.03, "pudL": 9.45, "tailR": -11.03, "rip": 13.195, "blink": 0.0, "eyeGlow": 0.87, "pupX": 0.0, "pupY": -1.58, "aura": 0.95, "roar": 0.84, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Các xúc tu mắm dịu nhịp quẫy • Chum hết rung", "jx": 0.0, "jy": -1.76, "jtilt": 0.0, "jsqX": 0.9765, "jstY": 1.0235, "sx": 0.0, "sy": -8.22, "stilt": 2.16, "hatX": 2.16, "hatY": -4.99, "hatRot": 6.16, "tUL": 14.79, "tUR": -14.79, "tDL": 11.09, "tDC": -8.63, "pudL": 7.39, "tailR": -8.63, "rip": 14.137, "blink": 0.0, "eyeGlow": 0.72, "pupX": 0.0, "pupY": -1.23, "aura": 0.8, "roar": 0.92, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Sóng hương tím tan dần vào không gian", "jx": 0.0, "jy": -1.24, "jtilt": 0.0, "jsqX": 0.9835, "jstY": 1.0165, "sx": 0.0, "sy": -5.78, "stilt": 1.52, "hatX": 1.52, "hatY": -3.51, "hatRot": 4.34, "tUL": 10.41, "tUR": -10.41, "tDL": 7.81, "tDC": -6.07, "pudL": 5.21, "tailR": -6.07, "rip": 15.08, "blink": 0.0, "eyeGlow": 0.55, "pupX": 0.0, "pupY": -0.87, "aura": 0.65, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Chỉnh lại thế ngồi vững chãi trong miệng chum", "jx": 0.0, "jy": -0.75, "jtilt": 0.0, "jsqX": 0.99, "jstY": 1.01, "sx": 0.0, "sy": -3.5, "stilt": 0.92, "hatX": 0.92, "hatY": -2.13, "hatRot": 2.63, "tUL": 6.3, "tUR": -6.3, "tDL": 4.73, "tDC": -3.68, "pudL": 3.15, "tailR": -3.68, "rip": 16.022, "blink": 0.0, "eyeGlow": 0.4, "pupX": 0.0, "pupY": -0.53, "aura": 0.5, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Cười khẩy đắc thắng dưới bóng nón mê", "jx": 0.0, "jy": -0.35, "jtilt": 0.0, "jsqX": 0.9953, "jstY": 1.0047, "sx": 0.0, "sy": -1.64, "stilt": 0.43, "hatX": 0.43, "hatY": -0.99, "hatRot": 1.23, "tUL": 2.95, "tUR": -2.95, "tDL": 2.21, "tDC": -1.72, "pudL": 1.47, "tailR": -1.72, "rip": 16.965, "blink": 0.0, "eyeGlow": 0.27, "pupX": 0.0, "pupY": -0.25, "aura": 0.38, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Trở về thế rình mồi → Nối liền hoàn hảo Frame 01", "jx": 0.0, "jy": -0.09, "jtilt": 0.0, "jsqX": 0.9988, "jstY": 1.0012, "sx": 0.0, "sy": -0.42, "stilt": 0.11, "hatX": 0.11, "hatY": -0.26, "hatRot": 0.32, "tUL": 0.76, "tUR": -0.76, "tDL": 0.57, "tDC": -0.44, "pudL": 0.38, "tailR": -0.44, "rip": 17.907, "blink": 0.0, "eyeGlow": 0.19, "pupX": 0.0, "pupY": -0.06, "aura": 0.31, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}], "attack": [{"n": "01. Khóa mục tiêu • Ánh mắt sắc lẹm dưới vành nón!", "jx": 0.0, "jy": 0.0, "jtilt": 0.0, "jsqX": 1.0, "jstY": 1.0, "sx": 0.0, "sy": -0.0, "stilt": 0.0, "hatX": 0.0, "hatY": -0.0, "hatRot": 0.0, "tUL": -0.0, "tUR": -0.0, "tDL": -0.0, "tDC": -0.0, "pudL": -0.0, "tailR": -0.0, "rip": 0.0, "blink": 0.0, "eyeGlow": 0.25, "pupX": -0.0, "pupY": 0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Nghiêng chum lùi phải lấy đà • Thu cuộn xúc tu!", "jx": 2.81, "jy": 0.62, "jtilt": 1.33, "jsqX": 1.0063, "jstY": 0.9938, "sx": 0.78, "sy": -1.88, "stilt": 0.94, "hatX": 0.94, "hatY": -1.25, "hatRot": 1.72, "tUL": -3.19, "tUR": -2.39, "tDL": -2.92, "tDC": -2.39, "pudL": -1.33, "tailR": -1.59, "rip": 0.628, "blink": 0.05, "eyeGlow": 0.34, "pupX": -0.44, "pupY": 0.0, "aura": 0.38, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Nhô cao thân mắm • Nạp áp lực mắm tôm đặc quánh!", "jx": 9.0, "jy": 2.0, "jtilt": 4.25, "jsqX": 1.02, "jstY": 0.98, "sx": 2.5, "sy": -6.0, "stilt": 3.0, "hatX": 3.0, "hatY": -4.0, "hatRot": 5.5, "tUL": -10.2, "tUR": -7.65, "tDL": -9.35, "tDC": -7.65, "pudL": -4.25, "tailR": -5.1, "rip": 1.257, "blink": 0.15, "eyeGlow": 0.53, "pupX": -1.4, "pupY": 0.0, "aura": 0.59, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Hai đại xúc tu giương cao • Nón mê ngửa ra sau!", "jx": 15.19, "jy": 3.38, "jtilt": 7.17, "jsqX": 1.0337, "jstY": 0.9662, "sx": 4.22, "sy": -10.12, "stilt": 5.06, "hatX": 5.06, "hatY": -6.75, "hatRot": 9.28, "tUL": -17.21, "tUR": -12.91, "tDL": -15.78, "tDC": -12.91, "pudL": -7.17, "tailR": -8.61, "rip": 1.885, "blink": 0.25, "eyeGlow": 0.71, "pupX": -2.36, "pupY": 0.0, "aura": 0.8, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Đỉnh tụ lực (Windup) • Mắt lóe tia chớp vàng tím!", "jx": 18.0, "jy": 4.0, "jtilt": 8.5, "jsqX": 1.04, "jstY": 0.96, "sx": 5.0, "sy": -12.0, "stilt": 6.0, "hatX": 6.0, "hatY": -8.0, "hatRot": 11.0, "tUL": -20.4, "tUR": -15.3, "tDL": -18.7, "tDC": -15.3, "pudL": -8.5, "tailR": -10.2, "rip": 2.513, "blink": 0.3, "eyeGlow": 0.8, "pupX": -2.8, "pupY": 0.0, "aura": 0.89, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. LAO CHUM TẤN CÔNG! Hũ sành nghiêng chồm tới trước!", "jx": 4.4, "jy": 0.91, "jtilt": 1.86, "jsqX": 0.96, "jstY": 1.05, "sx": 0.36, "sy": -13.24, "stilt": 1.36, "hatX": 6.62, "hatY": -9.85, "hatRot": 11.93, "tUL": -5.2, "tUR": -3.9, "tDL": -4.76, "tDC": -3.9, "pudL": -2.17, "tailR": -2.6, "rip": 3.142, "blink": 0.0, "eyeGlow": 0.94, "pupX": -3.2, "pupY": 0.0, "aura": 0.44, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. QUẤT ROI ĐẠI XÚC TU — Khởi phát Pháo Mắm Tôm!", "jx": -7.86, "jy": -1.88, "jtilt": -4.14, "jsqX": 0.96, "jstY": 1.05, "sx": -3.82, "sy": -14.35, "stilt": -2.82, "hatX": 7.18, "hatY": -11.53, "hatRot": 12.76, "tUL": 8.52, "tUR": 6.39, "tDL": 7.81, "tDC": 6.39, "pudL": 3.55, "tailR": 4.26, "rip": 3.77, "blink": 0.0, "eyeGlow": 1.03, "pupX": -3.2, "pupY": 0.0, "aura": 0.54, "roar": -1.0, "slash": 0.0, "sAlpha": 0.8}, {"n": "08. LƯỠI LIỀM MẮM TÔM ĐẬM ĐẶC • Quất xé không gian!", "jx": -17.6, "jy": -4.09, "jtilt": -8.89, "jsqX": 0.96, "jstY": 1.05, "sx": -7.14, "sy": -15.24, "stilt": -6.14, "hatX": 7.62, "hatY": -12.85, "hatRot": 13.43, "tUL": 19.4, "tUR": 14.55, "tDL": 17.79, "tDC": 14.55, "pudL": 8.08, "tailR": 9.7, "rip": 4.398, "blink": 0.0, "eyeGlow": 1.09, "pupX": -3.2, "pupY": 0.0, "aura": 0.86, "roar": -1.0, "slash": 0.17, "sAlpha": 0.98}, {"n": "09. BÙNG NỔ BÃO MẮM TÍM! Giọt mắm văng tung tóe!", "jx": -23.85, "jy": -5.51, "jtilt": -11.95, "jsqX": 0.96, "jstY": 1.05, "sx": -9.27, "sy": -15.8, "stilt": -8.27, "hatX": 7.9, "hatY": -13.71, "hatRot": 13.85, "tUL": 26.39, "tUR": 19.79, "tDL": 24.19, "tDC": 19.79, "pudL": 11.0, "tailR": 13.2, "rip": 5.027, "blink": 0.0, "eyeGlow": 1.14, "pupX": -3.2, "pupY": 0.0, "aura": 1.07, "roar": -1.0, "slash": 0.33, "sAlpha": 1.0}, {"n": "10. ĐỈNH SÁT THƯƠNG • Chum sành húc mạnh cộng hưởng!", "jx": -26.0, "jy": -6.0, "jtilt": -13.0, "jsqX": 0.96, "jstY": 1.05, "sx": -10.0, "sy": -16.0, "stilt": -9.0, "hatX": 8.0, "hatY": -14.0, "hatRot": 14.0, "tUL": 28.8, "tUR": 21.6, "tDL": 26.4, "tDC": 21.6, "pudL": 12.0, "tailR": 14.4, "rip": 5.655, "blink": 0.0, "eyeGlow": 1.15, "pupX": -3.2, "pupY": 0.0, "aura": 1.14, "roar": -1.0, "slash": 0.5, "sAlpha": 0.96}, {"n": "11. Kình lực sóng mắm cuốn phăng đối thủ phía trước!", "jx": -26.0, "jy": -6.0, "jtilt": -13.0, "jsqX": 0.96, "jstY": 1.05, "sx": -10.0, "sy": -16.0, "stilt": -9.0, "hatX": 8.0, "hatY": -14.0, "hatRot": 14.0, "tUL": 28.8, "tUR": 21.6, "tDL": 26.4, "tDC": 21.6, "pudL": 12.0, "tailR": 14.4, "rip": 6.283, "blink": 0.0, "eyeGlow": 1.15, "pupX": -3.2, "pupY": 0.0, "aura": 1.14, "roar": -1.0, "slash": 0.67, "sAlpha": 0.85}, {"n": "12. Dư chấn đòn quất • Giọt mắm tím bay tản mạn!", "jx": -21.16, "jy": -4.75, "jtilt": -10.5, "jsqX": 1.02, "jstY": 0.98, "sx": -8.12, "sy": -13.81, "stilt": -7.28, "hatX": 6.75, "hatY": -11.81, "hatRot": 11.34, "tUL": 23.36, "tUR": 17.52, "tDL": 21.42, "tDC": 17.52, "pudL": 9.73, "tailR": 11.68, "rip": 6.912, "blink": 0.0, "eyeGlow": 0.9, "pupX": -2.7, "pupY": 0.0, "aura": 0.98, "roar": -1.0, "slash": 0.83, "sAlpha": 0.52}, {"n": "13. Chum sành bật lùi đàn hồi • Nón mê bay trễ pha", "jx": -10.5, "jy": -2.0, "jtilt": -5.0, "jsqX": 1.02, "jstY": 0.98, "sx": -4.0, "sy": -9.0, "stilt": -3.5, "hatX": 4.0, "hatY": -7.0, "hatRot": 5.5, "tUL": 11.4, "tUR": 8.55, "tDL": 10.45, "tDC": 8.55, "pudL": 4.75, "tailR": 5.7, "rip": 7.54, "blink": 0.0, "eyeGlow": 0.68, "pupX": -1.6, "pupY": 0.0, "aura": 0.62, "roar": -1.0, "slash": 1.0, "sAlpha": 0.22}, {"n": "14. Xúc tu vịn miệng chum hãm đà trượt", "jx": 0.16, "jy": 0.75, "jtilt": 0.5, "jsqX": 1.02, "jstY": 0.98, "sx": 0.12, "sy": -4.19, "stilt": 0.28, "hatX": 1.25, "hatY": -2.19, "hatRot": -0.34, "tUL": -0.56, "tUR": -0.42, "tDL": -0.52, "tDC": -0.42, "pudL": -0.23, "tailR": -0.28, "rip": 8.168, "blink": 0.0, "eyeGlow": 0.45, "pupX": -0.5, "pupY": 0.0, "aura": 0.3, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Hất nhẹ vành nón mê đầy kiêu hãnh!", "jx": 5.0, "jy": 2.0, "jtilt": 3.0, "jsqX": 1.02, "jstY": 0.98, "sx": 2.0, "sy": -2.0, "stilt": 2.0, "hatX": 0.0, "hatY": -0.0, "hatRot": -3.0, "tUL": -6.0, "tUR": -4.5, "tDL": -5.5, "tDC": -4.5, "pudL": -2.5, "tailR": -3.0, "rip": 8.796, "blink": 0.0, "eyeGlow": 0.35, "pupX": -0.0, "pupY": 0.0, "aura": 0.46, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Đuôi mắm dưới đất quẫy nhịp cân bằng lại đáy hũ", "jx": 4.67, "jy": 1.87, "jtilt": 2.8, "jsqX": 1.0, "jstY": 1.0, "sx": 1.87, "sy": -1.87, "stilt": 1.87, "hatX": 0.0, "hatY": 0.0, "hatRot": -2.8, "tUL": -5.6, "tUR": -4.2, "tDL": -5.13, "tDC": -4.2, "pudL": -2.33, "tailR": -2.8, "rip": 9.425, "blink": 0.0, "eyeGlow": 0.33, "pupX": 0.0, "pupY": 0.0, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Thu gọn các dải xúc tu về quanh miệng chum", "jx": 3.75, "jy": 1.5, "jtilt": 2.25, "jsqX": 1.0, "jstY": 1.0, "sx": 1.5, "sy": -1.5, "stilt": 1.5, "hatX": 0.0, "hatY": 0.0, "hatRot": -2.25, "tUL": -4.5, "tUR": -3.38, "tDL": -4.12, "tDC": -3.38, "pudL": -1.88, "tailR": -2.25, "rip": 10.053, "blink": 0.0, "eyeGlow": 0.3, "pupX": 0.0, "pupY": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Chum sành hết lắc • Thân mắm hạ về cao độ chuẩn", "jx": 2.5, "jy": 1.0, "jtilt": 1.5, "jsqX": 1.0, "jstY": 1.0, "sx": 1.0, "sy": -1.0, "stilt": 1.0, "hatX": 0.0, "hatY": 0.0, "hatRot": -1.5, "tUL": -3.0, "tUR": -2.25, "tDL": -2.75, "tDC": -2.25, "pudL": -1.25, "tailR": -1.5, "rip": 10.681, "blink": 0.0, "eyeGlow": 0.25, "pupX": 0.0, "pupY": 0.0, "aura": 0.37, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Nhịp thở lên men êm dịu trở lại", "jx": 1.25, "jy": 0.5, "jtilt": 0.75, "jsqX": 1.0, "jstY": 1.0, "sx": 0.5, "sy": -0.5, "stilt": 0.5, "hatX": 0.0, "hatY": 0.0, "hatRot": -0.75, "tUL": -1.5, "tUR": -1.13, "tDL": -1.38, "tDC": -1.13, "pudL": -0.63, "tailR": -0.75, "rip": 11.31, "blink": 0.0, "eyeGlow": 0.21, "pupX": 0.0, "pupY": 0.0, "aura": 0.33, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Hoàn tất tuyệt kỹ → Nối mượt về Frame 01", "jx": 0.33, "jy": 0.13, "jtilt": 0.2, "jsqX": 1.0, "jstY": 1.0, "sx": 0.13, "sy": -0.13, "stilt": 0.13, "hatX": 0.0, "hatY": 0.0, "hatRot": -0.2, "tUL": -0.4, "tUR": -0.3, "tDL": -0.37, "tDC": -0.3, "pudL": -0.17, "tailR": -0.2, "rip": 11.938, "blink": 0.0, "eyeGlow": 0.17, "pupX": 0.0, "pupY": 0.0, "aura": 0.29, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}]};
+const CELLS={"buh": [103, 104, 105, 106, 107, 108, 109, 110, 111, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 232, 233, 235, 236], "bul": [247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 260, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 413, 425, 426, 427, 428, 434, 435, 436, 437, 438, 439, 449, 450, 451, 452, 458, 459, 460, 461, 462, 463, 473, 474, 475, 476, 482, 483, 484, 485, 486, 487, 506, 507], "sc": [83, 84, 85, 86, 106, 107, 108, 109, 110, 111, 129, 130, 131, 132, 133, 134, 135, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 291, 292, 293, 298, 299, 300, 301, 302, 303, 304, 308, 309, 322, 323, 324, 325, 326, 327, 328, 332, 333, 356, 357, 379, 380, 381, 404, 405], "jb": [254, 255, 256, 257, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 510, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 535, 536, 537, 538, 539, 540, 541, 542, 543], "tf": [450, 451, 452, 473, 474, 475, 476, 494, 495, 496, 497, 498, 499, 500, 518, 519, 520, 521, 522, 523, 524, 542, 543, 544, 545, 546], "ft": [200, 201, 202, 222, 223, 224, 225, 226, 227, 228, 230, 231, 232, 245, 246, 247, 248, 249, 250, 251, 252, 255, 256, 257, 269, 270, 271, 272, 273, 274, 275, 276, 279, 280, 281, 292, 293, 294, 295, 297, 298, 299, 300, 303, 304, 316, 317, 318, 322, 323, 340, 341, 342, 346, 347, 364, 365, 366, 388, 389, 390, 412, 413, 414], "hf": [35, 36, 37, 38, 39, 57, 58, 59, 60, 61, 62, 63, 64, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 124, 125, 126, 127, 128, 129, 132, 133, 134, 135, 136, 137, 138, 139, 148, 149, 159, 160, 161, 162, 163, 164, 185, 186, 187, 188, 211, 212]};
+const DIRS={attack:'20_frames_full_action',roar:'20_frames_roar_haunt',hop:'20_frames_hop_rattle',idle:'20_frames_floating_idle'};
+const texBU=new Image(),texSC=new Image(),texJB=new Image(),texTF=new Image(),texFT=new Image(),texHF=new Image();
+let loaded=0;
+const GW=24,GH=24;
+let tBUH=[],tBUL=[],tSC=[],tJB=[],tTF=[],tFT=[],tHF=[];
+function buildTris(list){
+  const out=[];
+  for(const c of list){
+    const gy=(c/GW)|0, gx=c%GW, i00=gy*(GW+1)+gx, i10=i00+1, i01=i00+(GW+1), i11=i01+1;
+    out.push([i00,i10,i11],[i00,i11,i01]);
+  }
+  return out;
+}
+const onTex=()=>{
+  loaded++;
+  if(loaded===6){
+    tBUH=buildTris(CELLS.buh); tBUL=buildTris(CELLS.bul); tSC=buildTris(CELLS.sc);
+    tJB=buildTris(CELLS.jb); tTF=buildTris(CELLS.tf); tFT=buildTris(CELLS.ft); tHF=buildTris(CELLS.hf);
+    const tot=tBUH.length+tBUL.length+tSC.length+tJB.length+tTF.length+tFT.length+tHF.length;
+    document.getElementById('liveLbl').textContent='⚡ Đang chạy Live 60 FPS • 18 Xương & 6 Lớp 3D ('+tot+' tam giác Soft-Mesh HD)';
+  }
+};
+[texBU,texSC,texJB,texTF,texFT,texHF].forEach(im=>im.onload=onTex);
+texBU.src='spine2d_project/images/back_under_hd.png';
+texSC.src='spine2d_project/images/slime_core_hd.png';
+texJB.src='spine2d_project/images/jar_body_hd.png';
+texTF.src='spine2d_project/images/tail_front_right_hd.png';
+texFT.src='spine2d_project/images/front_tentacles_hd.png';
+texHF.src='spine2d_project/images/hat_front_hd.png';
+
+const FRAMES={};
+for(const k of Object.keys(DIRS)){
+  FRAMES[k]=[];
+  for(let i=1;i<=20;i++){
+    const im=new Image();
+    im.src=DIRS[k]+'/aligned_400x388/frame_'+String(i).padStart(2,'0')+'.png';
+    FRAMES[k].push(im);
+  }
+}
+
+let curAnim='attack',curPack='attack',fIdx=0,fPlaying=true,lastFTime=0;
+let mouseX=270,mouseY=210,mouseInside=false;
+const liveCv=document.getElementById('liveCv'),lctx=liveCv.getContext('2d');
+const frameCv=document.getElementById('frameCv'),fctx=frameCv.getContext('2d');
+liveCv.addEventListener('mousemove',e=>{
+  const r=liveCv.getBoundingClientRect();
+  mouseX=(e.clientX-r.left)*(liveCv.width/r.width);
+  mouseY=(e.clientY-r.top)*(liveCv.height/r.height);
+  mouseInside=true;
+});
+liveCv.addEventListener('mouseleave',()=>{mouseInside=false;});
+document.getElementById('spd').oninput=e=>document.getElementById('spdVal').textContent=parseFloat(e.target.value).toFixed(1)+'x';
+document.getElementById('fFps').oninput=e=>document.getElementById('fFpsV').textContent=e.target.value;
+document.getElementById('fScrub').oninput=e=>{fPlaying=false;document.getElementById('btnFPlay').textContent='▶ Phát';fIdx=parseInt(e.target.value,10)-1;drawExportedFrame();};
+function updateBg(){const v=document.getElementById('bgSel').value;liveCv.className=v;frameCv.className=v;}
+function toggleFPlay(){fPlaying=!fPlaying;document.getElementById('btnFPlay').textContent=fPlaying?'⏸ Dừng':'▶ Phát';}
+function stepF(d){fPlaying=false;document.getElementById('btnFPlay').textContent='▶ Phát';fIdx=(fIdx+d+20)%20;drawExportedFrame();}
+function selectAnim(a,btn){
+  curAnim=a;
+  if(a!=='custom'){curPack=a;fIdx=0;document.getElementById('packName').textContent=a;buildGrid();drawExportedFrame();}
+  document.querySelectorAll('#animBar button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function buildGrid(){
+  const g=document.getElementById('grid');g.innerHTML='';
+  for(let i=0;i<20;i++){
+    const fn='frame_'+String(i+1).padStart(2,'0')+'.png';
+    const d=document.createElement('div');d.className='fbox'+(i===fIdx?' cur':'');
+    d.onclick=()=>{fPlaying=false;document.getElementById('btnFPlay').textContent='▶ Phát';fIdx=i;drawExportedFrame();};
+    d.innerHTML='<b>'+META[curPack][i].n+'</b><img src="'+DIRS[curPack]+'/aligned_400x388/'+fn+'"><div>'+fn+'</div>';
+    g.appendChild(d);
+  }
+}
+function drawExportedFrame(){
+  fctx.clearRect(0,0,400,388);
+  const im=FRAMES[curPack][fIdx];
+  if(im&&im.complete){
+    fctx.save();if(document.getElementById('chkFlip').checked){fctx.translate(400,0);fctx.scale(-1,1);}
+    fctx.drawImage(im,0,0);fctx.restore();
+  }
+  document.getElementById('fScrub').value=fIdx+1;
+  document.getElementById('fNum').textContent=String(fIdx+1).padStart(2,'0')+'/20';
+  document.getElementById('frameLbl').textContent=META[curPack][fIdx].n;
+  document.querySelectorAll('.fbox').forEach((el,k)=>el.classList.toggle('cur',k===fIdx));
+}
+
+const ss=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
+function drawTri(ctx,img,u0,v0,u1,v1,u2,v2,x0,y0,x1,y1,x2,y2){
+  const cx=(x0+x1+x2)/3,cy=(y0+y1+y2)/3;
+  const ex=(x,c)=>{const d=x-c,l=Math.abs(d);return l>0.01?x+(d/l)*0.65:x;};
+  const det=(u1-u0)*(v2-v0)-(u2-u0)*(v1-v0); if(Math.abs(det)<1e-3)return;
+  const a=((x1-x0)*(v2-v0)-(x2-x0)*(v1-v0))/det, b=((y1-y0)*(v2-v0)-(y2-y0)*(v1-v0))/det;
+  const c=((u1-u0)*(x2-x0)-(u2-u0)*(x1-x0))/det, d=((u1-u0)*(y2-y0)-(u2-u0)*(y1-y0))/det;
+  ctx.save();ctx.beginPath();
+  ctx.moveTo(ex(x0,cx),ex(y0,cy));ctx.lineTo(ex(x1,cx),ex(y1,cy));ctx.lineTo(ex(x2,cx),ex(y2,cy));ctx.closePath();ctx.clip();
+  ctx.transform(a,b,c,d,x0-a*u0-c*v0,y0-b*u0-d*v0);ctx.drawImage(img,0,0);ctx.restore();
+}
+
+function samplePoseAt(anim,t){
+  let mx=0,my=0;
+  if(document.getElementById('chkMouse').checked&&mouseInside){mx=(mouseX-270)/22;my=(mouseY-210)/22;}
+  if(anim==='custom'){
+    const em=parseFloat(document.getElementById('sEmerge').value);
+    const ht=parseFloat(document.getElementById('sHat').value);
+    const jr=parseFloat(document.getElementById('sJar').value);
+    const wh=parseFloat(document.getElementById('sWhip').value);
+    const dr=parseFloat(document.getElementById('sDrape').value);
+    const bc=(t%4.0), bl=(bc>3.72)?Math.sin(((bc-3.72)/0.28)*Math.PI):0;
+    return {
+      jx:jr*0.6, jy:0, jtilt:jr+1.2*Math.sin(t*2.4), jsqX:1+0.012*Math.cos(t*2.4), jstY:1-0.012*Math.cos(t*2.4),
+      sx:mx*0.6, sy:-em-6*Math.sin(t*2.4)+my*0.6, stilt:mx*0.4,
+      hatX:mx*0.4, hatY:-Math.max(0,ht)*0.8-3*Math.sin(t*2.4-0.6), hatRot:ht*0.6+mx*0.5+3*Math.sin(t*2.4-0.6),
+      tUL:wh+9*Math.sin(t*4.0), tUR:-wh-9*Math.sin(t*4.0-0.8),
+      tDL:dr+7*Math.sin(t*2.8), tDC:dr*0.8+6*Math.cos(t*3.6),
+      pudL:dr*0.6+5*Math.sin(t*2.6), tailR:dr*0.7+6*Math.cos(t*2.6), rip:t*4.5,
+      blink:bl, eyeGlow:0.25, aura:0.34, roar:-1, slash:-1, sAlpha:0
+    };
+  }
+  const arr=META[anim],pos=((t*8.0)%20+20)%20,i0=pos|0,i1=(i0+1)%20,fr=pos-i0,A=arr[i0],B=arr[i1];
+  const lp=(a,b)=>a+(b-a)*fr;
+  return {
+    jx:lp(A.jx,B.jx), jy:lp(A.jy,B.jy), jtilt:lp(A.jtilt,B.jtilt), jsqX:lp(A.jsqX,B.jsqX), jstY:lp(A.jstY,B.jstY),
+    sx:lp(A.sx,B.sx)+mx*0.45, sy:lp(A.sy,B.sy)+my*0.45, stilt:lp(A.stilt,B.stilt)+mx*0.25,
+    hatX:lp(A.hatX,B.hatX)+mx*0.3, hatY:lp(A.hatY,B.hatY)+my*0.25, hatRot:lp(A.hatRot,B.hatRot)+mx*0.4,
+    tUL:lp(A.tUL,B.tUL), tUR:lp(A.tUR,B.tUR), tDL:lp(A.tDL,B.tDL), tDC:lp(A.tDC,B.tDC),
+    pudL:lp(A.pudL,B.pudL), tailR:lp(A.tailR,B.tailR), rip:t*5.0,
+    blink:lp(A.blink,B.blink), eyeGlow:lp(A.eyeGlow,B.eyeGlow),
+    aura:lp(A.aura,B.aura), roar:A.roar, slash:A.slash, sAlpha:lp(A.sAlpha,B.sAlpha)
+  };
+}
+
+function renderLive60(ts){
+  const spd=parseFloat(document.getElementById('spd').value);
+  if(fPlaying&&ts-lastFTime>=1000/parseInt(document.getElementById('fFps').value,10)){
+    lastFTime=ts; fIdx=(fIdx+1)%20; drawExportedFrame();
+  }
+  if(loaded===6){
+    const t=(ts*0.001)*spd, P=samplePoseAt(curAnim,t);
+    lctx.clearRect(0,0,540,500);
+    lctx.save();
+    if(document.getElementById('chkFlip').checked){lctx.translate(540,0);lctx.scale(-1,1);}
+    const S=0.80, OX=66, OY=46;
+
+    const jbX=256+P.jx, jbY=466+P.jy, jr=P.jtilt*Math.PI/180, cj=Math.cos(jr), sj=Math.sin(jr);
+    const srx=(264-256)*P.jsqX, sry=(212-466)*P.jstY;
+    const spX=jbX+srx*cj-sry*sj+P.sx, spY=jbY+srx*sj+sry*cj+P.sy;
+    const sr=(P.jtilt+P.stilt)*Math.PI/180, cs=Math.cos(sr), ssin=Math.sin(sr);
+    const hpX=spX+(272-264)*cs-(96-212)*ssin+P.hatX, hpY=spY+(272-264)*ssin+(96-212)*cs+P.hatY;
+    const hr=(P.jtilt+P.stilt+P.hatRot)*Math.PI/180, ch=Math.cos(hr), sh=Math.sin(hr);
+    const elX=spX+(238.1-264)*cs-(180.6-212)*ssin, elY=spY+(238.1-264)*ssin+(180.6-212)*cs;
+    const erX=spX+(305.8-264)*cs-(159.7-212)*ssin, erY=spY+(305.8-264)*ssin+(159.7-212)*cs;
+    const ulwx=spX+(194-264)*cs-(182-212)*ssin, ulwy=spY+(194-264)*ssin+(182-212)*cs;
+    const urwx=spX+(342-264)*cs-(192-212)*ssin, urwy=spY+(342-264)*ssin+(192-212)*cs;
+    const dlpivX=spX+(172-264)*cs-(214-212)*ssin, dlpivY=spY+(172-264)*ssin+(214-212)*cs;
+
+    const jarPt=(u,v)=>{const rx=(u-256)*P.jsqX,ry=(v-466)*P.jstY;return [jbX+rx*cj-ry*sj,jbY+rx*sj+ry*cj];};
+    const hatPt=(u,v)=>{const spn=Math.abs(u-272)/165,fy=Math.sin(spn*2.5-P.rip)*2.5*spn*spn;const rx=u-272,ry=v-96+fy;return [hpX+rx*ch-ry*sh,hpY+rx*sh+ry*ch];};
+    const tailRPt=(u,v)=>{const [bx,by]=jarPt(u,v);const d=Math.min(1,Math.hypot(u-382,v-385)/115);return [bx+P.tailR*0.55*d+Math.sin(d*3.8-P.rip)*4.5*d,by-P.tailR*0.35*d+Math.cos(d*3.8-P.rip)*3.5*d];};
+
+    if(document.getElementById('chkVfx').checked){
+      if(P.aura>0.30){
+        const g=lctx.createRadialGradient(OX+spX*S,OY+(spY+20)*S,12,OX+spX*S,OY+(spY+20)*S,150*P.aura);
+        g.addColorStop(0,'rgba(192,132,252,'+Math.min(0.32,(P.aura-0.2)*0.35)+')');
+        g.addColorStop(1,'rgba(88,28,135,0)');
+        lctx.fillStyle=g; lctx.beginPath(); lctx.arc(OX+spX*S,OY+(spY+20)*S,155,0,6.28); lctx.fill();
+      }
+      if(P.roar>=0){
+        for(let rk=0;rk<2;rk++){
+          const prg=((t*0.9+rk*0.45)%1.0), rad=(50+prg*175)*S;
+          lctx.strokeStyle='rgba(232,121,249,'+(1-prg)*0.68+')'; lctx.lineWidth=2.6;
+          lctx.beginPath(); lctx.ellipse(OX+spX*S,OY+spY*S,rad,rad*0.78,0,0,6.28); lctx.stroke();
+        }
+      }
+    }
+
+    // Compute vertex arrays for all layers
+    const hx=[],hy=[],bulx=[],buly=[],scx=[],scy=[],jbx=[],jby=[],tfx=[],tfy=[],ftx=[],fty=[];
+    for(let gy=0;gy<=GH;gy++)for(let gx=0;gx<=GW;gx++){
+      const u=gx*512/GW, v=gy*512/GH;
+      const [hpx0,hpy0]=hatPt(u,v); hx.push(OX+hpx0*S); hy.push(OY+hpy0*S);
+      const [jpx0,jpy0]=jarPt(u,v); jbx.push(OX+jpx0*S); jby.push(OY+jpy0*S);
+      const [tpx0,tpy0]=tailRPt(u,v); tfx.push(OX+tpx0*S); tfy.push(OY+tpy0*S);
+
+      // back_under lower
+      if(v<300){bulx.push(OX+jpx0*S); buly.push(OY+jpy0*S);}
+      else if(u<256){const d=Math.min(1,Math.max(0,(132-u)/86)); bulx.push(OX+(jpx0-P.pudL*0.65*d+Math.sin(d*4-P.rip)*4.5*d)*S); buly.push(OY+(jpy0+Math.cos(d*4-P.rip)*3.5*d)*S);}
+      else{bulx.push(OX+tpx0*S); buly.push(OY+tpy0*S);}
+
+      // slime_core (elastic stretch from jar rim!)
+      const wul=(1-ss(182,212,u))*ss(148,175,v), wur=ss(332,362,u)*ss(168,196,v), wmid=Math.max(0,1-wul-wur);
+      const elc=1-0.65*ss(195,250,v);
+      const xmf=spX+(u-264)*cs-(v-212)*ssin, ymf=spY+(u-264)*ssin+(v-212)*cs;
+      const xm=jpx0*(1-elc)+xmf*elc, ym=jpy0*(1-elc)+ymf*elc;
+      const dul=Math.min(1,Math.hypot(Math.max(0,194-u),v-182)/135), aul=sr+P.tUL*ss(0.05,0.85,dul)*Math.PI/180;
+      const rulx=Math.sin(dul*4.2-P.rip)*6.5*dul*dul, ruly=Math.cos(dul*4.2-P.rip)*5.5*dul*dul;
+      const xul=ulwx+(u-194+rulx)*Math.cos(aul)-(v-182+ruly)*Math.sin(aul), yul=ulwy+(u-194+rulx)*Math.sin(aul)+(v-182+ruly)*Math.cos(aul);
+      const dur=Math.min(1,Math.hypot(Math.max(0,u-342),Math.max(0,v-185))/175), aur=sr+P.tUR*ss(0.05,0.85,dur)*Math.PI/180;
+      const rurx=Math.sin(dur*4.2-P.rip+1.1)*7.5*dur*dur, rury=Math.cos(dur*4.2-P.rip+1.1)*5.5*dur*dur;
+      const xur=urwx+(u-342+rurx)*Math.cos(aur)-(v-192+rury)*Math.sin(aur), yur=urwy+(u-342+rurx)*Math.sin(aur)+(v-192+rury)*Math.cos(aur);
+      scx.push(OX+(wmid*xm+wul*xul+wur*xur)*S); scy.push(OY+(wmid*ym+wul*yul+wur*yur)*S);
+
+      // front_tentacles (elastic rim-hugging drape!)
+      const elft=1-0.80*ss(195,245,v), xmft=jpx0*(1-elft)+xmf*elft, ymft=jpy0*(1-elft)+ymf*elft;
+      const wf=ss(220,250,v);
+      if(wf<=1e-4){ftx.push(OX+xmft*S); fty.push(OY+ymft*S);}
+      else{
+        let rx,ry;
+        if(u<204){const d=Math.min(1,Math.max(0,(v-224)/140)),ang=P.tDL*0.65*d*Math.PI/180,[pxp,pyp]=jarPt(152,236),dx=xmft-pxp,dy=ymft-pyp;rx=pxp+dx*Math.cos(ang)-dy*Math.sin(ang)+Math.sin(d*4-P.rip)*5*d*d;ry=pyp+dx*Math.sin(ang)+dy*Math.cos(ang);}
+        else if(u<296){const d=Math.min(1,Math.max(0,(v-226)/80));rx=xmft+P.tDC*0.55*d*d+Math.sin(d*3.5-P.rip+0.6)*3.5*d;ry=ymft+Math.abs(P.tDC)*0.14*d;}
+        else{const d=Math.min(1,Math.max(0,(v-222)/40));rx=jpx0+Math.sin(P.rip)*2*d;ry=jpy0+Math.cos(P.rip)*1.5*d;}
+        ftx.push(OX+(xmft*(1-wf)+rx*wf)*S); fty.push(OY+(ymft*(1-wf)+ry*wf)*S);
+      }
+    }
+
+    const renderLayer=(im,tris,vx,vy)=>{for(const tr of tris){const a=tr[0],b=tr[1],c=tr[2];drawTri(lctx,im,(a%(GW+1))*512/GW,((a/(GW+1))|0)*512/GH,(b%(GW+1))*512/GW,((b/(GW+1))|0)*512/GH,(c%(GW+1))*512/GW,((c/(GW+1))|0)*512/GH,vx[a],vy[a],vx[b],vy[b],vx[c],vy[c]);}};
+    renderLayer(texBU,tBUH,hx,hy);
+    renderLayer(texBU,tBUL,bulx,buly);
+    renderLayer(texSC,tSC,scx,scy);
+
+    // Blink & Eye Glint (under hat_front!)
+    if(P.blink>0.05){
+      const bl=Math.min(1,P.blink);
+      for(const [ex,ey,rw,rh] of [[elX,elY,14,12],[erX,erY,15,14]]){
+        lctx.fillStyle='#9a6886'; lctx.beginPath(); lctx.ellipse(OX+ex*S,OY+(ey-rh*(1-bl))*S,rw*S,rh*bl*S,0,0,6.28); lctx.fill();
+      }
+    }
+    if(document.getElementById('chkVfx').checked&&P.eyeGlow>0.42&&P.blink<0.5){
+      const ga=Math.min(0.85,(P.eyeGlow-0.38)*0.95);
+      for(const [ex,ey] of [[elX,elY],[erX,erY]]){
+        const eg=lctx.createRadialGradient(OX+ex*S,OY+ey*S,2,OX+ex*S,OY+ey*S,18);
+        eg.addColorStop(0,'rgba(254,240,138,'+ga+')'); eg.addColorStop(1,'rgba(250,204,21,0)');
+        lctx.fillStyle=eg; lctx.beginPath(); lctx.arc(OX+ex*S,OY+ey*S,18,0,6.28); lctx.fill();
+      }
+    }
+
+    renderLayer(texJB,tJB,jbx,jby);
+    renderLayer(texTF,tTF,tfx,tfy);
+    renderLayer(texFT,tFT,ftx,fty);
+    renderLayer(texHF,tHF,hx,hy);
+
+    if(document.getElementById('chkVfx').checked){
+      for(let bi=0;bi<4;bi++){
+        const bph=((t*0.42)+bi*0.25)%1.0;
+        const bxb=OX+(spX+[-96,98,-62,84][bi]+Math.sin(bph*6.28+bi)*9)*S, byb=OY+(320-bph*220)*S;
+        lctx.fillStyle='rgba(232,121,249,'+Math.sin(bph*Math.PI)*0.35+')';
+        lctx.strokeStyle='rgba(245,208,254,'+Math.sin(bph*Math.PI)*0.65+')'; lctx.lineWidth=1.4;
+        lctx.beginPath(); lctx.arc(bxb,byb,[3.5,4.5,3,4.8][bi],0,6.28); lctx.fill(); lctx.stroke();
+      }
+      if(P.slash>=0&&P.sAlpha>0.04){
+        lctx.save(); lctx.translate(OX+(spX-95-P.slash*34)*S,OY+(spY+36+P.slash*12)*S);
+        lctx.rotate((16-P.slash*20)*Math.PI/180);
+        const rM=96*(0.85+0.3*Math.sin(P.slash*2.4)); lctx.globalAlpha=Math.min(1,P.sAlpha);
+        lctx.beginPath(); lctx.moveTo(12,-rM); lctx.bezierCurveTo(-rM*0.92,-rM*0.55,-rM*0.95,rM*0.55,10,rM);
+        lctx.bezierCurveTo(-44,rM*0.44,-42,-rM*0.44,12,-rM); lctx.closePath();
+        lctx.fillStyle='rgba(126,58,112,0.9)'; lctx.fill();
+        lctx.lineWidth=5; lctx.strokeStyle='rgba(232,121,249,0.9)'; lctx.stroke();
+        lctx.lineWidth=2; lctx.strokeStyle='#fae8ff'; lctx.stroke(); lctx.restore();
+      }
+    }
+
+    if(document.getElementById('chkMesh').checked){
+      lctx.strokeStyle='rgba(250,204,21,0.26)'; lctx.lineWidth=0.8;
+      for(const [vx,vy,tris] of [[jbx,jby,tJB],[scx,scy,tSC],[ftx,fty,tFT],[hx,hy,tHF]]){
+        for(const tr of tris){lctx.beginPath();lctx.moveTo(vx[tr[0]],vy[tr[0]]);lctx.lineTo(vx[tr[1]],vy[tr[1]]);lctx.lineTo(vx[tr[2]],vy[tr[2]]);lctx.closePath();lctx.stroke();}
+      }
+    }
+
+    if(document.getElementById('chkBones').checked){
+      const B=(x,y)=>[OX+x*S,OY+y*S];
+      const bRoot=B(256,482), bJB=B(jbX,jbY), bJMid=B(jbX+(0)*cj-(-110)*sj, jbY+(0)*sj+(-110)*cj);
+      const bPud=B(jbX+(-152)*cj-(-50)*sj, jbY+(-152)*sj+(-50)*cj);
+      const bTR=B(jbX+(162)*cj-(-68)*sj, jbY+(162)*sj+(-68)*cj), bTRT=B(jbX+(80)*cj-(-2)*sj, jbY+(80)*sj+(-2)*cj);
+      const bSP=B(spX,spY), bSH=B(spX+2*cs-(-46)*ssin, spY+2*ssin+(-46)*cs);
+      const bEL=B(elX,elY), bER=B(erX,erY), bHP=B(hpX,hpY), bHTop=B(hpX+0*ch-(-54)*sh, hpY+0*sh+(-54)*ch);
+      const bHBL=B(hpX+(-134)*ch-(32)*sh, hpY+(-134)*sh+(32)*ch), bHBR=B(hpX+(130)*ch+(66)*sh, hpY+(130)*sh+(66)*ch);
+      const bUL1=B(ulwx,ulwy), ulA=(175+P.jtilt+P.stilt+P.tUL)*Math.PI/180, bUL2=[bUL1[0]+Math.cos(ulA)*72,bUL1[1]+Math.sin(ulA)*72];
+      const bUR1=B(urwx,urwy), urA=(28+P.jtilt+P.stilt+P.tUR)*Math.PI/180, bUR2=[bUR1[0]+Math.cos(urA)*84,bUR1[1]+Math.sin(urA)*84];
+      const bDL1=B(dlpivX,dlpivY), dlA=(112+P.jtilt+P.stilt+P.tDL)*Math.PI/180, bDL2=[bDL1[0]+Math.cos(dlA)*96,bDL1[1]+Math.sin(dlA)*96];
+      const bDC2=[bSP[0]+Math.cos((96+P.tDC)*Math.PI/180)*62, bSP[1]+Math.sin((96+P.tDC)*Math.PI/180)*62];
+
+      const segs=[
+        [bRoot,bJB],[bJB,bJMid],[bJB,bPud],[bJB,bTR],[bTR,bTRT],
+        [bJMid,bSP],[bSP,bDL1],[bDL1,bDL2],[bSP,bDC2],[bSP,bSH],
+        [bSH,bEL],[bSH,bER],[bSH,bUL1],[bUL1,bUL2],[bSH,bUR1],[bUR1,bUR2],
+        [bSH,bHP],[bHP,bHTop],[bHP,bHBL],[bHP,bHBR]
+      ];
+      lctx.lineWidth=2.1;
+      for(const [p1,p2] of segs){
+        lctx.strokeStyle='rgba(250,204,21,0.88)'; lctx.beginPath(); lctx.moveTo(p1[0],p1[1]); lctx.lineTo(p2[0],p2[1]); lctx.stroke();
+        lctx.fillStyle='#38bdf8'; lctx.beginPath(); lctx.arc(p1[0],p1[1],3.6,0,6.28); lctx.fill();
+        lctx.beginPath(); lctx.arc(p2[0],p2[1],3.0,0,6.28); lctx.fill();
+      }
+    }
+    lctx.restore();
+  }
+  requestAnimationFrame(renderLive60);
+}
+buildGrid();drawExportedFrame();requestAnimationFrame(renderLive60);
+</script>
+</body>
+</html>

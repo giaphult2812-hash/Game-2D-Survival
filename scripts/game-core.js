@@ -110,7 +110,8 @@
       tileset: "assets/Tileset/custom_tileset_v1.png?v=20261123_1",
       home_props_hd: "assets/Tileset/home_props_hd.png?v=20261123_5",
       forest_props_hd: "assets/Tileset/forest_props_hd.png?v=20261123_3",
-      lake_props_hd: "assets/Tileset/lake_props_hd.png?v=20261125_2"
+      lake_props_hd: "assets/Tileset/lake_props_hd.png?v=20261125_2",
+      tall_grass: "assets/Tileset/tall_grass_sheet.png?v=20261128_4"
     };
 
     const iconImageCache = new Map();
@@ -4370,7 +4371,7 @@
         }
         applyPlacedStructures({ home: [], forest: [], lake: [] });
         if (typeof loadMap === "function") {
-          loadMap("home", { x: 248, y: 276 });
+          loadMap("home", { x: (MAP_SIZE - TILE_SIZE) / 2, y: (MAP_SIZE - TILE_SIZE) / 2 + 28 });
         }
 
         isSaveSystemReady = true;
@@ -4685,7 +4686,7 @@
     // HỆ THỐNG TIỀN TỆ (XU VÀNG), NPC THƯƠNG NHÂN & 2 CỬA HÀNG
     // -------------------------------------------------------------
     let playerGold = 50;
-    const HOME_MERCHANT = { x: 432, y: 224, width: 16, height: 16 };
+    const HOME_MERCHANT = { x: 928, y: 480, width: 16, height: 16 };
     let currentShopTab = 'npc';
 
     const NPC_SHOP_CATALOG = [
@@ -5255,8 +5256,8 @@
     
 
     const HOME_CAMPFIRE = {
-      x: 248,
-      y: 248,
+      x: 504,
+      y: 504,
       lightRadius: 76,
       healTimer: 0,
       inputItem: null,
@@ -5270,8 +5271,8 @@
 
     // Vòng Khảm Đũa Phép trên bản đồ Nhà (đưa chuột vào nhấn hoặc chạy vào để mở bảng khảm chiêu)
     const HOME_WAND_ALTAR = {
-      x: 204,
-      y: 248,
+      x: 460,
+      y: 504,
       interactRadius: 16,
       hoverRadius: 20
     };
@@ -12037,8 +12038,8 @@
     // -------------------------------------------------------------
     // 3. THIẾT LẬP NHÂN VẬT & CAMERA (16x16 VÀ TỐC ĐỘ GIẢM) (Yêu cầu 1 & 2)
     // -------------------------------------------------------------
-    // KÍCH THƯỚC KHÔNG GIAN BẢN ĐỒ: 512 x 512 pixel (32 x 32 ô theo file LDtk map_home.json)
-    const MAP_SIZE = 512;
+    // KÍCH THƯỚC KHÔNG GIAN BẢN ĐỒ: 1024 x 1024 pixel (64 x 64 ô)
+    const MAP_SIZE = 1024;
 
     // NHÂN VẬT: Kích thước 16x16 pixel, Spawn ngay tại TRUNG TÂM MAP (X: 248, Y: 248)
     // Tốc độ: 110 px/s (tương đương ~1.8 px/frame ở 60fps, phù hợp không gian 16x16)
@@ -12120,15 +12121,15 @@
 
       while (!valid && attempts < 400) {
         attempts++;
-        // Ở map Rừng, tạo vị trí an toàn bên trong biên bản đồ (từ pixel 32 đến 464)
-        posX = 32 + Math.floor(Math.random() * (464 - 32 - size));
-        posY = 32 + Math.floor(Math.random() * (464 - 32 - size));
+        // Ở map Rừng, tạo vị trí an toàn bên trong biên bản đồ (từ pixel 32 đến MAP_SIZE - 48)
+        posX = 32 + Math.floor(Math.random() * (MAP_SIZE - 48 - 32 - size));
+        posY = 32 + Math.floor(Math.random() * (MAP_SIZE - 48 - 32 - size));
 
         const tempRect = { x: posX, y: posY, width: size, height: size };
 
         // Tránh vị trí cổng dịch chuyển Tây (VỀ NHÀ) và Đông (HỒ)
         if (posX < 72 && Math.abs(posY - MAP_SIZE / 2) < 40) continue;
-        if (posX > 440 && Math.abs(posY - MAP_SIZE / 2) < 40) continue;
+        if (posX > MAP_SIZE - 72 && Math.abs(posY - MAP_SIZE / 2) < 40) continue;
         if (Math.abs(posX - MAP_SIZE / 2) < 32 && Math.abs(posY - MAP_SIZE / 2) < 32) continue;
 
         // Tránh vị trí người chơi đang đứng
@@ -12251,8 +12252,8 @@
 
     // Tài nguyên ban đầu của Rừng: Ngẫu nhiên từ 5 đến 10 Cây và 5 đến 10 Mỏ Đá
     const forestHarvestables = [];
-    const initialTreeCount = Math.floor(Math.random() * 6) + 5; // 5 - 10 Cây
-    const initialRockCount = Math.floor(Math.random() * 6) + 5; // 5 - 10 Đá
+    const initialTreeCount = Math.floor(Math.random() * 7) + 12; // 12 - 18 Cây cho map 1024x1024
+    const initialRockCount = Math.floor(Math.random() * 7) + 12; // 12 - 18 Đá rêu cho map 1024x1024
 
     for (let i = 0; i < initialTreeCount; i++) {
       forestHarvestables.push(generateRandomObject("tree", "green", forestHarvestables));
@@ -12274,8 +12275,8 @@
 
       while (!valid && attempts < 400) {
         attempts++;
-        posX = 48 + Math.floor(Math.random() * (448 - 48 - size));
-        posY = 48 + Math.floor(Math.random() * (448 - 48 - size));
+        posX = 48 + Math.floor(Math.random() * (MAP_SIZE - 64 - 48 - size));
+        posY = 48 + Math.floor(Math.random() * (MAP_SIZE - 64 - 48 - size));
 
         const tempRect = { x: posX, y: posY, width: size, height: size };
         if (posX < 64 && Math.abs(posY - MAP_SIZE / 2) < 40) continue;
@@ -12326,8 +12327,8 @@
       while (!valid && attempts < 400) {
         attempts++;
         // Spawn trong phạm vi sân trong hàng rào
-        posX = 48 + Math.floor(Math.random() * (448 - 48 - size));
-        posY = 48 + Math.floor(Math.random() * (448 - 48 - size));
+        posX = 48 + Math.floor(Math.random() * (MAP_SIZE - 64 - 48 - size));
+        posY = 48 + Math.floor(Math.random() * (MAP_SIZE - 64 - 48 - size));
 
         const tempRect = { x: posX, y: posY, width: size, height: size };
         if (posX < 64 && Math.abs(posY - MAP_SIZE / 2) < 40) continue;
@@ -12375,10 +12376,10 @@
       };
     }
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       forestMobs.push(createBoar("boar_" + (i + 1), forestHarvestables));
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       forestMobs.push(createChicken("chicken_" + (i + 1), forestHarvestables));
     }
 
@@ -12397,10 +12398,10 @@
         let placed = false;
         while (!placed && attempts < 400) {
           attempts++;
-          const px = 48 + Math.floor(Math.random() * (448 - 48 - mob.width));
-          const py = 48 + Math.floor(Math.random() * (448 - 48 - mob.height));
+          const px = 48 + Math.floor(Math.random() * (MAP_SIZE - 64 - 48 - mob.width));
+          const py = 48 + Math.floor(Math.random() * (MAP_SIZE - 64 - 48 - mob.height));
           if (px < 72 && Math.abs(py - MAP_SIZE / 2) < 40) continue;
-          if (px > 440 && Math.abs(py - MAP_SIZE / 2) < 40) continue;
+          if (px > MAP_SIZE - 72 && Math.abs(py - MAP_SIZE / 2) < 40) continue;
           const rect = { x: px, y: py, width: mob.width, height: mob.height };
           if (!isBoxOnWalkableGround(rect, "forest")) continue;
           let overlaps = false;
@@ -12416,6 +12417,149 @@
       }
     }
 
+    // -------------------------------------------------------------
+    // HỆ THỐNG BỤI CỎ CAO KIỂU POKÉMON (ĐI LÊN ĐƯỢC, RUNG LẮC & LÁ BAY)
+    // -------------------------------------------------------------
+    const tallGrassByMap = { home: new Map(), forest: new Map(), lake: new Map() };
+    const tallGrassLeaves = [];
+    let lastPlayerGrassKey = "";
+    let playerGrassBurstCooldown = 0;
+
+    function isDirtOrBridgeTileAt(mapId, col, row) {
+      const mapObj = mapId === "lake" ? lakeMapData : (mapId === "forest" ? forestMapData : homeMapData);
+      if (!mapObj || !mapObj.layerInstances) return false;
+      const px = col * TILE_SIZE;
+      const py = row * TILE_SIZE;
+      const layerId = mapId === "forest" ? "Jungles" : (mapId === "lake" ? "Plains" : "Ground");
+      const baseLayer = mapObj.layerInstances.find(l => l.__identifier === layerId);
+      if (baseLayer && baseLayer.autoLayerTiles) {
+        for (const t of baseLayer.autoLayerTiles) {
+          if (t.px[0] === px && t.px[1] === py) {
+            if (t.src[1] === 16 || t.src[1] === 80 || t.src[1] === 96 || (mapId === "lake" && t.src[1] === 64)) {
+              return true;
+            }
+          }
+        }
+      }
+      if (mapId === "home") {
+        const pl = mapObj.layerInstances.find(l => l.__identifier === "Plains");
+        if (pl && pl.autoLayerTiles && pl.autoLayerTiles.some(t => t.px[0] === px && t.px[1] === py)) return true;
+      } else if (mapId === "forest") {
+        const fl = mapObj.layerInstances.find(l => l.__identifier === "Fences");
+        if (fl && fl.autoLayerTiles && fl.autoLayerTiles.some(t => t.px[0] === px && t.px[1] === py)) return true;
+      } else if (mapId === "lake") {
+        const pr = mapObj.layerInstances.find(l => l.__identifier === "Props");
+        if (pr && pr.autoLayerTiles && pr.autoLayerTiles.some(t => t.px[0] === px && t.px[1] === py)) return true;
+      }
+      return false;
+    }
+
+    function initTallGrassPatches() {
+      const patches = {
+        home: [
+          [5, 5, 10, 8], [22, 6, 28, 10], [38, 6, 44, 10], [52, 6, 58, 11],
+          [5, 24, 9, 29], [22, 22, 26, 26], [38, 22, 41, 27], [54, 21, 58, 26],
+          [5, 36, 10, 41], [22, 39, 27, 44], [38, 39, 41, 44], [54, 38, 59, 44],
+          [6, 54, 12, 58], [22, 53, 28, 57], [36, 54, 41, 58], [52, 54, 58, 58]
+        ],
+        forest: [
+          [4, 5, 8, 9], [12, 4, 18, 8], [24, 5, 29, 9], [40, 5, 45, 9], [50, 5, 57, 10],
+          [4, 19, 8, 25], [22, 19, 28, 24], [40, 19, 44, 25], [52, 19, 58, 25],
+          [4, 37, 8, 43], [22, 37, 28, 42], [40, 37, 44, 43], [52, 37, 58, 43],
+          [4, 54, 9, 58], [13, 55, 20, 59], [24, 54, 29, 58], [40, 54, 46, 58], [52, 54, 58, 58]
+        ],
+        lake: [
+          [2, 3, 6, 7], [10, 2, 13, 5], [2, 15, 6, 20], [10, 18, 13, 24],
+          [2, 37, 6, 42], [10, 39, 13, 45], [2, 54, 6, 59], [10, 57, 14, 61],
+          [32, 27, 34, 30], [37, 34, 39, 36], [51, 30, 54, 33]
+        ]
+      };
+      for (const mapId of ["home", "forest", "lake"]) {
+        const gMap = tallGrassByMap[mapId];
+        gMap.clear();
+        const cfg = mapConfigs[mapId];
+        for (const [c0, r0, c1, r1] of patches[mapId]) {
+          for (let r = r0; r <= r1; r++) {
+            for (let c = c0; c <= c1; c++) {
+              // Bo tròn 4 góc cụm cỏ tự nhiên
+              if ((c === c0 || c === c1) && (r === r0 || r === r1)) continue;
+              const cx = c * TILE_SIZE + 8;
+              const cy = r * TILE_SIZE + 8;
+              if (!isWalkableGround(cx, cy, mapId)) continue;
+              if (isDirtOrBridgeTileAt(mapId, c, r)) continue;
+              if (cfg && cfg.portal && Math.hypot(cx - (cfg.portal.x + 8), cy - (cfg.portal.y + 8)) < 36) continue;
+              if (cfg && cfg.portalToLake && Math.hypot(cx - (cfg.portalToLake.x + 8), cy - (cfg.portalToLake.y + 8)) < 36) continue;
+              gMap.set(`${c},${r}`, { col: c, row: r, rustle: 0, swayDir: 1 });
+            }
+          }
+        }
+      }
+    }
+
+    function spawnTallGrassLeaves(wx, wy, count = 4) {
+      for (let i = 0; i < count; i++) {
+        tallGrassLeaves.push({
+          x: wx + (Math.random() - 0.5) * 12,
+          y: wy - 3 + (Math.random() - 0.5) * 4,
+          vx: (Math.random() - 0.5) * 34,
+          vy: -24 - Math.random() * 20,
+          life: 0.65 + Math.random() * 0.25,
+          maxLife: 0.85,
+          color: Math.random() < 0.5 ? "#86efac" : "#22c55e"
+        });
+      }
+    }
+
+    function updateTallGrass(dt) {
+      const gMap = tallGrassByMap[currentMap];
+      if (!gMap) return;
+
+      for (const tile of gMap.values()) {
+        if (tile.rustle > 0) tile.rustle = Math.max(0, tile.rustle - dt * 2.8);
+      }
+
+      playerGrassBurstCooldown = Math.max(0, playerGrassBurstCooldown - dt);
+      const pc = Math.floor((player.x + player.width / 2) / TILE_SIZE);
+      const pr = Math.floor((player.y + player.height - 2) / TILE_SIZE);
+      const pKey = `${pc},${pr}`;
+      const pTile = gMap.get(pKey);
+      if (pTile) {
+        if (pKey !== lastPlayerGrassKey || (player.action === "walk" && playerGrassBurstCooldown <= 0)) {
+          pTile.rustle = 1.0;
+          pTile.swayDir = player.direction === "left" ? -1 : 1;
+          spawnTallGrassLeaves(pc * TILE_SIZE + 8, pr * TILE_SIZE + 8, pKey !== lastPlayerGrassKey ? 3 : 2);
+          playerGrassBurstCooldown = 0.22;
+        }
+      }
+      lastPlayerGrassKey = pKey;
+
+      if (currentMobs && currentMobs.length > 0) {
+        for (const mob of currentMobs) {
+          if (!mob.isMoving || mob.hp <= 0) continue;
+          const mc = Math.floor((mob.x + mob.width / 2) / TILE_SIZE);
+          const mr = Math.floor((mob.y + mob.height - 2) / TILE_SIZE);
+          const mTile = gMap.get(`${mc},${mr}`);
+          if (mTile && mTile.rustle < 0.25) {
+            mTile.rustle = 0.85;
+            mTile.swayDir = mob.dirX < 0 ? -1 : 1;
+            spawnTallGrassLeaves(mc * TILE_SIZE + 8, mr * TILE_SIZE + 8, 1);
+          }
+        }
+      }
+
+      for (let i = tallGrassLeaves.length - 1; i >= 0; i--) {
+        const lf = tallGrassLeaves[i];
+        lf.life -= dt;
+        if (lf.life <= 0) {
+          tallGrassLeaves.splice(i, 1);
+          continue;
+        }
+        lf.vy += 55 * dt;
+        lf.x += lf.vx * dt;
+        lf.y += lf.vy * dt;
+      }
+    }
+
     const homeHarvestables = [];
 
     // Cấu hình các Scene/Bản đồ với Cổng 16x16
@@ -12426,16 +12570,16 @@
         color: "lightgreen",
         gridColor: "#86d686",
         borderColor: "#2e7d32",
-        // CỔNG DỊCH CHUYỂN: Kích thước 16x16 pixel (nằm ở x: 476, y: 248)
+        // CỔNG DỊCH CHUYỂN: Kích thước 16x16 pixel
         portal: {
-          x: 476,
-          y: (MAP_SIZE - TILE_SIZE) / 2, // 248 px
+          x: MAP_SIZE - 36,
+          y: (MAP_SIZE - TILE_SIZE) / 2, // 504 px
           width: TILE_SIZE,  // 16 px
           height: TILE_SIZE, // 16 px
           color: "yellow",
           label: "RỪNG",
           targetMap: "forest",
-          targetPlayerPos: { x: 40, y: 248 } // Đưa nhân vật xuất hiện ngay đầu lối đi của Rừng
+          targetPlayerPos: { x: 40, y: (MAP_SIZE - TILE_SIZE) / 2 } // Đưa nhân vật xuất hiện ngay đầu lối đi của Rừng
         },
         harvestables: homeHarvestables,
         mobs: []
@@ -12444,28 +12588,28 @@
         id: "forest",
         name: "Rừng (Forest)",
         portalToLake: {
-          x: 496,
-          y: (MAP_SIZE - TILE_SIZE) / 2, // 248 px
+          x: MAP_SIZE - 16,
+          y: (MAP_SIZE - TILE_SIZE) / 2, // 504 px
           width: TILE_SIZE,
           height: TILE_SIZE,
           color: "#38bdf8",
           label: "HỒ",
           targetMap: "lake",
-          targetPlayerPos: { x: 40, y: 248 }
+          targetPlayerPos: { x: 40, y: (MAP_SIZE - TILE_SIZE) / 2 }
         },
         color: "forestgreen",
         gridColor: "#1b662a",
         borderColor: "#14421d",
-        // CỔNG DỊCH CHUYỂN: Đặt tại x = 0 ngay lối mở không có hàng rào (y: 248)
+        // CỔNG DỊCH CHUYỂN: Đặt tại x = 20 ngay lối mở không có hàng rào
         portal: {
-          x: 20, // Đặt trên đường đất sát mép nước bên trái (không đè lên nước)
-          y: (MAP_SIZE - TILE_SIZE) / 2, // 248 px (hàng 15.5)
+          x: 20, // Đặt trên đường đất sát mép trái
+          y: (MAP_SIZE - TILE_SIZE) / 2, // 504 px
           width: TILE_SIZE,  // 16 px
           height: TILE_SIZE, // 16 px
           color: "yellow",
           label: "VỀ NHÀ",
           targetMap: "home",
-          targetPlayerPos: { x: 440, y: (MAP_SIZE - TILE_SIZE) / 2 } // Trở về Nhà tại x: 440 an toàn
+          targetPlayerPos: { x: MAP_SIZE - 72, y: (MAP_SIZE - TILE_SIZE) / 2 }
         },
         harvestables: forestHarvestables,
         mobs: forestMobs
@@ -12478,13 +12622,13 @@
         borderColor: "#0369a1",
         portal: {
           x: 16,
-          y: (MAP_SIZE - TILE_SIZE) / 2, // 248 px
+          y: (MAP_SIZE - TILE_SIZE) / 2, // 504 px
           width: TILE_SIZE,
           height: TILE_SIZE,
           color: "#4ade80",
           label: "RỪNG",
           targetMap: "forest",
-          targetPlayerPos: { x: 448, y: 248 }
+          targetPlayerPos: { x: MAP_SIZE - 64, y: (MAP_SIZE - TILE_SIZE) / 2 }
         },
         harvestables: [],
         mobs: []
@@ -14637,6 +14781,7 @@
     }
 
     function update(deltaTime) {
+      if (window.LinhThuSystem) window.LinhThuSystem.update(deltaTime, currentMap, player, isPaused);
       marketTickTimer += deltaTime;
       if (marketTickTimer >= 8.0) {
         marketTickTimer = 0;
@@ -15533,6 +15678,7 @@
       if (worldDt > 0) {
         updateMobsAI(worldDt);
         updateHarvestablesRespawn(worldDt);
+        updateTallGrass(worldDt);
       }
 
       // Cổng dịch chuyển (kèm cooldown chống loop dịch chuyển)
@@ -15739,7 +15885,7 @@
         ctx.font = "bold 7px monospace";
         ctx.strokeStyle = "rgba(0,0,0,0.85)";
         ctx.lineWidth = 2;
-        const labelX = currentPortal.x > 500 ? currentPortal.x - 45 : currentPortal.x + 20;
+        const labelX = currentPortal.x > MAP_SIZE - 12 ? currentPortal.x - 45 : currentPortal.x + 20;
         const labelY = currentPortal.y + 11;
         ctx.strokeText(`[${currentPortal.label}]`, labelX, labelY);
         ctx.fillText(`[${currentPortal.label}]`, labelX, labelY);
@@ -15944,6 +16090,55 @@
                     ctx.drawImage(lPropImg, slot * 64, 0, 64, 64, px + ox, py + oy, dw, dh);
                   }
                 }
+              }
+            });
+          }
+        }
+      }
+
+      // 0d. Bụi cỏ cao kiểu Pokémon (sprite 4 frame chuyển động + che nửa chân nhân vật)
+      const activeTallGrass = tallGrassByMap[currentMap];
+      const tgImg = images.tall_grass;
+      if (activeTallGrass && activeTallGrass.size > 0 && tgImg && tgImg.complete && tgImg.naturalWidth > 0) {
+        const tWind = performance.now() * 0.0028;
+        const minGC = Math.max(0, Math.floor(camera.x / TILE_SIZE) - 1);
+        const maxGC = Math.min(63, Math.ceil((camera.x + canvas.width / activeZoom) / TILE_SIZE) + 1);
+        const minGR = Math.max(0, Math.floor(camera.y / TILE_SIZE) - 1);
+        const maxGR = Math.min(63, Math.ceil((camera.y + canvas.height / activeZoom) / TILE_SIZE) + 1);
+
+        for (let gr = minGR; gr <= maxGR; gr++) {
+          for (let gc = minGC; gc <= maxGC; gc++) {
+            const gt = activeTallGrass.get(`${gc},${gr}`);
+            if (!gt) continue;
+            const gx = gc * TILE_SIZE;
+            const gy = gr * TILE_SIZE;
+
+            let frame = 0;
+            if (gt.rustle > 0.68) {
+              frame = 3; // Frame tách lá khi vừa bước vào
+            } else if (gt.rustle > 0.34) {
+              frame = gt.swayDir < 0 ? 1 : 2; // Nghiêng theo hướng di chuyển
+            } else if (gt.rustle > 0.02) {
+              frame = gt.swayDir < 0 ? 2 : 1; // Nhún bật lại
+            } else {
+              const w = Math.sin(tWind + gc * 0.45 + gr * 0.35);
+              frame = w > 0.58 ? 2 : (w < -0.58 ? 1 : 0); // Đung đưa nhẹ theo gió
+            }
+
+            const sx = frame * 64;
+            // Lớp cỏ sau (nửa trên bụi cỏ, phía sau nhân vật)
+            renderables.push({
+              sortY: gy + 5,
+              draw: () => {
+                ctx.drawImage(tgImg, sx, 0, 64, 37, gx - 2, gy - 3, 20, 11.5);
+              }
+            });
+
+            // Lớp cỏ trước (nửa dưới bụi cỏ, che nửa chân nhân vật khi bước vào)
+            renderables.push({
+              sortY: gy + 18,
+              draw: () => {
+                ctx.drawImage(tgImg, sx, 37, 64, 27, gx - 2, gy + 8.5, 20, 8.5);
               }
             });
           }
@@ -17029,11 +17224,21 @@
         });
       }
 
+      if (window.LinhThuSystem) window.LinhThuSystem.collectRenderables(renderables, currentMap, ctx, player);
       renderables.sort((a, b) => a.sortY - b.sortY);
 
       // Tiến hành vẽ tuần tự
       for (const item of renderables) {
         item.draw();
+      }
+
+      // Vẽ lá cỏ bay khi nhân vật/sinh vật lướt qua bụi cỏ kiểu Pokémon
+      for (const lf of tallGrassLeaves) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, lf.life / lf.maxLife));
+        ctx.fillStyle = lf.color;
+        ctx.fillRect(Math.round(lf.x), Math.round(lf.y), 3, 2);
+        ctx.restore();
       }
 
       // --- VẼ CÁC MŨI TÊN & CẦU MA PHÁP ĐANG BAY TRÊN KHÔNG (PROJECTILES) ---
@@ -17675,11 +17880,12 @@
     // Khởi động hệ thống tải ảnh và nạp cả 3 bản đồ LDtk trước khi khôi phục save & chạy game loop
     preloadImages(async () => {
       await Promise.all([
-        loadMapData("assets/maps/map_home.json?v=20261125_2", false),
-        loadMapData("assets/maps/map_rung.json?v=20261125_2", true),
-        loadMapData("assets/maps/map_ho.json?v=20261125_5", "lake")
+        loadMapData("assets/maps/map_home.json?v=20261128_1", false),
+        loadMapData("assets/maps/map_rung.json?v=20261128_1", true),
+        loadMapData("assets/maps/map_ho.json?v=20261128_1", "lake")
       ]);
       repositionForestEntities();
+      initTallGrassPatches();
       initPlayerProfileAndSave();
       requestAnimationFrame(gameLoop);
     });

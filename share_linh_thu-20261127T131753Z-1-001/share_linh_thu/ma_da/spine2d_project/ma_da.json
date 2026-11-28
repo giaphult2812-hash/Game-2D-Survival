@@ -1,0 +1,716 @@
+{
+  "skeleton": {
+    "hash": "ma_da_hd_18bone",
+    "spine": "3.8.99",
+    "x": -256,
+    "y": 0,
+    "width": 512,
+    "height": 512,
+    "images": "./images/",
+    "audio": ""
+  },
+  "bones": [
+    {
+      "name": "root",
+      "x": 0.0,
+      "y": 20.0
+    },
+    {
+      "name": "pelvis_body",
+      "parent": "root",
+      "x": -8.0,
+      "y": 206.0
+    },
+    {
+      "name": "back_hair_cape",
+      "parent": "pelvis_body",
+      "x": 8.0,
+      "y": 62.0
+    },
+    {
+      "name": "hair_outer_R",
+      "parent": "back_hair_cape",
+      "x": 106.0,
+      "y": 72.0,
+      "length": 118,
+      "rotation": -36.0
+    },
+    {
+      "name": "tail_1",
+      "parent": "pelvis_body",
+      "x": 2.0,
+      "y": -6.0
+    },
+    {
+      "name": "tail_2",
+      "parent": "tail_1",
+      "x": -4.0,
+      "y": -76.0,
+      "length": 76,
+      "rotation": -125.0
+    },
+    {
+      "name": "tail_3",
+      "parent": "tail_2",
+      "x": 82.25,
+      "y": -5.89,
+      "length": 74,
+      "rotation": -17.0
+    },
+    {
+      "name": "spine_chest",
+      "parent": "pelvis_body",
+      "x": -6.0,
+      "y": 48.0
+    },
+    {
+      "name": "chest_fin_L",
+      "parent": "spine_chest",
+      "x": -18.0,
+      "y": 0.0,
+      "length": 78,
+      "rotation": -118.0
+    },
+    {
+      "name": "chest_fin_R",
+      "parent": "spine_chest",
+      "x": 20.0,
+      "y": 0.0,
+      "length": 78,
+      "rotation": -56.0
+    },
+    {
+      "name": "neck",
+      "parent": "spine_chest",
+      "x": -2.0,
+      "y": 28.0
+    },
+    {
+      "name": "head",
+      "parent": "neck",
+      "x": -2.0,
+      "y": 42.0
+    },
+    {
+      "name": "eye_gaze",
+      "parent": "head",
+      "x": -46.6,
+      "y": 15.7,
+      "length": 24,
+      "rotation": 90.0
+    },
+    {
+      "name": "ear_fin_L",
+      "parent": "head",
+      "x": -106.0,
+      "y": 2.0
+    },
+    {
+      "name": "ear_fin_R",
+      "parent": "head",
+      "x": 78.0,
+      "y": 16.0
+    },
+    {
+      "name": "hair_L_1",
+      "parent": "head",
+      "x": -94.0,
+      "y": -30.0,
+      "length": 88,
+      "rotation": -128.0
+    },
+    {
+      "name": "hair_L_2",
+      "parent": "hair_L_1",
+      "x": 91.02,
+      "y": 10.2,
+      "length": 92,
+      "rotation": 32.0
+    },
+    {
+      "name": "hair_bang_R_1",
+      "parent": "head",
+      "x": 58.0,
+      "y": -20.0,
+      "length": 94,
+      "rotation": -54.0
+    }
+  ],
+  "slots": [
+    {
+      "name": "back_hair",
+      "bone": "back_hair_cape",
+      "attachment": "back_hair"
+    },
+    {
+      "name": "ear_fin_left",
+      "bone": "ear_fin_L",
+      "attachment": "ear_fin_left"
+    },
+    {
+      "name": "ear_fin_right",
+      "bone": "ear_fin_R",
+      "attachment": "ear_fin_right"
+    },
+    {
+      "name": "ghost_tail",
+      "bone": "tail_1",
+      "attachment": "ghost_tail"
+    },
+    {
+      "name": "chest_fins",
+      "bone": "spine_chest",
+      "attachment": "chest_fins"
+    },
+    {
+      "name": "head_hair_front",
+      "bone": "head",
+      "attachment": "head_hair_front"
+    }
+  ],
+  "skins": [
+    {
+      "name": "default",
+      "attachments": {
+        "back_hair": {
+          "back_hair": {
+            "x": 54.5,
+            "y": 14.0,
+            "width": 357,
+            "height": 296
+          }
+        },
+        "ear_fin_left": {
+          "ear_fin_left": {
+            "x": -28.5,
+            "y": -6.0,
+            "width": 95,
+            "height": 88
+          }
+        },
+        "ear_fin_right": {
+          "ear_fin_right": {
+            "x": 31.0,
+            "y": -6.0,
+            "width": 102,
+            "height": 92
+          }
+        },
+        "ghost_tail": {
+          "ghost_tail": {
+            "x": -17.0,
+            "y": -75.5,
+            "width": 188,
+            "height": 243
+          }
+        },
+        "chest_fins": {
+          "chest_fins": {
+            "x": 16.0,
+            "y": -26.5,
+            "width": 176,
+            "height": 141
+          }
+        },
+        "head_hair_front": {
+          "head_hair_front": {
+            "x": -7.0,
+            "y": -49.5,
+            "width": 416,
+            "height": 387
+          }
+        }
+      }
+    }
+  ],
+  "animations": {
+    "idle": {
+      "bones": {
+        "pelvis_body": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "x": 4.0,
+              "y": 14.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ],
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": -1.5,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": 2.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": -1.5
+            }
+          ]
+        },
+        "head": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": -3.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": 4.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": -3.0
+            }
+          ]
+        },
+        "ear_fin_L": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": -8.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": 11.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": -8.0
+            }
+          ]
+        },
+        "ear_fin_R": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 8.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": -11.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": 8.0
+            }
+          ]
+        },
+        "tail_1": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": -9.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": 10.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": -9.0
+            }
+          ]
+        },
+        "spine_chest": {
+          "scale": [
+            {
+              "time": 0.0,
+              "x": 1.0,
+              "y": 1.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "x": 1.04,
+              "y": 1.02,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "x": 1.0,
+              "y": 1.0
+            }
+          ]
+        },
+        "back_hair_cape": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 3.5,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": -4.5,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": 3.5
+            }
+          ]
+        }
+      }
+    },
+    "swim": {
+      "bones": {
+        "pelvis_body": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": -8.0,
+              "y": -6.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.4,
+              "x": 10.0,
+              "y": 20.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "x": 4.0,
+              "y": 6.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.2,
+              "x": -10.0,
+              "y": -14.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "x": -8.0,
+              "y": -6.0
+            }
+          ],
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": -9.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": -4.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": -9.0
+            }
+          ]
+        },
+        "tail_1": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": -20.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.4,
+              "angle": 22.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": -20.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.2,
+              "angle": 22.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": -20.0
+            }
+          ]
+        },
+        "ear_fin_L": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": -14.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.4,
+              "angle": 16.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": -14.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.2,
+              "angle": 16.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": -14.0
+            }
+          ]
+        },
+        "ear_fin_R": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 14.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.4,
+              "angle": -16.0,
+              "curve": "sine"
+            },
+            {
+              "time": 0.8,
+              "angle": 14.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.2,
+              "angle": -16.0,
+              "curve": "sine"
+            },
+            {
+              "time": 1.6,
+              "angle": 14.0
+            }
+          ]
+        }
+      }
+    },
+    "roar": {
+      "bones": {
+        "pelvis_body": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "time": 0.3,
+              "x": 0.0,
+              "y": -16.0
+            },
+            {
+              "time": 0.75,
+              "x": 0.0,
+              "y": 26.0
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ]
+        },
+        "head": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 0.0
+            },
+            {
+              "time": 0.3,
+              "angle": -8.0
+            },
+            {
+              "time": 0.75,
+              "angle": 12.0
+            },
+            {
+              "time": 1.6,
+              "angle": 0.0
+            }
+          ]
+        },
+        "ear_fin_L": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 0.0
+            },
+            {
+              "time": 0.3,
+              "angle": -12.0
+            },
+            {
+              "time": 0.75,
+              "angle": 22.0
+            },
+            {
+              "time": 1.6,
+              "angle": 0.0
+            }
+          ]
+        },
+        "ear_fin_R": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 0.0
+            },
+            {
+              "time": 0.3,
+              "angle": 12.0
+            },
+            {
+              "time": 0.75,
+              "angle": -22.0
+            },
+            {
+              "time": 1.6,
+              "angle": 0.0
+            }
+          ]
+        },
+        "tail_1": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 0.0
+            },
+            {
+              "time": 0.3,
+              "angle": 14.0
+            },
+            {
+              "time": 0.75,
+              "angle": -24.0
+            },
+            {
+              "time": 1.6,
+              "angle": 0.0
+            }
+          ]
+        }
+      }
+    },
+    "attack": {
+      "bones": {
+        "pelvis_body": {
+          "translate": [
+            {
+              "time": 0.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "time": 0.35,
+              "x": 20.0,
+              "y": 18.0
+            },
+            {
+              "time": 0.65,
+              "x": -32.0,
+              "y": -12.0
+            },
+            {
+              "time": 1.1,
+              "x": 8.0,
+              "y": 6.0
+            },
+            {
+              "time": 1.6,
+              "x": 0.0,
+              "y": 0.0
+            }
+          ],
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 0.0
+            },
+            {
+              "time": 0.35,
+              "angle": -10.0
+            },
+            {
+              "time": 0.65,
+              "angle": 15.0
+            },
+            {
+              "time": 1.6,
+              "angle": 0.0
+            }
+          ]
+        },
+        "tail_1": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 0.0
+            },
+            {
+              "time": 0.35,
+              "angle": 22.0
+            },
+            {
+              "time": 0.65,
+              "angle": -28.0
+            },
+            {
+              "time": 1.6,
+              "angle": 0.0
+            }
+          ]
+        },
+        "head": {
+          "rotate": [
+            {
+              "time": 0.0,
+              "angle": 0.0
+            },
+            {
+              "time": 0.35,
+              "angle": -8.0
+            },
+            {
+              "time": 0.65,
+              "angle": 12.0
+            },
+            {
+              "time": 1.6,
+              "angle": 0.0
+            }
+          ]
+        }
+      }
+    }
+  }
+}

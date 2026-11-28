@@ -1,0 +1,162 @@
+[
+  {
+    "frame": 1,
+    "file": "frame_01.png",
+    "w": 336,
+    "h": 344,
+    "nroDx": -42,
+    "nroDy": -83
+  },
+  {
+    "frame": 2,
+    "file": "frame_02.png",
+    "w": 316,
+    "h": 332,
+    "nroDx": -40,
+    "nroDy": -80
+  },
+  {
+    "frame": 3,
+    "file": "frame_03.png",
+    "w": 304,
+    "h": 320,
+    "nroDx": -38,
+    "nroDy": -77
+  },
+  {
+    "frame": 4,
+    "file": "frame_04.png",
+    "w": 296,
+    "h": 304,
+    "nroDx": -37,
+    "nroDy": -73
+  },
+  {
+    "frame": 5,
+    "file": "frame_05.png",
+    "w": 292,
+    "h": 300,
+    "nroDx": -36,
+    "nroDy": -72
+  },
+  {
+    "frame": 6,
+    "file": "frame_06.png",
+    "w": 356,
+    "h": 336,
+    "nroDx": -44,
+    "nroDy": -81
+  },
+  {
+    "frame": 7,
+    "file": "frame_07.png",
+    "w": 364,
+    "h": 344,
+    "nroDx": -46,
+    "nroDy": -83
+  },
+  {
+    "frame": 8,
+    "file": "frame_08.png",
+    "w": 364,
+    "h": 348,
+    "nroDx": -46,
+    "nroDy": -84
+  },
+  {
+    "frame": 9,
+    "file": "frame_09.png",
+    "w": 368,
+    "h": 344,
+    "nroDx": -46,
+    "nroDy": -83
+  },
+  {
+    "frame": 10,
+    "file": "frame_10.png",
+    "w": 368,
+    "h": 340,
+    "nroDx": -46,
+    "nroDy": -82
+  },
+  {
+    "frame": 11,
+    "file": "frame_11.png",
+    "w": 368,
+    "h": 340,
+    "nroDx": -46,
+    "nroDy": -82
+  },
+  {
+    "frame": 12,
+    "file": "frame_12.png",
+    "w": 368,
+    "h": 340,
+    "nroDx": -46,
+    "nroDy": -82
+  },
+  {
+    "frame": 13,
+    "file": "frame_13.png",
+    "w": 368,
+    "h": 340,
+    "nroDx": -46,
+    "nroDy": -82
+  },
+  {
+    "frame": 14,
+    "file": "frame_14.png",
+    "w": 368,
+    "h": 340,
+    "nroDx": -46,
+    "nroDy": -82
+  },
+  {
+    "frame": 15,
+    "file": "frame_15.png",
+    "w": 368,
+    "h": 336,
+    "nroDx": -46,
+    "nroDy": -81
+  },
+  {
+    "frame": 16,
+    "file": "frame_16.png",
+    "w": 368,
+    "h": 340,
+    "nroDx": -46,
+    "nroDy": -82
+  },
+  {
+    "frame": 17,
+    "file": "frame_17.png",
+    "w": 368,
+    "h": 340,
+    "nroDx": -46,
+    "nroDy": -82
+  },
+  {
+    "frame": 18,
+    "file": "frame_18.png",
+    "w": 360,
+    "h": 348,
+    "nroDx": -45,
+    "nroDy": -84
+  },
+  {
+    "frame": 19,
+    "file": "frame_19.png",
+    "w": 344,
+    "h": 352,
+    "nroDx": -43,
+    "nroDy": -84
+  },
+  {
+    "frame": 20,
+    "file": "frame_20.png",
+    "w": 336,
+    "h": 352,
+    "nroDx": -42,
+    "nroDy": -84
+  }
+]

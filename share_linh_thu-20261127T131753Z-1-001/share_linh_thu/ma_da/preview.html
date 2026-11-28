@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>#045 Ma Da — Spine 2D HD Studio (Live 60 FPS • 18 Bones Thủy Hồn & 4 Bộ Animation)</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080e1a;color:#f1f5f9;font-family:system-ui,-apple-system,sans-serif;padding:18px 22px}
+h1{margin:0 0 4px;color:#cffafe;font-size:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tag{background:linear-gradient(135deg,#0284c7,#4f46e5);font-size:12px;padding:3px 10px;border-radius:99px;color:#fff}
+.sub{color:#94a3b8;font-size:13.5px;margin-bottom:12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#0f172a;padding:10px 14px;border-radius:12px;border:1px solid #1e3a5f;margin-bottom:10px}
+button{background:#16233b;color:#e2e8f0;border:1px solid #2b4c7e;padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:600;font-size:13px;transition:.15s}
+button:hover{border-color:#38bdf8;color:#fff}button.active{background:linear-gradient(135deg,#0284c7,#4338ca);border-color:#bae6fd;color:#fff;box-shadow:0 0 14px rgba(56,189,248,.45)}
+.layout{display:grid;grid-template-columns:minmax(380px,1.25fr) minmax(320px,1fr);gap:16px;align-items:start}
+@media(max-width:920px){.layout{grid-template-columns:1fr}}
+.panel{background:#0f172a;border:1px solid #1e3a5f;border-radius:14px;padding:14px;text-align:center}
+.panel h3{margin:0 0 10px;color:#bae6fd;font-size:15px}
+canvas.bg-abyss{background:radial-gradient(circle at 50% 42%,#163252 0%,#091324 74%)}
+canvas.bg-river{background:linear-gradient(180deg,#082f49 0%,#0f172a 62%,#111827 85%,#030712 100%)}
+canvas.bg-checker{background:repeating-conic-gradient(#cbd5e1 0% 25%,#f1f5f9 0% 50%) 50%/22px 22px}
+canvas{border-radius:10px;max-width:100%;border:1px solid #23426e;cursor:crosshair}
+.sliders{text-align:left;display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:10px;padding:10px;background:#131f36;border-radius:10px;font-size:12px}
+.sliders label{display:flex;flex-direction:column;gap:3px;color:#cbd5e1}
+.badge{margin-top:8px;font-weight:700;color:#7dd3fc;font-size:13.5px;min-height:20px}
+.grid20{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;margin-top:12px}
+.fbox{background:#0f172a;border:1px solid #1e3a5f;border-radius:9px;padding:8px;text-align:center;font-size:11px;cursor:pointer}
+.fbox:hover,.fbox.cur{border-color:#38bdf8;background:#172947}
+.fbox img{max-height:126px;object-fit:contain;display:block;margin:4px auto}
+</style>
+</head>
+<body>
+<h1>🌊 #045 Ma Da — Spine 2D HD Studio <span class="tag">986×986 Master • 18 Bones • 6 Lớp 3D • 60 FPS</span></h1>
+<div class="sub">Hệ khung xương Thủy Hồn 18 khớp tách 6 lớp chuẩn viền vẽ: Tóc nước 3 dải độc lập, Đôi vây tai & vây ngực đập mềm, Đuôi cá ma 3 đốt uốn chữ S, Ma Nhãn vàng nhìn theo chuột & chớp mắt tự nhiên!</div>
+<div class="bar" id="animBar">
+  <button class="active" onclick="selectAnim('attack',this)">🌊 1. Thủy Quỷ Kéo Chân (Attack)</button>
+  <button onclick="selectAnim('roar',this)">👁️ 2. Oán Nữ Trỗi Dậy (Roar / Haunt)</button>
+  <button onclick="selectAnim('swim',this)">🐟 3. Ma Nước Rẽ Sóng (Swim / Glide)</button>
+  <button onclick="selectAnim('idle',this)">🌙 4. U Hồn Đáy Nước (Idle + Chớp Mắt)</button>
+  <button onclick="selectAnim('custom',this)">🎛️ 5. Tự Kéo Xương & Ma Nhãn Theo Chuột (Live Rig)</button>
+</div>
+<div class="bar">
+  <label style="color:#86efac;font-weight:600"><input type="checkbox" id="chkBones" checked> 🦴 Hiện 18 Xương Spine</label>
+  <label style="color:#7dd3fc;margin-left:8px"><input type="checkbox" id="chkMesh"> 🕸️ Hiện Lưới Soft-Mesh</label>
+  <label style="color:#fde047;margin-left:8px"><input type="checkbox" id="chkVfx" checked> ✨ Hiệu Ứng Bọt Nước & Ám Thủy Trảm</label>
+  <label style="margin-left:8px"><input type="checkbox" id="chkFlip"> ↔ Lật Hướng</label>
+  <label style="margin-left:8px">Nền: <select id="bgSel" onchange="updateBg()" style="background:#16233b;color:#fff;border:1px solid #2b4c7e;padding:4px 8px;border-radius:6px"><option value="bg-abyss">Đáy Vực Sông Đêm</option><option value="bg-river">Dòng Nước Âm Hàn</option><option value="bg-checker">Caro Trong Suốt (QA)</option></select></label>
+  <label style="margin-left:8px">Tốc độ Live: <input id="spd" type="range" min="0.3" max="2.0" step="0.1" value="1.0" style="width:90px"> <b id="spdVal">1.0x</b></label>
+</div>
+<div class="layout">
+  <div class="panel">
+    <h3>⚡ Real-Time 60-FPS Spine 2D Soft-Mesh Engine (Di chuột lên khung để Ma Nhãn nhìn theo!)</h3>
+    <canvas id="liveCv" class="bg-abyss" width="540" height="500"></canvas>
+    <div class="badge" id="liveLbl">Đang tải 6 lớp HD 512×512...</div>
+    <div class="sliders" id="rigSliders">
+      <label>Uốn 3 Dải Tóc Nước: <input type="range" id="sHair" min="-30" max="30" value="0"></label>
+      <label>Đập Đôi Vây Tai Thủy Tiên: <input type="range" id="sEars" min="-24" max="24" value="0"></label>
+      <label>Nghiêng Đầu & Mái Chéo: <input type="range" id="sHead" min="-20" max="20" value="0"></label>
+      <label>Mở / Khép Đôi Vây Ngực: <input type="range" id="sChest" min="-16" max="18" value="0"></label>
+      <label>Quẫy Đuôi Cá Ma 3 Khớp: <input type="range" id="sTail" min="-32" max="32" value="0"></label>
+      <label><input type="checkbox" id="chkMouse" checked> 👁️ Mắt Vàng & Đầu dõi theo chuột</label>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>🎞️ Trình Kiểm Duyệt 20 Frame PNG Đã Xuất Chuẩn Game (<span id="packName">attack</span>)</h3>
+    <canvas id="frameCv" class="bg-abyss" width="400" height="380"></canvas>
+    <div class="badge" id="frameLbl"></div>
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px;align-items:center">
+      <button id="btnFPlay" onclick="toggleFPlay()">⏸ Dừng</button>
+      <button onclick="stepF(-1)">◀</button>
+      <input id="fScrub" type="range" min="1" max="20" value="1" style="width:120px">
+      <button onclick="stepF(1)">▶</button>
+      <b id="fNum">01/20</b>
+      <label style="font-size:12px;margin-left:6px"><input id="fFps" type="range" min="5" max="24" value="13" style="width:65px"> <span id="fFpsV">13</span>fps</label>
+    </div>
+  </div>
+</div>
+<h3 style="margin:18px 0 6px;color:#bae6fd">Bảng Chi Tiết 20 Frame Của Bộ Đang Chọn (Nhấp vào bất kỳ ô nào để soi từng pixel)</h3>
+<div class="grid20" id="grid"></div>
+<script>
+const META={"idle": [{"n": "01. Trôi nổi đáy nước • Mắt vàng ngơ ngác rình mồi", "bx": 0.0, "by": 3.94, "pitch": 0.0, "breathX": 1.0, "breathY": 1.0, "neck": -1.15, "head": -3.01, "hdx": -0.59, "hdy": 0.65, "earL": -3.7, "earR": 6.12, "cfL": -1.29, "cfR": 1.29, "t1": -4.09, "t2": -14.23, "t3": -16.4, "tsx": -11.14, "twy": 5.57, "twp": 0.0, "hl1": -4.8, "hl2": -13.47, "hbr1": 4.83, "hbr2": 12.49, "hor1": 7.44, "bsw": -5.02, "hrip": 0.0, "blink": 0.0, "eyeGlow": 0.18, "pupX": 0.0, "pupY": -1.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Nhịp thở thủy triều lên • Vây ngực hé mở mềm mại", "bx": 1.3, "by": 0.41, "pitch": 0.68, "breathX": 1.008, "breathY": 1.0056, "neck": -0.44, "head": -1.96, "hdx": 0.03, "hdy": -0.03, "earL": 2.15, "earR": 0.68, "cfL": 0.74, "cfR": -0.74, "t1": -0.9, "t2": -12.08, "t3": -18.56, "tsx": -8.84, "twy": 7.07, "twp": 0.628, "hl1": -2.4, "hl2": -12.51, "hbr1": 2.82, "hbr2": 12.0, "hor1": 5.25, "bsw": -3.27, "hrip": 0.628, "blink": 0.0, "eyeGlow": 0.21, "pupX": 0.49, "pupY": -0.95, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Tóc ướt lượn sóng ngầm • Vây tai khẽ vẫy", "bx": 2.47, "by": -3.16, "pitch": 1.29, "breathX": 1.0153, "breathY": 1.0106, "neck": 0.31, "head": -0.72, "hdx": 0.64, "hdy": -0.71, "earL": 7.18, "earR": -5.02, "cfL": 2.7, "cfR": -2.7, "t1": 2.38, "t2": -8.74, "t3": -18.91, "tsx": -5.68, "twy": 7.88, "twp": 1.257, "hl1": 0.24, "hl2": -10.33, "hbr1": 0.54, "hbr2": 10.32, "hor1": 2.55, "bsw": -1.2, "hrip": 1.257, "blink": 0.0, "eyeGlow": 0.24, "pupX": 0.94, "pupY": -0.81, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Đuôi cá ma uốn chữ S • Bọt nước dâng nhẹ", "bx": 3.4, "by": -6.42, "pitch": 1.78, "breathX": 1.021, "breathY": 1.0146, "neck": 1.03, "head": 0.6, "hdx": 1.2, "hdy": -1.32, "earL": 9.47, "earR": -8.8, "cfL": 4.39, "cfR": -4.39, "t1": 5.42, "t2": -4.54, "t3": -17.4, "tsx": -1.96, "twy": 7.92, "twp": 1.885, "hl1": 2.85, "hl2": -7.14, "hbr1": -1.8, "hbr2": 7.64, "hor1": -0.4, "bsw": 0.99, "hrip": 1.885, "blink": 0.0, "eyeGlow": 0.26, "pupX": 1.29, "pupY": -0.59, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Đỉnh lơ lửng nhịp 1 • Ánh mắt vàng long lanh", "bx": 3.99, "by": -9.06, "pitch": 2.09, "breathX": 1.0247, "breathY": 1.0171, "neck": 1.65, "head": 1.85, "hdx": 1.63, "hdy": -1.8, "earL": 8.14, "earR": -9.22, "cfL": 5.66, "cfR": -5.66, "t1": 7.93, "t2": 0.1, "t3": -14.19, "tsx": 1.95, "twy": 7.18, "twp": 2.513, "hl1": 5.19, "hl2": -3.25, "hbr1": -3.96, "hbr2": 4.21, "hor1": -3.32, "bsw": 3.09, "hrip": 2.513, "blink": 0.0, "eyeGlow": 0.28, "pupX": 1.52, "pupY": -0.31, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. Nghiêng đầu tò mò • Mái tóc chéo bồng bềnh", "bx": 4.2, "by": -10.8, "pitch": 2.2, "breathX": 1.026, "breathY": 1.018, "neck": 2.11, "head": 2.93, "hdx": 1.91, "hdy": -2.1, "earL": 3.7, "earR": -6.12, "cfL": 6.37, "cfR": -6.37, "t1": 9.67, "t2": 4.73, "t3": -9.59, "tsx": 5.67, "twy": 5.74, "twp": 3.142, "hl1": 7.02, "hl2": 0.95, "hbr1": -5.74, "hbr2": 0.36, "hor1": -5.91, "bsw": 4.88, "hrip": 3.142, "blink": 0.0, "eyeGlow": 0.28, "pupX": 1.6, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. Hạ nhẹ độ nổi • Đuôi đốm sáng quẫy êm", "bx": 3.99, "by": -11.49, "pitch": 2.09, "breathX": 1.0247, "breathY": 1.0171, "neck": 2.36, "head": 3.71, "hdx": 2.0, "hdy": -2.2, "earL": -2.15, "earR": -0.68, "cfL": 6.46, "cfR": -6.46, "t1": 10.46, "t2": 8.9, "t3": -4.05, "tsx": 8.83, "twy": 3.74, "twp": 3.77, "hl1": 8.16, "hl2": 5.07, "hbr1": -6.95, "hbr2": -3.51, "hor1": -7.92, "bsw": 6.19, "hrip": 3.77, "blink": 0.0, "eyeGlow": 0.28, "pupX": 1.52, "pupY": 0.31, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "08. Làn tóc sau phập phồng theo dòng nước tối", "bx": 3.4, "by": -11.06, "pitch": 1.78, "breathX": 1.021, "breathY": 1.0146, "neck": 2.38, "head": 4.14, "hdx": 1.89, "hdy": -2.08, "earL": -7.18, "earR": 5.02, "cfL": 5.91, "cfR": -5.91, "t1": 10.23, "t2": 12.19, "t3": 1.88, "tsx": 11.14, "twy": 1.37, "twp": 4.398, "hl1": 8.5, "hl2": 8.69, "hbr1": -7.48, "hbr2": -7.05, "hor1": -9.15, "bsw": 6.9, "hrip": 4.398, "blink": 0.0, "eyeGlow": 0.26, "pupX": 1.29, "pupY": 0.59, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "09. Vây tai rũ nhẹ • Nhịp lơ lửng thanh thoát", "bx": 2.47, "by": -9.54, "pitch": 1.29, "breathX": 1.0153, "breathY": 1.0106, "neck": 2.17, "head": 4.16, "hdx": 1.6, "hdy": -1.76, "earL": -9.47, "earR": 8.8, "cfL": 4.79, "cfR": -4.79, "t1": 8.99, "t2": 14.3, "t3": 7.63, "tsx": 12.35, "twy": -1.14, "twp": 5.027, "hl1": 8.01, "hl2": 11.46, "hbr1": -7.28, "hbr2": -9.89, "hor1": -9.49, "bsw": 6.93, "hrip": 5.027, "blink": 0.0, "eyeGlow": 0.24, "pupX": 0.94, "pupY": 0.81, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "10. Chuẩn bị nhịp nổi 2 • Hơi lạnh âm hàn lan tỏa", "bx": 1.3, "by": -7.09, "pitch": 0.68, "breathX": 1.008, "breathY": 1.0056, "neck": 1.75, "head": 3.77, "hdx": 1.15, "hdy": -1.27, "earL": -8.14, "earR": 9.22, "cfL": 3.2, "cfR": -3.2, "t1": 6.88, "t2": 15.0, "t3": 12.63, "tsx": 12.35, "twy": -3.53, "twp": 5.655, "hl1": 6.73, "hl2": 13.1, "hbr1": -6.37, "hbr2": -11.77, "hor1": -8.9, "bsw": 6.28, "hrip": 5.655, "blink": 0.0, "eyeGlow": 0.21, "pupX": 0.49, "pupY": 0.95, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "11. Vươn nhẹ thân ma nước • Vây ngực khép mở nhịp nhàng", "bx": 0.0, "by": -3.94, "pitch": 0.0, "breathX": 1.0, "breathY": 1.0, "neck": 1.15, "head": 3.01, "hdx": 0.59, "hdy": -0.65, "earL": -3.7, "earR": 6.12, "cfL": 1.29, "cfR": -1.29, "t1": 4.09, "t2": 14.23, "t3": 16.4, "tsx": 11.14, "twy": -5.57, "twp": 6.283, "hl1": 4.8, "hl2": 13.47, "hbr1": -4.83, "hbr2": -12.49, "hor1": -7.44, "bsw": 5.02, "hrip": 6.283, "blink": 0.0, "eyeGlow": 0.18, "pupX": 0.0, "pupY": 1.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "12. Tóc dài hai bên vờn sóng • Đuôi uốn ngược pha", "bx": -1.3, "by": -0.41, "pitch": -0.68, "breathX": 0.992, "breathY": 0.9944, "neck": 0.44, "head": 1.96, "hdx": -0.03, "hdy": 0.03, "earL": 2.15, "earR": 0.68, "cfL": -0.74, "cfR": 0.74, "t1": 0.9, "t2": 12.08, "t3": 18.56, "tsx": 8.84, "twy": -7.07, "twp": 6.912, "hl1": 2.4, "hl2": 12.51, "hbr1": -2.82, "hbr2": -12.0, "hor1": -5.25, "bsw": 3.27, "hrip": 6.912, "blink": 0.0, "eyeGlow": 0.15, "pupX": -0.49, "pupY": 0.95, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "13. Ngẩng nhẹ gương mặt tái xanh • Bọt khí lấp lánh", "bx": -2.47, "by": 3.16, "pitch": -1.29, "breathX": 0.9847, "breathY": 0.9894, "neck": -0.31, "head": 0.72, "hdx": -0.64, "hdy": 0.71, "earL": 7.18, "earR": -5.02, "cfL": -2.7, "cfR": 2.7, "t1": -2.38, "t2": 8.74, "t3": 18.91, "tsx": 5.68, "twy": -7.88, "twp": 7.54, "hl1": -0.24, "hl2": 10.33, "hbr1": -0.54, "hbr2": -10.32, "hor1": -2.55, "bsw": 1.2, "hrip": 7.54, "blink": 0.0, "eyeGlow": 0.12, "pupX": -0.94, "pupY": 0.81, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "14. Đỉnh lơ lửng nhịp 2 • Khí chất thủy thần dân gian", "bx": -3.4, "by": 6.42, "pitch": -1.78, "breathX": 0.979, "breathY": 0.9854, "neck": -1.03, "head": -0.6, "hdx": -1.2, "hdy": 1.32, "earL": 9.47, "earR": -8.8, "cfL": -4.39, "cfR": 4.39, "t1": -5.42, "t2": 4.54, "t3": 17.4, "tsx": 1.96, "twy": -7.92, "twp": 8.168, "hl1": -2.85, "hl2": 7.14, "hbr1": 1.8, "hbr2": -7.64, "hor1": 0.4, "bsw": -0.99, "hrip": 8.168, "blink": 0.0, "eyeGlow": 0.1, "pupX": -1.29, "pupY": 0.59, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Bắt đầu chớp mắt ma mị (Half-Blink) • Tóc rũ êm", "bx": -3.99, "by": 9.06, "pitch": -2.09, "breathX": 0.9753, "breathY": 0.9829, "neck": -1.65, "head": -1.85, "hdx": -1.63, "hdy": 1.8, "earL": 8.14, "earR": -9.22, "cfL": -5.66, "cfR": 5.66, "t1": -7.93, "t2": -0.1, "t3": 14.19, "tsx": -1.95, "twy": -7.18, "twp": 8.796, "hl1": -5.19, "hl2": 3.25, "hbr1": 3.96, "hbr2": -4.21, "hor1": 3.32, "bsw": -3.09, "hrip": 8.796, "blink": 0.48, "eyeGlow": 0.08, "pupX": -1.52, "pupY": 0.31, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Nhắm khẽ Ma Nhãn vàng (Full-Blink) • Tĩnh lặng đáy sông", "bx": -4.2, "by": 10.8, "pitch": -2.2, "breathX": 0.974, "breathY": 0.982, "neck": -2.11, "head": -2.93, "hdx": -1.91, "hdy": 2.1, "earL": 3.7, "earR": -6.12, "cfL": -6.37, "cfR": 6.37, "t1": -9.67, "t2": -4.73, "t3": 9.59, "tsx": -5.67, "twy": -5.74, "twp": 9.425, "hl1": -7.02, "hl2": -0.95, "hbr1": 5.74, "hbr2": -0.36, "hor1": 5.91, "bsw": -4.88, "hrip": 9.425, "blink": 0.96, "eyeGlow": 0.08, "pupX": -1.6, "pupY": 0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Mở bừng mắt vàng óng • Tia nhìn khóa mục tiêu", "bx": -3.99, "by": 11.49, "pitch": -2.09, "breathX": 0.9753, "breathY": 0.9829, "neck": -2.36, "head": -3.71, "hdx": -2.0, "hdy": 2.2, "earL": -2.15, "earR": -0.68, "cfL": -6.46, "cfR": 6.46, "t1": -10.46, "t2": -8.9, "t3": 4.05, "tsx": -8.83, "twy": -3.74, "twp": 10.053, "hl1": -8.16, "hl2": -5.07, "hbr1": 6.95, "hbr2": 3.51, "hor1": 7.92, "bsw": -6.19, "hrip": 10.053, "blink": 0.35, "eyeGlow": 0.08, "pupX": -1.52, "pupY": -0.31, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Đuôi ma lượn mềm hồi vị • Vây tai cân bằng", "bx": -3.4, "by": 11.06, "pitch": -1.78, "breathX": 0.979, "breathY": 0.9854, "neck": -2.38, "head": -4.14, "hdx": -1.89, "hdy": 2.08, "earL": -7.18, "earR": 5.02, "cfL": -5.91, "cfR": 5.91, "t1": -10.23, "t2": -12.19, "t3": -1.88, "tsx": -11.14, "twy": -1.37, "twp": 10.681, "hl1": -8.5, "hl2": -8.69, "hbr1": 7.48, "hbr2": 7.05, "hor1": 9.15, "bsw": -6.9, "hrip": 10.681, "blink": 0.0, "eyeGlow": 0.1, "pupX": -1.29, "pupY": -0.59, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Hạ dần độ cao êm ái • Dòng nước lắng đọng", "bx": -2.47, "by": 9.54, "pitch": -1.29, "breathX": 0.9847, "breathY": 0.9894, "neck": -2.17, "head": -4.16, "hdx": -1.6, "hdy": 1.76, "earL": -9.47, "earR": 8.8, "cfL": -4.79, "cfR": 4.79, "t1": -8.99, "t2": -14.3, "t3": -7.63, "tsx": -12.35, "twy": 1.14, "twp": 11.31, "hl1": -8.01, "hl2": -11.46, "hbr1": 7.28, "hbr2": 9.89, "hor1": 9.49, "bsw": -6.93, "hrip": 11.31, "blink": 0.0, "eyeGlow": 0.12, "pupX": -0.94, "pupY": -0.81, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Khép mượt chu kỳ → Nối liền hoàn hảo Frame 01", "bx": -1.3, "by": 7.09, "pitch": -0.68, "breathX": 0.992, "breathY": 0.9944, "neck": -1.75, "head": -3.77, "hdx": -1.15, "hdy": 1.27, "earL": -8.14, "earR": 9.22, "cfL": -3.2, "cfR": 3.2, "t1": -6.88, "t2": -15.0, "t3": -12.63, "tsx": -12.35, "twy": 3.53, "twp": 11.938, "hl1": -6.73, "hl2": -13.1, "hbr1": 6.37, "hbr2": 11.77, "hor1": 8.9, "bsw": -6.28, "hrip": 11.938, "blink": 0.0, "eyeGlow": 0.15, "pupX": -0.49, "pupY": -0.95, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}], "swim": [{"n": "01. Nghiêng mình rẽ nước • Chuẩn bị nhịp quẫy đuôi 1", "bx": -11.0, "by": -4.0, "pitch": -9.5, "breathX": 1.0, "breathY": 1.0, "neck": -1.17, "head": 2.6, "hdx": -5.5, "hdy": -2.0, "earL": -14.23, "earR": 2.11, "cfL": -9.51, "cfR": 9.51, "t1": 0.0, "t2": -22.82, "t3": -24.25, "tsx": 6.25, "twy": 3.0, "twp": 0.0, "hl1": -17.09, "hl2": -29.99, "hbr1": -18.46, "hbr2": -29.88, "hor1": -25.1, "bsw": 3.54, "hrip": 0.0, "blink": 0.0, "eyeGlow": 0.35, "pupX": -2.6, "pupY": 0.5, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Đuôi cá ma cuộn lấy đà • Vây tai ép mượt theo dòng", "bx": -8.4, "by": -8.94, "pitch": -8.33, "breathX": 1.0147, "breathY": 0.9912, "neck": -0.26, "head": 3.81, "hdx": -4.73, "hdy": -1.9, "earL": -6.34, "earR": 8.12, "cfL": -4.26, "cfR": 4.26, "t1": 10.87, "t2": -12.46, "t3": -30.0, "tsx": 13.97, "twy": 0.9, "twp": 0.942, "hl1": -10.79, "hl2": -27.21, "hbr1": -13.54, "hbr2": -28.29, "hor1": -19.36, "bsw": 8.46, "hrip": 0.942, "blink": 0.0, "eyeGlow": 0.35, "pupX": -2.35, "pupY": 0.48, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Quất mạnh đuôi ma nhịp 1 • Đẩy thân lướt tới!", "bx": -5.57, "by": -13.4, "pitch": -7.27, "breathX": 1.0238, "breathY": 0.9857, "neck": 0.68, "head": 5.18, "hdx": -4.03, "hdy": -1.62, "earL": 0.92, "earR": 14.85, "cfL": -0.05, "cfR": 0.05, "t1": 17.59, "t2": 2.66, "t3": -24.29, "tsx": 23.24, "twy": -4.6, "twp": 1.885, "hl1": -4.19, "hl2": -19.39, "hbr1": -8.03, "hbr2": -22.01, "hor1": -11.95, "bsw": 13.97, "hrip": 1.885, "blink": 0.0, "eyeGlow": 0.35, "pupX": -2.13, "pupY": 0.4, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Vươn lướt giữa dòng sông tối • Tóc dài bay phấp phới", "bx": -3.14, "by": -16.94, "pitch": -6.43, "breathX": 1.0238, "breathY": 0.9857, "neck": 1.55, "head": 6.58, "hdx": -3.48, "hdy": -1.18, "earL": 4.78, "earR": 19.73, "cfL": 1.5, "cfR": -1.5, "t1": 17.59, "t2": 16.76, "t3": -9.3, "tsx": 30.5, "twy": -11.4, "twp": 2.827, "hl1": 0.19, "hl2": -9.5, "hbr1": -4.04, "hbr2": -13.43, "hor1": -5.71, "bsw": 17.96, "hrip": 2.827, "blink": 0.0, "eyeGlow": 0.35, "pupX": -1.95, "pupY": 0.29, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Đỉnh sải bơi 1 • Đôi vây ngực mở đón luồng nước", "bx": -1.34, "by": -19.22, "pitch": -5.89, "breathX": 1.0147, "breathY": 0.9912, "neck": 2.27, "head": 7.88, "hdx": -3.12, "hdy": -0.62, "earL": 3.75, "earR": 20.89, "cfL": -0.19, "cfR": 0.19, "t1": 10.87, "t2": 24.46, "t3": 9.25, "tsx": 32.99, "twy": -16.9, "twp": 3.77, "hl1": 0.68, "hl2": -1.34, "hbr1": -3.09, "hbr2": -5.83, "hor1": -3.02, "bsw": 18.91, "hrip": 3.77, "blink": 0.0, "eyeGlow": 0.35, "pupX": -1.84, "pupY": 0.15, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. Đảo chiều sóng đuôi chữ S • Bọt nước cuốn phía sau", "bx": -0.0, "by": -20.0, "pitch": -5.7, "breathX": 1.0, "breathY": 1.0, "neck": 2.76, "head": 8.94, "hdx": -3.0, "hdy": -0.0, "earL": -1.77, "earR": 17.89, "cfL": -4.49, "cfR": 4.49, "t1": 0.0, "t2": 22.82, "t3": 24.25, "tsx": 29.75, "twy": -19.0, "twp": 4.712, "hl1": -2.91, "hl2": 1.99, "hbr1": -5.54, "hbr2": -2.12, "hor1": -4.9, "bsw": 16.46, "hrip": 4.712, "blink": 0.0, "eyeGlow": 0.35, "pupX": -1.8, "pupY": 0.0, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. Lướt nhanh săn mồi • Mắt vàng tập trung sắc lạnh", "bx": 1.34, "by": -19.22, "pitch": -5.89, "breathX": 0.9853, "breathY": 1.0088, "neck": 2.99, "head": 9.67, "hdx": -3.12, "hdy": 0.62, "earL": -9.66, "earR": 11.88, "cfL": -9.74, "cfR": 9.74, "t1": -10.87, "t2": 12.46, "t3": 30.0, "tsx": 22.03, "twy": -16.9, "twp": 5.655, "hl1": -9.21, "hl2": -0.79, "hbr1": -10.46, "hbr2": -3.71, "hor1": -10.64, "bsw": 11.54, "hrip": 5.655, "blink": 0.0, "eyeGlow": 0.35, "pupX": -1.84, "pupY": -0.15, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "08. Đuôi đốm sáng vẫy gắt • Dải tóc ướt uốn lượn", "bx": 3.14, "by": -16.94, "pitch": -6.43, "breathX": 0.9762, "breathY": 1.0143, "neck": 2.92, "head": 9.99, "hdx": -3.48, "hdy": 1.18, "earL": -16.92, "earR": 5.15, "cfL": -13.95, "cfR": 13.95, "t1": -17.59, "t2": -2.66, "t3": 24.29, "tsx": 12.76, "twy": -11.4, "twp": 6.597, "hl1": -15.81, "hl2": -8.61, "hbr1": -15.97, "hbr2": -9.99, "hor1": -18.05, "bsw": 6.03, "hrip": 6.597, "blink": 0.0, "eyeGlow": 0.35, "pupX": -1.95, "pupY": -0.29, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "09. Hạ nhẹ mũi lướt • Vây tai rung theo xoáy nước", "bx": 5.57, "by": -13.4, "pitch": -7.27, "breathX": 0.9762, "breathY": 1.0143, "neck": 2.57, "head": 9.87, "hdx": -4.03, "hdy": 1.62, "earL": -20.78, "earR": 0.27, "cfL": -15.5, "cfR": 15.5, "t1": -17.59, "t2": -16.76, "t3": 9.3, "tsx": 5.5, "twy": -4.6, "twp": 7.54, "hl1": -20.19, "hl2": -18.5, "hbr1": -19.96, "hbr2": -18.57, "hor1": -24.29, "bsw": 2.04, "hrip": 7.54, "blink": 0.0, "eyeGlow": 0.35, "pupX": -2.13, "pupY": -0.4, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "10. Chuẩn bị nhịp quẫy đẩy 2 (Aquatic Glide)", "bx": 8.4, "by": -8.94, "pitch": -8.33, "breathX": 0.9853, "breathY": 1.0088, "neck": 1.96, "head": 9.32, "hdx": -4.73, "hdy": 1.9, "earL": -19.75, "earR": -0.89, "cfL": -13.81, "cfR": 13.81, "t1": -10.87, "t2": -24.46, "t3": -9.25, "tsx": 3.01, "twy": 0.9, "twp": 8.482, "hl1": -20.68, "hl2": -26.66, "hbr1": -20.91, "hbr2": -26.17, "hor1": -26.98, "bsw": 1.09, "hrip": 8.482, "blink": 0.0, "eyeGlow": 0.35, "pupX": -2.35, "pupY": -0.48, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "11. Cuộn hông lấy lực • Tóc sau cuộn sóng mềm", "bx": 11.0, "by": -4.0, "pitch": -9.5, "breathX": 1.0, "breathY": 1.0, "neck": 1.17, "head": 8.4, "hdx": -5.5, "hdy": 2.0, "earL": -14.23, "earR": 2.11, "cfL": -9.51, "cfR": 9.51, "t1": -0.0, "t2": -22.82, "t3": -24.25, "tsx": 6.25, "twy": 3.0, "twp": 9.425, "hl1": -17.09, "hl2": -29.99, "hbr1": -18.46, "hbr2": -29.88, "hor1": -25.1, "bsw": 3.54, "hrip": 9.425, "blink": 0.0, "eyeGlow": 0.35, "pupX": -2.6, "pupY": -0.5, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "12. Quất đuôi đẩy vọt nhịp 2 • Thân nâng bổng nhẹ", "bx": 12.52, "by": 0.94, "pitch": -10.67, "breathX": 1.0147, "breathY": 0.9912, "neck": 0.26, "head": 7.19, "hdx": -6.27, "hdy": 1.9, "earL": -6.34, "earR": 8.12, "cfL": -4.26, "cfR": 4.26, "t1": 10.87, "t2": -12.46, "t3": -30.0, "tsx": 13.97, "twy": 0.9, "twp": 10.367, "hl1": -10.79, "hl2": -27.21, "hbr1": -13.54, "hbr2": -28.29, "hor1": -19.36, "bsw": 8.46, "hrip": 10.367, "blink": 0.0, "eyeGlow": 0.35, "pupX": -2.85, "pupY": -0.48, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "13. Xé nước lao êm • Mái tóc chéo bay lượn uyển chuyển", "bx": 12.23, "by": 5.4, "pitch": -11.73, "breathX": 1.0238, "breathY": 0.9857, "neck": -0.68, "head": 5.82, "hdx": -6.97, "hdy": 1.62, "earL": 0.92, "earR": 14.85, "cfL": -0.05, "cfR": 0.05, "t1": 17.59, "t2": 2.66, "t3": -24.29, "tsx": 23.24, "twy": -4.6, "twp": 11.31, "hl1": -4.19, "hl2": -19.39, "hbr1": -8.03, "hbr2": -22.01, "hor1": -11.95, "bsw": 13.97, "hrip": 11.31, "blink": 0.0, "eyeGlow": 0.35, "pupX": -3.07, "pupY": -0.4, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "14. Đỉnh sải bơi 2 • Linh hồn mặt nước thoắt ẩn thoắt hiện", "bx": 9.79, "by": 8.94, "pitch": -12.57, "breathX": 1.0238, "breathY": 0.9857, "neck": -1.55, "head": 4.42, "hdx": -7.52, "hdy": 1.18, "earL": 4.78, "earR": 19.73, "cfL": 1.5, "cfR": -1.5, "t1": 17.59, "t2": 16.76, "t3": -9.3, "tsx": 30.5, "twy": -11.4, "twp": 12.252, "hl1": 0.19, "hl2": -9.5, "hbr1": -4.04, "hbr2": -13.43, "hor1": -5.71, "bsw": 17.96, "hrip": 12.252, "blink": 0.0, "eyeGlow": 0.35, "pupX": -3.25, "pupY": -0.29, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Duỗi dài chóp đuôi lam ngọc • Bọt khí xoáy tròn", "bx": 5.46, "by": 11.22, "pitch": -13.11, "breathX": 1.0147, "breathY": 0.9912, "neck": -2.27, "head": 3.12, "hdx": -7.88, "hdy": 0.62, "earL": 3.75, "earR": 20.89, "cfL": -0.19, "cfR": 0.19, "t1": 10.87, "t2": 24.46, "t3": 9.25, "tsx": 32.99, "twy": -16.9, "twp": 13.195, "hl1": 0.68, "hl2": -1.34, "hbr1": -3.09, "hbr2": -5.83, "hor1": -3.02, "bsw": 18.91, "hrip": 13.195, "blink": 0.0, "eyeGlow": 0.35, "pupX": -3.36, "pupY": -0.15, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Lượn vòng giữ thăng bằng • Vây ngực rũ nhẹ", "bx": 0.0, "by": 12.0, "pitch": -13.3, "breathX": 1.0, "breathY": 1.0, "neck": -2.76, "head": 2.06, "hdx": -8.0, "hdy": 0.0, "earL": -1.77, "earR": 17.89, "cfL": -4.49, "cfR": 4.49, "t1": 0.0, "t2": 22.82, "t3": 24.25, "tsx": 29.75, "twy": -19.0, "twp": 14.137, "hl1": -2.91, "hl2": 1.99, "hbr1": -5.54, "hbr2": -2.12, "hor1": -4.9, "bsw": 16.46, "hrip": 14.137, "blink": 0.0, "eyeGlow": 0.35, "pupX": -3.4, "pupY": -0.0, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Nghiêng đầu quan sát con mồi trên mặt sông", "bx": -5.46, "by": 11.22, "pitch": -13.11, "breathX": 0.9853, "breathY": 1.0088, "neck": -2.99, "head": 1.33, "hdx": -7.88, "hdy": -0.62, "earL": -9.66, "earR": 11.88, "cfL": -9.74, "cfR": 9.74, "t1": -10.87, "t2": 12.46, "t3": 30.0, "tsx": 22.03, "twy": -16.9, "twp": 15.08, "hl1": -9.21, "hl2": -0.79, "hbr1": -10.46, "hbr2": -3.71, "hor1": -10.64, "bsw": 11.54, "hrip": 15.08, "blink": 0.0, "eyeGlow": 0.35, "pupX": -3.36, "pupY": 0.15, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Thu dần biên độ quẫy • Dòng nước trôi êm", "bx": -9.79, "by": 8.94, "pitch": -12.57, "breathX": 0.9762, "breathY": 1.0143, "neck": -2.92, "head": 1.01, "hdx": -7.52, "hdy": -1.18, "earL": -16.92, "earR": 5.15, "cfL": -13.95, "cfR": 13.95, "t1": -17.59, "t2": -2.66, "t3": 24.29, "tsx": 12.76, "twy": -11.4, "twp": 16.022, "hl1": -15.81, "hl2": -8.61, "hbr1": -15.97, "hbr2": -9.99, "hor1": -18.05, "bsw": 6.03, "hrip": 16.022, "blink": 0.0, "eyeGlow": 0.35, "pupX": -3.25, "pupY": 0.29, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Hồi phục tư thế rẽ sóng • Tóc thu mượt", "bx": -12.23, "by": 5.4, "pitch": -11.73, "breathX": 0.9762, "breathY": 1.0143, "neck": -2.57, "head": 1.13, "hdx": -6.97, "hdy": -1.62, "earL": -20.78, "earR": 0.27, "cfL": -15.5, "cfR": 15.5, "t1": -17.59, "t2": -16.76, "t3": 9.3, "tsx": 5.5, "twy": -4.6, "twp": 16.965, "hl1": -20.19, "hl2": -18.5, "hbr1": -19.96, "hbr2": -18.57, "hor1": -24.29, "bsw": 2.04, "hrip": 16.965, "blink": 0.0, "eyeGlow": 0.35, "pupX": -3.07, "pupY": 0.4, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Hoàn tất vòng bơi → Nối liền hoàn hảo Frame 01", "bx": -12.52, "by": 0.94, "pitch": -10.67, "breathX": 0.9853, "breathY": 1.0088, "neck": -1.96, "head": 1.68, "hdx": -6.27, "hdy": -1.9, "earL": -19.75, "earR": -0.89, "cfL": -13.81, "cfR": 13.81, "t1": -10.87, "t2": -24.46, "t3": -9.25, "tsx": 3.01, "twy": 0.9, "twp": 17.907, "hl1": -20.68, "hl2": -26.66, "hbr1": -20.91, "hbr2": -26.17, "hor1": -26.98, "bsw": 1.09, "hrip": 17.907, "blink": 0.0, "eyeGlow": 0.35, "pupX": -2.85, "pupY": 0.48, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}], "roar": [{"n": "01. Tĩnh lặng dưới đáy sâu • Bắt đầu tụ âm khí", "bx": 0.0, "by": 0.0, "pitch": 0.0, "breathX": 1.0, "breathY": 1.0, "neck": -0.0, "head": -0.0, "hdx": 0.0, "hdy": -0.0, "earL": -0.0, "earR": 0.0, "cfL": -0.0, "cfR": 0.0, "t1": 0.0, "t2": -15.15, "t3": -21.82, "tsx": 0.0, "twy": -0.0, "twp": 0.0, "hl1": -0.0, "hl2": 0.0, "hbr1": 0.0, "hbr2": 0.0, "hor1": 0.0, "bsw": 0.0, "hrip": 0.0, "blink": 0.0, "eyeGlow": 0.25, "pupX": 0.0, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Cúi đầu thu mình • Đôi vây tai khép sát thái dương", "bx": 0.77, "by": 5.74, "pitch": 2.1, "breathX": 1.0, "breathY": 0.9937, "neck": -1.45, "head": -2.36, "hdx": 0.42, "hdy": -0.0, "earL": -4.63, "earR": 4.63, "cfL": -3.05, "cfR": 3.05, "t1": 9.25, "t2": -1.91, "t3": -19.74, "tsx": 8.23, "twy": -0.0, "twp": 0.942, "hl1": -5.05, "hl2": -1.19, "hbr1": 4.63, "hbr2": 0.77, "hor1": 5.05, "bsw": 7.05, "hrip": 0.942, "blink": 0.13, "eyeGlow": 0.35, "pupX": 0.0, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Nén lực sâu (Anticipation) • Tóc quấn quanh thân", "bx": 1.41, "by": 10.61, "pitch": 3.89, "breathX": 1.0, "breathY": 0.9883, "neck": -2.69, "head": -4.37, "hdx": 0.78, "hdy": -0.0, "earL": -8.56, "earR": 8.56, "cfL": -5.64, "cfR": 5.64, "t1": 15.73, "t2": 13.12, "t3": -9.24, "tsx": 13.31, "twy": -0.0, "twp": 1.885, "hl1": -9.33, "hl2": -3.28, "hbr1": 8.56, "hbr2": 2.5, "hor1": 9.33, "bsw": 11.41, "hrip": 1.885, "blink": 0.25, "eyeGlow": 0.43, "pupX": 0.0, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Nước tối sôi sục • Mắt vàng lóe tia sáng lạnh!", "bx": 1.85, "by": 13.86, "pitch": 5.08, "breathX": 1.0, "breathY": 0.9848, "neck": -3.51, "head": -5.7, "hdx": 1.02, "hdy": -0.0, "earL": -11.18, "earR": 11.18, "cfL": -7.37, "cfR": 7.37, "t1": 17.64, "t2": 25.11, "t3": 6.39, "tsx": 13.31, "twy": -0.0, "twp": 2.827, "hl1": -12.2, "hl2": -6.62, "hbr1": 11.18, "hbr2": 5.6, "hor1": 12.2, "bsw": 11.41, "hrip": 2.827, "blink": 0.32, "eyeGlow": 0.48, "pupX": 0.0, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Nén cực hạn • Áp suất thủy vực dâng trào!", "bx": 2.0, "by": 15.0, "pitch": 5.5, "breathX": 1.0, "breathY": 0.9835, "neck": -3.8, "head": -6.17, "hdx": 1.1, "hdy": -0.0, "earL": -12.1, "earR": 12.1, "cfL": -7.98, "cfR": 7.98, "t1": 14.68, "t2": 30.07, "t3": 21.68, "tsx": 8.23, "twy": -0.0, "twp": 3.77, "hl1": -13.2, "hl2": -10.7, "hbr1": 12.1, "hbr2": 9.6, "hor1": 13.2, "bsw": 7.05, "hrip": 3.77, "blink": 0.35, "eyeGlow": 0.5, "pupX": 0.0, "pupY": -0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. BÙNG NỔ TRỖI DẬY! Tóc nước tung xòe bốn phía!", "bx": 0.0, "by": 3.93, "pitch": -1.8, "breathX": 1.0152, "breathY": 1.0125, "neck": 1.27, "head": 2.07, "hdx": -0.55, "hdy": -1.38, "earL": 6.09, "earR": -6.09, "cfL": 4.01, "cfR": -4.01, "t1": -4.43, "t2": 9.06, "t3": 16.84, "tsx": 0.0, "twy": -3.88, "twp": 4.712, "hl1": 6.64, "hl2": 7.75, "hbr1": -6.09, "hbr2": -7.2, "hor1": -6.64, "bsw": 0.0, "hrip": 4.712, "blink": 0.0, "eyeGlow": 0.68, "pupX": 0.0, "pupY": -0.5, "aura": 0.52, "roar": 0.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. Ngửa mặt gọi sóng • Ma Nhãn phát quang vàng rực!", "bx": 1.15, "by": -6.28, "pitch": -2.08, "breathX": 1.0343, "breathY": 1.0281, "neck": 3.06, "head": 4.97, "hdx": -1.25, "hdy": -3.12, "earL": 13.72, "earR": -13.72, "cfL": 9.04, "cfR": -9.04, "t1": -15.86, "t2": -7.19, "t3": 12.3, "tsx": -8.23, "twy": -8.73, "twp": 5.655, "hl1": 14.97, "hl2": 12.76, "hbr1": -13.72, "hbr2": -11.52, "hor1": -14.97, "bsw": -7.05, "hrip": 5.655, "blink": 0.0, "eyeGlow": 0.85, "pupX": 0.0, "pupY": -1.12, "aura": 0.81, "roar": 0.1, "slash": -1.0, "sAlpha": 0.0}, {"n": "08. Tóc hóa xúc tu nước khổng lồ • Vòng xoáy thôi miên!", "bx": -1.08, "by": -14.83, "pitch": -6.15, "breathX": 1.0362, "breathY": 1.0297, "neck": 2.85, "head": 4.63, "hdx": -1.32, "hdy": -3.29, "earL": 14.5, "earR": -14.5, "cfL": 9.56, "cfR": -9.56, "t1": -20.05, "t2": -19.07, "t3": 4.38, "tsx": -13.31, "twy": -9.23, "twp": 6.597, "hl1": 15.82, "hl2": 10.84, "hbr1": -14.5, "hbr2": -9.53, "hor1": -15.82, "bsw": -11.41, "hrip": 6.597, "blink": 0.0, "eyeGlow": 0.98, "pupX": 0.0, "pupY": -1.19, "aura": 0.84, "roar": 0.2, "slash": -1.0, "sAlpha": 0.0}, {"n": "09. ĐỈNH OÁN KHÚC MA DA • Sóng tâm linh lan tỏa tầng 1!", "bx": 0.02, "by": -21.04, "pitch": -5.83, "breathX": 1.0496, "breathY": 1.0406, "neck": 4.15, "head": 6.75, "hdx": -1.81, "hdy": -4.51, "earL": 19.86, "earR": -19.86, "cfL": 13.09, "cfR": -13.09, "t1": -23.95, "t2": -33.79, "t3": -13.49, "tsx": -13.31, "twy": -12.64, "twp": 7.54, "hl1": 21.66, "hl2": 17.66, "hbr1": -19.86, "hbr2": -15.86, "hor1": -21.66, "bsw": -11.41, "hrip": 7.54, "blink": 0.0, "eyeGlow": 1.09, "pupX": 0.0, "pupY": -1.62, "aura": 1.05, "roar": 0.3, "slash": -1.0, "sAlpha": 0.0}, {"n": "10. Cực đại uy áp Thủy Quỷ • Đuôi cá quẫy tung bọt trắng!", "bx": 0.92, "by": -24.43, "pitch": -5.31, "breathX": 1.0583, "breathY": 1.0477, "neck": 5.02, "head": 8.16, "hdx": -2.12, "hdy": -5.3, "earL": 23.3, "earR": -23.3, "cfL": 15.36, "cfR": -15.36, "t1": -22.82, "t2": -41.27, "t3": -30.85, "tsx": -8.23, "twy": -14.83, "twp": 8.482, "hl1": 25.42, "hl2": 24.95, "hbr1": -23.3, "hbr2": -22.83, "hor1": -25.42, "bsw": -7.05, "hrip": 8.482, "blink": 0.0, "eyeGlow": 1.14, "pupX": 0.0, "pupY": -1.91, "aura": 1.18, "roar": 0.4, "slash": -1.0, "sAlpha": 0.0}, {"n": "11. Sóng âm thôi miên tầng 2 • Vây tai giương hết cỡ!", "bx": -0.87, "by": -25.0, "pitch": -7.54, "breathX": 1.0512, "breathY": 1.0419, "neck": 4.14, "head": 6.72, "hdx": -1.86, "hdy": -4.65, "earL": 20.47, "earR": -20.47, "cfL": 13.49, "cfR": -13.49, "t1": -14.89, "t2": -35.62, "t3": -38.57, "tsx": -0.0, "twy": -13.03, "twp": 9.425, "hl1": 22.34, "hl2": 26.06, "hbr1": -20.47, "hbr2": -24.2, "hor1": -22.34, "bsw": -0.0, "hrip": 9.425, "blink": 0.0, "eyeGlow": 1.15, "pupX": 0.0, "pupY": -1.68, "aura": 1.07, "roar": 0.5, "slash": -1.0, "sAlpha": 0.0}, {"n": "12. Dư chấn oán linh • Tóc ướt lơ lửng ngược trọng lực!", "bx": 0.03, "by": -25.0, "pitch": -6.46, "breathX": 1.0551, "breathY": 1.0451, "neck": 4.62, "head": 7.5, "hdx": -2.0, "hdy": -5.01, "earL": 22.05, "earR": -22.05, "cfL": 14.54, "cfR": -14.54, "t1": -10.16, "t2": -28.59, "t3": -41.57, "tsx": 8.23, "twy": -14.03, "twp": 10.367, "hl1": 24.06, "hl2": 32.77, "hbr1": -22.05, "hbr2": -30.77, "hor1": -24.06, "bsw": 7.05, "hrip": 10.367, "blink": 0.0, "eyeGlow": 1.15, "pupX": 0.0, "pupY": -1.8, "aura": 1.13, "roar": 0.6, "slash": -1.0, "sAlpha": 0.0}, {"n": "13. Hào quang lam-vàng rực cháy giữa vực nước sâu", "bx": 0.0, "by": -24.25, "pitch": -6.3, "breathX": 1.0533, "breathY": 1.0436, "neck": 4.46, "head": 7.25, "hdx": -1.94, "hdy": -4.85, "earL": 21.34, "earR": -21.34, "cfL": 14.06, "cfR": -14.06, "t1": -6.01, "t2": -16.77, "t3": -33.7, "tsx": 13.31, "twy": -13.58, "twp": 11.31, "hl1": 23.28, "hl2": 34.76, "hbr1": -21.34, "hbr2": -32.82, "hor1": -23.28, "bsw": 11.41, "hrip": 11.31, "blink": 0.0, "eyeGlow": 1.1, "pupX": 0.0, "pupY": -1.75, "aura": 1.1, "roar": 0.68, "slash": -1.0, "sAlpha": 0.0}, {"n": "14. Hạ dần góc ngửa đầu • Sóng xoáy tan vào bóng tối", "bx": 0.0, "by": -22.08, "pitch": -5.74, "breathX": 1.0486, "breathY": 1.0397, "neck": 4.06, "head": 6.6, "hdx": -1.77, "hdy": -4.42, "earL": 19.43, "earR": -19.43, "cfL": 12.8, "cfR": -12.8, "t1": -4.62, "t2": -5.5, "t3": -18.65, "tsx": 13.31, "twy": -12.36, "twp": 12.252, "hl1": 21.19, "hl2": 32.33, "hbr1": -19.43, "hbr2": -30.57, "hor1": -21.19, "bsw": 11.41, "hrip": 12.252, "blink": 0.0, "eyeGlow": 1.02, "pupX": 0.0, "pupY": -1.59, "aura": 1.03, "roar": 0.76, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Các dải tóc dài từ từ rũ xuống mềm mại", "bx": 0.0, "by": -18.75, "pitch": -4.88, "breathX": 1.0413, "breathY": 1.0337, "neck": 3.45, "head": 5.61, "hdx": -1.5, "hdy": -3.75, "earL": 16.5, "earR": -16.5, "cfL": 10.88, "cfR": -10.88, "t1": -6.12, "t2": 1.47, "t3": -1.72, "tsx": 8.23, "twy": -10.5, "twp": 13.195, "hl1": 18.0, "hl2": 25.7, "hbr1": -16.5, "hbr2": -24.2, "hor1": -18.0, "bsw": 7.05, "hrip": 13.195, "blink": 0.0, "eyeGlow": 0.89, "pupX": 0.0, "pupY": -1.35, "aura": 0.92, "roar": 0.84, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Đôi vây ngực khép dịu • Ánh sáng Ma Nhãn dịu lại", "bx": 0.0, "by": -14.67, "pitch": -3.81, "breathX": 1.0323, "breathY": 1.0264, "neck": 2.7, "head": 4.39, "hdx": -1.17, "hdy": -2.93, "earL": 12.91, "earR": -12.91, "cfL": 8.51, "cfR": -8.51, "t1": -9.39, "t2": 2.24, "t3": 11.26, "tsx": 0.0, "twy": -8.22, "twp": 14.137, "hl1": 14.08, "hl2": 16.43, "hbr1": -12.91, "hbr2": -15.26, "hor1": -14.08, "bsw": 0.0, "hrip": 14.137, "blink": 0.0, "eyeGlow": 0.74, "pupX": 0.0, "pupY": -1.06, "aura": 0.78, "roar": 0.92, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Đuôi ma thu nhịp quẫy • Bọt khí bay lên cao", "bx": 0.0, "by": -10.33, "pitch": -2.69, "breathX": 1.0227, "breathY": 1.0186, "neck": 1.9, "head": 3.09, "hdx": -0.83, "hdy": -2.07, "earL": 9.09, "earR": -9.09, "cfL": 5.99, "cfR": -5.99, "t1": -12.49, "t2": -2.55, "t3": 16.09, "tsx": -8.23, "twy": -5.78, "twp": 15.08, "hl1": 9.92, "hl2": 6.87, "hbr1": -9.09, "hbr2": -6.04, "hor1": -9.92, "bsw": -7.05, "hrip": 15.08, "blink": 0.0, "eyeGlow": 0.57, "pupX": 0.0, "pupY": -0.74, "aura": 0.63, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Thân hình lơ lửng ổn định lại giữa làn nước", "bx": 0.0, "by": -6.25, "pitch": -1.63, "breathX": 1.0137, "breathY": 1.0112, "neck": 1.15, "head": 1.87, "hdx": -0.5, "hdy": -1.25, "earL": 5.5, "earR": -5.5, "cfL": 3.63, "cfR": -3.63, "t1": -13.51, "t2": -10.07, "t3": 11.74, "tsx": -13.31, "twy": -3.5, "twp": 16.022, "hl1": 6.0, "hl2": -0.61, "hbr1": -5.5, "hbr2": 1.11, "hor1": -6.0, "bsw": -11.41, "hrip": 16.022, "blink": 0.0, "eyeGlow": 0.42, "pupX": 0.0, "pupY": -0.45, "aura": 0.49, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Nhịp thở âm hàn lắng xuống • Khôi phục vẻ ngây thơ", "bx": 0.0, "by": -2.92, "pitch": -0.76, "breathX": 1.0064, "breathY": 1.0053, "neck": 0.54, "head": 0.87, "hdx": -0.23, "hdy": -0.58, "earL": 2.57, "earR": -2.57, "cfL": 1.7, "cfR": -1.7, "t1": -11.38, "t2": -16.5, "t3": 0.65, "tsx": -13.31, "twy": -1.64, "twp": 16.965, "hl1": 2.81, "hl2": -4.33, "hbr1": -2.57, "hbr2": 4.57, "hor1": -2.81, "bsw": -11.41, "hrip": 16.965, "blink": 0.0, "eyeGlow": 0.29, "pupX": 0.0, "pupY": -0.21, "aura": 0.38, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Trở về thế rình mồi → Nối liền hoàn hảo Frame 01", "bx": 0.0, "by": -0.75, "pitch": -0.2, "breathX": 1.0017, "breathY": 1.0014, "neck": 0.14, "head": 0.23, "hdx": -0.06, "hdy": -0.15, "earL": 0.66, "earR": -0.66, "cfL": 0.44, "cfR": -0.44, "t1": -6.36, "t2": -18.63, "t3": -12.33, "tsx": -8.23, "twy": -0.42, "twp": 17.907, "hl1": 0.72, "hl2": -3.86, "hbr1": -0.66, "hbr2": 3.92, "hor1": -0.72, "bsw": -7.05, "hrip": 17.907, "blink": 0.0, "eyeGlow": 0.21, "pupX": 0.0, "pupY": -0.05, "aura": 0.31, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}], "attack": [{"n": "01. Khóa chặt con mồi • Mắt vàng rực sát khí đáy sông!", "bx": 0.0, "by": -0.0, "pitch": 0.0, "breathX": 1.0, "breathY": 1.0, "neck": -0.0, "head": -0.0, "hdx": 0.0, "hdy": -0.0, "earL": -0.0, "earR": 0.0, "cfL": -0.0, "cfR": 0.0, "t1": 0.0, "t2": 0.0, "t3": -13.46, "tsx": -0.0, "twy": -0.0, "twp": 0.0, "hl1": -0.0, "hl2": -0.0, "hbr1": -0.0, "hbr2": -0.0, "hor1": -0.0, "bsw": 0.0, "hrip": 0.0, "blink": 0.0, "eyeGlow": 0.25, "pupX": -0.0, "pupY": 0.0, "aura": 0.28, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "02. Trôi giật lùi lấy đà • Vây tai mở rộng đón nước", "bx": 3.44, "by": -2.81, "pitch": 1.48, "breathX": 1.0046, "breathY": 1.0033, "neck": -0.46, "head": -0.71, "hdx": 0.6, "hdy": -0.33, "earL": -2.39, "earR": 2.39, "cfL": -1.59, "cfR": 1.59, "t1": 2.92, "t2": 6.81, "t3": -6.95, "tsx": -2.92, "twy": -1.33, "twp": 0.628, "hl1": -2.92, "hl2": -3.72, "hbr1": -2.39, "hbr2": -3.19, "hor1": -2.66, "bsw": 1.86, "hrip": 0.628, "blink": 0.04, "eyeGlow": 0.34, "pupX": -0.47, "pupY": 0.0, "aura": 0.38, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "03. Cuộn cong đuôi cá ma • Tóc dài dâng cao tụ thủy lực!", "bx": 11.0, "by": -9.0, "pitch": 4.75, "breathX": 1.0149, "breathY": 1.0106, "neck": -1.47, "head": -2.27, "hdx": 1.91, "hdy": -1.06, "earL": -7.65, "earR": 7.65, "cfL": -5.1, "cfR": 5.1, "t1": 9.35, "t2": 17.78, "t3": 4.39, "tsx": -9.35, "twy": -4.25, "twp": 1.257, "hl1": -9.35, "hl2": -11.9, "hbr1": -7.65, "hbr2": -10.2, "hor1": -8.5, "bsw": 5.95, "hrip": 1.257, "blink": 0.14, "eyeGlow": 0.53, "pupX": -1.5, "pupY": 0.0, "aura": 0.59, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "04. Nạp xoáy nước hắc ám • Vây ngực căng đầy năng lượng!", "bx": 18.56, "by": -15.19, "pitch": 8.02, "breathX": 1.0251, "breathY": 1.0179, "neck": -2.48, "head": -3.84, "hdx": 3.23, "hdy": -1.79, "earL": -12.91, "earR": 12.91, "cfL": -8.61, "cfR": 8.61, "t1": 15.78, "t2": 28.17, "t3": 16.29, "tsx": -15.78, "twy": -7.17, "twp": 1.885, "hl1": -15.78, "hl2": -20.08, "hbr1": -12.91, "hbr2": -17.21, "hor1": -14.34, "bsw": 10.04, "hrip": 1.885, "blink": 0.24, "eyeGlow": 0.71, "pupX": -2.53, "pupY": 0.0, "aura": 0.8, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "05. Đỉnh lấy đà (Windup) • Ma Nhãn nheo sắc chớp sáng!", "bx": 22.0, "by": -18.0, "pitch": 9.5, "breathX": 1.0297, "breathY": 1.0212, "neck": -2.94, "head": -4.55, "hdx": 3.82, "hdy": -2.12, "earL": -15.3, "earR": 15.3, "cfL": -10.2, "cfR": 10.2, "t1": 18.7, "t2": 33.31, "t3": 24.46, "tsx": -18.7, "twy": -8.5, "twp": 2.513, "hl1": -18.7, "hl2": -23.8, "hbr1": -15.3, "hbr2": -20.4, "hor1": -17.0, "bsw": 11.9, "hrip": 2.513, "blink": 0.28, "eyeGlow": 0.8, "pupX": -3.0, "pupY": 0.0, "aura": 0.89, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "06. LAO VÚT TẤN CÔNG! Phóng mình xé toạc màn nước!", "bx": 5.93, "by": -9.04, "pitch": 2.08, "breathX": 1.0081, "breathY": 1.0058, "neck": -0.6, "head": -0.93, "hdx": 1.04, "hdy": -0.58, "earL": -4.18, "earR": 4.18, "cfL": -2.78, "cfR": 2.78, "t1": 5.1, "t2": 16.5, "t3": 14.21, "tsx": -5.1, "twy": -2.32, "twp": 3.142, "hl1": -5.1, "hl2": -6.5, "hbr1": -4.18, "hbr2": -5.57, "hor1": -4.64, "bsw": 3.25, "hrip": 3.142, "blink": 0.0, "eyeGlow": 0.94, "pupX": -3.4, "pupY": 0.0, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "07. TUNG ĐÒN THỦY QUỶ KÉO CHÂN — Khởi phát Thủy Trảm!", "bx": -8.56, "by": -0.95, "pitch": -4.61, "breathX": 1.0114, "breathY": 1.0081, "neck": 1.5, "head": 2.33, "hdx": -1.47, "hdy": 0.81, "earL": 5.86, "earR": -5.86, "cfL": 3.91, "cfR": -3.91, "t1": -7.16, "t2": 0.39, "t3": 4.57, "tsx": 7.16, "twy": -3.26, "twp": 3.77, "hl1": 7.16, "hl2": 9.12, "hbr1": 5.86, "hbr2": 7.81, "hor1": 6.51, "bsw": -4.56, "hrip": 3.77, "blink": 0.0, "eyeGlow": 1.03, "pupX": -3.4, "pupY": 0.0, "aura": 0.51, "roar": -1.0, "slash": 0.0, "sAlpha": 0.78}, {"n": "08. LƯỠI LIỀM XOÁY NƯỚC ĐEN • Tóc quất mạnh về trước!", "bx": -20.07, "by": 5.46, "pitch": -9.92, "breathX": 1.0269, "breathY": 1.0192, "neck": 3.18, "head": 4.92, "hdx": -3.46, "hdy": 1.92, "earL": 13.82, "earR": -13.82, "cfL": 9.22, "cfR": -9.22, "t1": -16.9, "t2": -13.41, "t3": -3.53, "tsx": 16.9, "twy": -7.68, "twp": 4.398, "hl1": 16.9, "hl2": 21.5, "hbr1": 13.82, "hbr2": 18.43, "hor1": 15.36, "bsw": -10.75, "hrip": 4.398, "blink": 0.0, "eyeGlow": 1.09, "pupX": -3.4, "pupY": 0.0, "aura": 0.83, "roar": -1.0, "slash": 0.17, "sAlpha": 0.98}, {"n": "09. BÙNG NỔ ÁM THỦY TRẢM! Sóng ngầm cuốn phăng mục tiêu!", "bx": -27.45, "by": 9.58, "pitch": -13.33, "breathX": 1.0368, "breathY": 1.0263, "neck": 4.25, "head": 6.58, "hdx": -4.73, "hdy": 2.63, "earL": 18.94, "earR": -18.94, "cfL": 12.63, "cfR": -12.63, "t1": -23.15, "t2": -23.58, "t3": -9.28, "tsx": 23.15, "twy": -10.52, "twp": 5.027, "hl1": 23.15, "hl2": 29.46, "hbr1": 18.94, "hbr2": 25.25, "hor1": 21.04, "bsw": -14.73, "hrip": 5.027, "blink": 0.0, "eyeGlow": 1.14, "pupX": -3.4, "pupY": 0.0, "aura": 1.04, "roar": -1.0, "slash": 0.33, "sAlpha": 1.0}, {"n": "10. ĐỈNH SÁT THƯƠNG • Bọt nước & tia chớp lam-vàng nổ tung!", "bx": -30.0, "by": 11.0, "pitch": -14.5, "breathX": 1.0402, "breathY": 1.0288, "neck": 4.62, "head": 7.15, "hdx": -5.17, "hdy": 2.88, "earL": 20.7, "earR": -20.7, "cfL": 13.8, "cfR": -13.8, "t1": -25.3, "t2": -29.11, "t3": -12.12, "tsx": 25.3, "twy": -11.5, "twp": 5.655, "hl1": 25.3, "hl2": 32.2, "hbr1": 20.7, "hbr2": 27.6, "hor1": 23.0, "bsw": -16.1, "hrip": 5.655, "blink": 0.0, "eyeGlow": 1.15, "pupX": -3.4, "pupY": 0.0, "aura": 1.11, "roar": -1.0, "slash": 0.5, "sAlpha": 0.96}, {"n": "11. Kình lực thủy triều cắt ngang không gian • Đuôi quất bồi!", "bx": -30.0, "by": 11.0, "pitch": -14.5, "breathX": 1.0402, "breathY": 1.0288, "neck": 4.62, "head": 7.15, "hdx": -5.17, "hdy": 2.88, "earL": 20.7, "earR": -20.7, "cfL": 13.8, "cfR": -13.8, "t1": -25.3, "t2": -32.2, "t3": -14.14, "tsx": 25.3, "twy": -11.5, "twp": 6.283, "hl1": 25.3, "hl2": 32.2, "hbr1": 20.7, "hbr2": 27.6, "hor1": 23.0, "bsw": -16.1, "hrip": 6.283, "blink": 0.0, "eyeGlow": 1.15, "pupX": -3.4, "pupY": 0.0, "aura": 1.11, "roar": -1.0, "slash": 0.67, "sAlpha": 0.84}, {"n": "12. Dư chấn xoáy nước • Hạt nước ma quái bắn tung tóe!", "bx": -24.38, "by": 8.5, "pitch": -11.69, "breathX": 1.0326, "breathY": 1.0233, "neck": 3.73, "head": 5.78, "hdx": -4.19, "hdy": 2.33, "earL": 16.76, "earR": -16.76, "cfL": 11.17, "cfR": -11.17, "t1": -20.49, "t2": -29.17, "t3": -12.22, "tsx": 20.49, "twy": -9.31, "twp": 6.912, "hl1": 20.49, "hl2": 26.07, "hbr1": 16.76, "hbr2": 22.35, "hor1": 18.62, "bsw": -13.04, "hrip": 6.912, "blink": 0.0, "eyeGlow": 0.9, "pupX": -2.87, "pupY": 0.0, "aura": 0.95, "roar": -1.0, "slash": 0.83, "sAlpha": 0.52}, {"n": "13. Thu lực bật lùi nhẹ • Tóc dài uốn sóng hãm đà", "bx": -12.0, "by": 3.0, "pitch": -5.5, "breathX": 1.0157, "breathY": 1.0112, "neck": 1.78, "head": 2.76, "hdx": -2.02, "hdy": 1.12, "earL": 8.1, "earR": -8.1, "cfL": 5.4, "cfR": -5.4, "t1": -9.9, "t2": -18.48, "t3": -4.99, "tsx": 9.9, "twy": -4.5, "twp": 7.54, "hl1": 9.9, "hl2": 12.6, "hbr1": 8.1, "hbr2": 10.8, "hor1": 9.0, "bsw": -6.3, "hrip": 7.54, "blink": 0.0, "eyeGlow": 0.68, "pupX": -1.7, "pupY": 0.0, "aura": 0.6, "roar": -1.0, "slash": 1.0, "sAlpha": 0.22}, {"n": "14. Giang vây tai & vây ngực giữ thăng bằng giữa dòng", "bx": 0.38, "by": -2.5, "pitch": 0.69, "breathX": 1.0011, "breathY": 1.0008, "neck": -0.16, "head": -0.25, "hdx": 0.14, "hdy": -0.08, "earL": -0.56, "earR": 0.56, "cfL": -0.38, "cfR": 0.38, "t1": 0.69, "t2": -7.22, "t3": 1.67, "tsx": -0.69, "twy": -0.31, "twp": 8.168, "hl1": -0.69, "hl2": -0.88, "hbr1": -0.56, "hbr2": -0.75, "hor1": -0.62, "bsw": 0.44, "hrip": 8.168, "blink": 0.0, "eyeGlow": 0.45, "pupX": -0.53, "pupY": 0.0, "aura": 0.3, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "15. Nâng đầu kiêu hãnh • Ánh mắt vàng lạnh lùng", "bx": 6.0, "by": -5.0, "pitch": 3.5, "breathX": 1.0088, "breathY": 1.0063, "neck": -1.05, "head": -1.62, "hdx": 1.12, "hdy": -0.62, "earL": -4.5, "earR": 4.5, "cfL": -3.0, "cfR": 3.0, "t1": 5.5, "t2": -2.51, "t3": 1.94, "tsx": -5.5, "twy": -2.5, "twp": 8.796, "hl1": -5.5, "hl2": -7.0, "hbr1": -4.5, "hbr2": -6.0, "hor1": -5.0, "bsw": 3.5, "hrip": 8.796, "blink": 0.0, "eyeGlow": 0.35, "pupX": -0.0, "pupY": 0.0, "aura": 0.46, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "16. Rũ nhẹ làn tóc ướt • Tàn dư bọt sóng tan dần", "bx": 5.6, "by": -4.67, "pitch": 3.27, "breathX": 1.0082, "breathY": 1.0058, "neck": -0.98, "head": -1.52, "hdx": 1.05, "hdy": -0.58, "earL": -4.2, "earR": 4.2, "cfL": -2.8, "cfR": 2.8, "t1": 5.13, "t2": -3.47, "t3": -3.05, "tsx": -5.13, "twy": -2.33, "twp": 9.425, "hl1": -5.13, "hl2": -6.53, "hbr1": -4.2, "hbr2": -5.6, "hor1": -4.67, "bsw": 3.27, "hrip": 9.425, "blink": 0.0, "eyeGlow": 0.34, "pupX": 0.0, "pupY": 0.0, "aura": 0.45, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "17. Đuôi đốm sáng lượn chữ S hồi phục tư thế", "bx": 4.5, "by": -3.75, "pitch": 2.62, "breathX": 1.0066, "breathY": 1.0047, "neck": -0.79, "head": -1.22, "hdx": 0.84, "hdy": -0.47, "earL": -3.38, "earR": 3.38, "cfL": -2.25, "cfR": 2.25, "t1": 4.12, "t2": -4.26, "t3": -7.88, "tsx": -4.12, "twy": -1.88, "twp": 10.053, "hl1": -4.12, "hl2": -5.25, "hbr1": -3.38, "hbr2": -4.5, "hor1": -3.75, "bsw": 2.62, "hrip": 10.053, "blink": 0.0, "eyeGlow": 0.31, "pupX": 0.0, "pupY": 0.0, "aura": 0.42, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "18. Hạ dần độ cao về vị trí lơ lửng chuẩn", "bx": 3.0, "by": -2.5, "pitch": 1.75, "breathX": 1.0044, "breathY": 1.0031, "neck": -0.53, "head": -0.81, "hdx": 0.56, "hdy": -0.31, "earL": -2.25, "earR": 2.25, "cfL": -1.5, "cfR": 1.5, "t1": 2.75, "t2": -4.59, "t3": -11.91, "tsx": -2.75, "twy": -1.25, "twp": 10.681, "hl1": -2.75, "hl2": -3.5, "hbr1": -2.25, "hbr2": -3.0, "hor1": -2.5, "bsw": 1.75, "hrip": 10.681, "blink": 0.0, "eyeGlow": 0.27, "pupX": 0.0, "pupY": 0.0, "aura": 0.37, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "19. Vây ngực thở êm • Nhịp nước dịu hoàn toàn", "bx": 1.5, "by": -1.25, "pitch": 0.88, "breathX": 1.0022, "breathY": 1.0016, "neck": -0.26, "head": -0.41, "hdx": 0.28, "hdy": -0.16, "earL": -1.13, "earR": 1.13, "cfL": -0.75, "cfR": 0.75, "t1": 1.38, "t2": -4.13, "t3": -14.47, "tsx": -1.38, "twy": -0.63, "twp": 11.31, "hl1": -1.38, "hl2": -1.75, "hbr1": -1.13, "hbr2": -1.5, "hor1": -1.25, "bsw": 0.88, "hrip": 11.31, "blink": 0.0, "eyeGlow": 0.22, "pupX": 0.0, "pupY": 0.0, "aura": 0.33, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}, {"n": "20. Hoàn tất tuyệt kỹ → Nối mượt về Frame 01", "bx": 0.4, "by": -0.33, "pitch": 0.23, "breathX": 1.0006, "breathY": 1.0004, "neck": -0.07, "head": -0.11, "hdx": 0.08, "hdy": -0.04, "earL": -0.3, "earR": 0.3, "cfL": -0.2, "cfR": 0.2, "t1": 0.37, "t2": -2.62, "t3": -15.07, "tsx": -0.37, "twy": -0.17, "twp": 11.938, "hl1": -0.37, "hl2": -0.47, "hbr1": -0.3, "hbr2": -0.4, "hor1": -0.33, "bsw": 0.23, "hrip": 11.938, "blink": 0.0, "eyeGlow": 0.19, "pupX": 0.0, "pupY": 0.0, "aura": 0.29, "roar": -1.0, "slash": -1.0, "sAlpha": 0.0}]};
+const CELLS={"bh": [61, 62, 63, 64, 85, 86, 87, 88, 89, 106, 107, 108, 109, 110, 111, 112, 113, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 285, 286, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 309, 310, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 356, 357, 358, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 390, 391, 392, 393, 394, 395, 396, 399, 400, 401], "tl": [273, 274, 275, 276, 277, 278, 297, 298, 299, 300, 301, 302, 321, 322, 323, 324, 325, 326, 327, 345, 346, 347, 348, 349, 350, 351, 369, 370, 371, 372, 373, 374, 375, 392, 393, 394, 395, 396, 397, 398, 399, 417, 418, 419, 420, 421, 422, 423, 440, 441, 442, 443, 444, 445, 446, 462, 463, 464, 465, 466, 467, 468, 469, 486, 487, 488, 489, 490, 491, 492, 510, 511, 512, 534, 535], "cf": [226, 227, 228, 249, 250, 251, 252, 253, 254, 273, 274, 275, 276, 277, 278, 279, 296, 297, 298, 299, 300, 301, 302, 303, 320, 321, 322, 323, 324, 325, 326, 327, 344, 345, 346, 347, 348, 349, 350, 351, 352, 368, 369, 370], "hf": [32, 33, 34, 35, 36, 37, 38, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 266, 267, 268, 269, 270, 271, 272, 277, 278, 279, 280, 281, 289, 290, 291, 292, 293, 294, 295, 302, 303, 304, 305, 306, 307, 313, 314, 315, 318, 319, 327, 328, 329, 330, 331, 332, 337, 338, 339, 342, 351, 352, 353, 354, 355, 356, 361, 362, 363, 364, 379, 380, 385, 386, 387, 388, 389, 402, 403, 404, 409, 410, 411, 412, 413, 426, 427, 428, 435, 436, 437, 460]};
+const DIRS={attack:'20_frames_full_action',roar:'20_frames_roar_haunt',swim:'20_frames_swim_glide',idle:'20_frames_floating_idle'};
+const texBH=new Image(),texEL=new Image(),texER=new Image(),texTL=new Image(),texCF=new Image(),texHF=new Image();
+let loaded=0;
+const GW=24,GH=24;
+let trisBH=[],trisTL=[],trisCF=[],trisHF=[];
+function buildTris(cellList){
+  const out=[];
+  for(const c of cellList){
+    const gy=(c/GW)|0, gx=c%GW;
+    const i00=gy*(GW+1)+gx, i10=i00+1, i01=i00+(GW+1), i11=i01+1;
+    out.push([i00,i10,i11],[i00,i11,i01]);
+  }
+  return out;
+}
+const onTex=()=>{
+  loaded++;
+  if(loaded===6){
+    trisBH=buildTris(CELLS.bh); trisTL=buildTris(CELLS.tl); trisCF=buildTris(CELLS.cf); trisHF=buildTris(CELLS.hf);
+    const tot=trisBH.length+trisTL.length+trisCF.length+trisHF.length;
+    document.getElementById('liveLbl').textContent='⚡ Đang chạy Live 60 FPS • 18 Xương & 6 Lớp ('+tot+' tam giác Soft-Mesh HD)';
+  }
+};
+[texBH,texEL,texER,texTL,texCF,texHF].forEach(im=>im.onload=onTex);
+texBH.src='spine2d_project/images/back_hair_hd.png';
+texEL.src='spine2d_project/images/ear_fin_left_hd.png';
+texER.src='spine2d_project/images/ear_fin_right_hd.png';
+texTL.src='spine2d_project/images/ghost_tail_hd.png';
+texCF.src='spine2d_project/images/chest_fins_hd.png';
+texHF.src='spine2d_project/images/head_hair_front_hd.png';
+
+const FRAMES={};
+for(const k of Object.keys(DIRS)){
+  FRAMES[k]=[];
+  for(let i=1;i<=20;i++){
+    const im=new Image();
+    im.src=DIRS[k]+'/aligned_400x380/frame_'+String(i).padStart(2,'0')+'.png';
+    FRAMES[k].push(im);
+  }
+}
+
+let curAnim='attack',curPack='attack',fIdx=0,fPlaying=true,lastFTime=0;
+let mouseX=220,mouseY=210,mouseInside=false;
+const liveCv=document.getElementById('liveCv'),lctx=liveCv.getContext('2d');
+const frameCv=document.getElementById('frameCv'),fctx=frameCv.getContext('2d');
+liveCv.addEventListener('mousemove',e=>{
+  const r=liveCv.getBoundingClientRect();
+  mouseX=(e.clientX-r.left)*(liveCv.width/r.width);
+  mouseY=(e.clientY-r.top)*(liveCv.height/r.height);
+  mouseInside=true;
+});
+liveCv.addEventListener('mouseleave',()=>{mouseInside=false;});
+document.getElementById('spd').oninput=e=>document.getElementById('spdVal').textContent=parseFloat(e.target.value).toFixed(1)+'x';
+document.getElementById('fFps').oninput=e=>document.getElementById('fFpsV').textContent=e.target.value;
+document.getElementById('fScrub').oninput=e=>{fPlaying=false;document.getElementById('btnFPlay').textContent='▶ Phát';fIdx=parseInt(e.target.value,10)-1;drawExportedFrame();};
+function updateBg(){const v=document.getElementById('bgSel').value;liveCv.className=v;frameCv.className=v;}
+function toggleFPlay(){fPlaying=!fPlaying;document.getElementById('btnFPlay').textContent=fPlaying?'⏸ Dừng':'▶ Phát';}
+function stepF(d){fPlaying=false;document.getElementById('btnFPlay').textContent='▶ Phát';fIdx=(fIdx+d+20)%20;drawExportedFrame();}
+function selectAnim(a,btn){
+  curAnim=a;
+  if(a!=='custom'){curPack=a;fIdx=0;document.getElementById('packName').textContent=a;buildGrid();drawExportedFrame();}
+  document.querySelectorAll('#animBar button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function buildGrid(){
+  const g=document.getElementById('grid');g.innerHTML='';
+  for(let i=0;i<20;i++){
+    const fn='frame_'+String(i+1).padStart(2,'0')+'.png';
+    const d=document.createElement('div');d.className='fbox'+(i===fIdx?' cur':'');
+    d.onclick=()=>{fPlaying=false;document.getElementById('btnFPlay').textContent='▶ Phát';fIdx=i;drawExportedFrame();};
+    d.innerHTML='<b>'+META[curPack][i].n+'</b><img src="'+DIRS[curPack]+'/aligned_400x380/'+fn+'"><div>'+fn+'</div>';
+    g.appendChild(d);
+  }
+}
+function drawExportedFrame(){
+  fctx.clearRect(0,0,400,380);
+  const im=FRAMES[curPack][fIdx];
+  if(im&&im.complete){
+    fctx.save();if(document.getElementById('chkFlip').checked){fctx.translate(400,0);fctx.scale(-1,1);}
+    fctx.drawImage(im,0,0);fctx.restore();
+  }
+  document.getElementById('fScrub').value=fIdx+1;
+  document.getElementById('fNum').textContent=String(fIdx+1).padStart(2,'0')+'/20';
+  document.getElementById('frameLbl').textContent=META[curPack][fIdx].n;
+  document.querySelectorAll('.fbox').forEach((el,k)=>el.classList.toggle('cur',k===fIdx));
+}
+
+const ss=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
+function drawTexturedTri(ctx,img,u0,v0,u1,v1,u2,v2,x0,y0,x1,y1,x2,y2){
+  const cx=(x0+x1+x2)/3,cy=(y0+y1+y2)/3;
+  const ex=(x,c)=>{const d=x-c,l=Math.abs(d);return l>0.01?x+(d/l)*0.65:x;};
+  const det=(u1-u0)*(v2-v0)-(u2-u0)*(v1-v0); if(Math.abs(det)<1e-3)return;
+  const a=((x1-x0)*(v2-v0)-(x2-x0)*(v1-v0))/det, b=((y1-y0)*(v2-v0)-(y2-y0)*(v1-v0))/det;
+  const c=((u1-u0)*(x2-x0)-(u2-u0)*(x1-x0))/det, d=((u1-u0)*(y2-y0)-(u2-u0)*(y1-y0))/det;
+  const e=x0-a*u0-c*v0, f=y0-b*u0-d*v0;
+  ctx.save();ctx.beginPath();
+  ctx.moveTo(ex(x0,cx),ex(y0,cy));ctx.lineTo(ex(x1,cx),ex(y1,cy));ctx.lineTo(ex(x2,cx),ex(y2,cy));ctx.closePath();ctx.clip();
+  ctx.transform(a,b,c,d,e,f);ctx.drawImage(img,0,0);ctx.restore();
+}
+
+function samplePoseAt(anim,t){
+  let mx=0,my=0;
+  if(document.getElementById('chkMouse').checked&&mouseInside){mx=(mouseX-250)/22;my=(mouseY-195)/24;}
+  if(anim==='custom'){
+    const hr=parseFloat(document.getElementById('sHair').value);
+    const er=parseFloat(document.getElementById('sEars').value);
+    const hd=parseFloat(document.getElementById('sHead').value);
+    const cf=parseFloat(document.getElementById('sChest').value);
+    const tl=parseFloat(document.getElementById('sTail').value);
+    const blinkCycle=(t%4.2);
+    const bl=(blinkCycle>3.92)?Math.sin(((blinkCycle-3.92)/0.28)*Math.PI):0;
+    return {
+      bx:mx*0.8, by:-9*Math.sin(t*2.4)+my*0.6, pitch:mx*0.35,
+      breathX:1+0.025*Math.sin(t*2.4), breathY:1+0.018*Math.sin(t*2.4),
+      neck:my*0.4, head:hd+my*0.7, hdx:mx, hdy:my,
+      earL:er+8*Math.sin(t*4.2), earR:-er-8*Math.sin(t*4.2-0.5),
+      cfL:cf+5*Math.sin(t*2.4), cfR:-cf-5*Math.sin(t*2.4),
+      t1:tl+10*Math.sin(t*3.6), t2:tl*0.85+14*Math.sin(t*3.6-1.0), t3:tl*0.7+18*Math.sin(t*3.6-2.0),
+      tsx:11*Math.sin(t*3.6-0.9), twy:7*Math.cos(t*3.6), twp:t*4.5,
+      hl1:hr+8*Math.sin(t*3.2-0.5), hl2:hr*1.1+12*Math.sin(t*3.2-1.4),
+      hbr1:hr+7*Math.sin(t*3.2-0.6), hbr2:hr*1.1+11*Math.sin(t*3.2-1.5),
+      hor1:hr+9*Math.sin(t*3.2-0.8), bsw:hr*0.5+6*Math.sin(t*3.2-0.7), hrip:t*4.5,
+      blink:bl, eyeGlow:0.28, pupX:Math.max(-3.6,Math.min(3.6,mx*0.42)), pupY:Math.max(-3.2,Math.min(3.2,my*0.38)),
+      aura:0.35, roar:-1, slash:-1, sAlpha:0
+    };
+  }
+  const arr=META[anim],pos=((t*8.0)%20+20)%20,i0=pos|0,i1=(i0+1)%20,fr=pos-i0,A=arr[i0],B=arr[i1];
+  const lp=(a,b)=>a+(b-a)*fr;
+  return {
+    bx:lp(A.bx,B.bx)+mx*0.4, by:lp(A.by,B.by)+my*0.4, pitch:lp(A.pitch,B.pitch),
+    breathX:lp(A.breathX,B.breathX), breathY:lp(A.breathY,B.breathY),
+    neck:lp(A.neck,B.neck), head:lp(A.head,B.head)+my*0.5, hdx:lp(A.hdx,B.hdx)+mx*0.7, hdy:lp(A.hdy,B.hdy)+my*0.7,
+    earL:lp(A.earL,B.earL), earR:lp(A.earR,B.earR), cfL:lp(A.cfL,B.cfL), cfR:lp(A.cfR,B.cfR),
+    t1:lp(A.t1,B.t1), t2:lp(A.t2,B.t2), t3:lp(A.t3,B.t3),
+    tsx:lp(A.tsx,B.tsx), twy:lp(A.twy,B.twy), twp:t*5.0,
+    hl1:lp(A.hl1,B.hl1), hl2:lp(A.hl2,B.hl2),
+    hbr1:lp(A.hbr1,B.hbr1), hbr2:lp(A.hbr2,B.hbr2),
+    hor1:lp(A.hor1,B.hor1), bsw:lp(A.bsw,B.bsw), hrip:t*5.0,
+    blink:lp(A.blink,B.blink), eyeGlow:lp(A.eyeGlow,B.eyeGlow),
+    pupX:Math.max(-3.6,Math.min(3.6,lp(A.pupX,B.pupX)+mx*0.35)),
+    pupY:Math.max(-3.2,Math.min(3.2,lp(A.pupY,B.pupY)+my*0.32)),
+    aura:lp(A.aura,B.aura), roar:A.roar, slash:A.slash, sAlpha:lp(A.sAlpha,B.sAlpha)
+  };
+}
+
+function renderLive60(ts){
+  const spd=parseFloat(document.getElementById('spd').value);
+  if(fPlaying&&ts-lastFTime>=1000/parseInt(document.getElementById('fFps').value,10)){
+    lastFTime=ts; fIdx=(fIdx+1)%20; drawExportedFrame();
+  }
+  if(loaded===6){
+    const t=(ts*0.001)*spd, P=samplePoseAt(curAnim,t);
+    lctx.clearRect(0,0,540,500);
+    lctx.save();
+    if(document.getElementById('chkFlip').checked){lctx.translate(540,0);lctx.scale(-1,1);}
+    const S=0.80, OX=66, OY=42;
+
+    const hipX=248+P.bx, hipY=286+P.by, pr=P.pitch*Math.PI/180, cp=Math.cos(pr), sp=Math.sin(pr);
+    const scx=hipX+(242-248)*cp-(238-286)*P.breathY*sp, scy=hipY+(242-248)*sp+(238-286)*P.breathY*cp;
+    const nr=(P.pitch+P.neck)*Math.PI/180, cn=Math.cos(nr), sn=Math.sin(nr);
+    const nwx=scx+(240-242)*cp-(210-238)*sp, nwy=scy+(240-242)*sp+(210-238)*cp;
+    const hr=(P.pitch+P.neck+P.head)*Math.PI/180, ch=Math.cos(hr), sh=Math.sin(hr);
+    const hwx=nwx+(238-240)*cn-(168-210)*sn+P.hdx*0.45, hwy=nwy+(238-240)*sn+(168-210)*cn+P.hdy*0.45;
+    const elwx=hwx+(132-238)*ch-(166-168)*sh, elwy=hwy+(132-238)*sh+(166-168)*ch;
+    const erwx=hwx+(316-238)*ch-(152-168)*sh, erwy=hwy+(316-238)*sh+(152-168)*ch;
+    const t1x=hipX+(250-248)*cp-(292-286)*sp, t1y=hipY+(250-248)*sp+(292-286)*cp;
+    const eyex=hwx+(191.4-238)*ch-(152.3-168)*sh, eyey=hwy+(191.4-238)*sh+(152.3-168)*ch;
+    const orwx=hwx+(352-238)*ch-(136-168)*sh, orwy=hwy+(352-238)*sh+(136-168)*ch;
+    const hlwx=hwx+(148-238)*ch-(196-168)*sh, hlwy=hwy+(148-238)*sh+(196-168)*ch;
+    const hrwx=hwx+(296-238)*ch-(188-168)*sh, hrwy=hwy+(296-238)*sh+(188-168)*ch;
+
+    // 0. Optional Underwater Aura & Roar Hypnotic Ripples
+    if(document.getElementById('chkVfx').checked){
+      if(P.aura>0.30){
+        const g=lctx.createRadialGradient(OX+hipX*S,OY+(hipY-15)*S,12,OX+hipX*S,OY+(hipY-15)*S,150*P.aura);
+        g.addColorStop(0,'rgba(56,189,248,'+Math.min(0.32,(P.aura-0.2)*0.35)+')');
+        g.addColorStop(1,'rgba(14,116,144,0)');
+        lctx.fillStyle=g; lctx.beginPath(); lctx.arc(OX+hipX*S,OY+(hipY-15)*S,155,0,6.28); lctx.fill();
+      }
+      if(P.roar>=0){
+        for(let rk=0;rk<2;rk++){
+          const prg=((t*0.9+rk*0.45)%1.0), rad=(45+prg*175)*S;
+          lctx.strokeStyle='rgba(103,232,249,'+(1-prg)*0.65+')'; lctx.lineWidth=2.5;
+          lctx.beginPath(); lctx.ellipse(OX+eyex*S,OY+(eyey+40)*S,rad,rad*0.85,0,0,6.28); lctx.stroke();
+        }
+      }
+    }
+
+    // 1. Deform & draw Layer 1: Back Hair & Outer-Right Tendril
+    const bhx=[],bhy=[];
+    for(let gy=0;gy<=GH;gy++)for(let gx=0;gx<=GW;gx++){
+      const u=gx*512/GW, v=gy*512/GH;
+      let wo=ss(338,382,u)*(1-ss(285,320,v)), wh=(1-ss(214,254,v))*(1-wo), wb=Math.max(0,1-wh-wo);
+      const st=wh+wo+wb; wh/=st; wo/=st; wb/=st;
+      const xh=hwx+(u-238)*ch-(v-168)*sh, yh=hwy+(u-238)*sh+(v-168)*ch;
+      const dor=Math.min(1,Math.hypot(Math.max(0,u-352),Math.max(0,v-136))/185), aor=hr+P.hor1*ss(0.05,0.85,dor)*Math.PI/180;
+      const ror=Math.sin(dor*4.2-P.hrip)*6.5*dor*dor;
+      const xo=orwx+(u-352+ror)*Math.cos(aor)-(v-136+ror*0.5)*Math.sin(aor), yo=orwy+(u-352+ror)*Math.sin(aor)+(v-136+ror*0.5)*Math.cos(aor);
+      const ct=ss(210,345,v), swx=P.bsw*ct*ct+Math.sin(ct*3.5-P.hrip)*4.5*ct;
+      const bx0=(u-248)*P.breathX+swx, by0=(v-286)*P.breathY;
+      const xb=hipX+bx0*cp-by0*sp, yb=hipY+bx0*sp+by0*cp;
+      bhx.push(OX+(wh*xh+wo*xo+wb*xb)*S); bhy.push(OY+(wh*yh+wo*yo+wb*yb)*S);
+    }
+    for(const tr of trisBH){const a=tr[0],b=tr[1],c=tr[2];drawTexturedTri(lctx,texBH,(a%(GW+1))*512/GW,((a/(GW+1))|0)*512/GH,(b%(GW+1))*512/GW,((b/(GW+1))|0)*512/GH,(c%(GW+1))*512/GW,((c/(GW+1))|0)*512/GH,bhx[a],bhy[a],bhx[b],bhy[b],bhx[c],bhy[c]);}
+
+    // 2. Draw Layer 2: Webbed Ear Fins (Parented to Head)
+    const drawPiv=(im,pu,pv,wx,wy,deg)=>{
+      lctx.save(); lctx.translate(OX+wx*S,OY+wy*S); lctx.rotate(deg*Math.PI/180); lctx.scale(S,S);
+      lctx.drawImage(im,-pu,-pv); lctx.restore();
+    };
+    drawPiv(texEL,132,166,elwx,elwy,P.pitch+P.neck+P.head+P.earL);
+    drawPiv(texER,316,152,erwx,erwy,P.pitch+P.neck+P.head+P.earR);
+
+    // 3. Deform & draw Layer 3: Spotted Mermaid Ghost Tail
+    const tlx=[],tly=[];
+    for(let gy=0;gy<=GH;gy++)for(let gx=0;gx<=GW;gx++){
+      const u=gx*512/GW, v=gy*512/GH, rx=u-250, ry=v-292;
+      const dist=Math.min(1,Math.max(0,(v-275)/210)), rw=ss(0.04,0.28,dist);
+      const deg=(P.pitch+P.t1*ss(0.02,0.38,dist)+P.t2*0.48*ss(0.28,0.72,dist)+P.t3*0.38*ss(0.60,1,dist))*0.65*Math.PI/180;
+      const wx=rx+(P.tsx*dist*dist+Math.sin(dist*4.2-P.twp)*7.5*dist)*rw;
+      const wy=ry+(P.twy*Math.pow(dist,1.35)+Math.cos(dist*4.2-P.twp)*4.5*dist)*rw;
+      tlx.push(OX+(t1x+wx*Math.cos(deg)-wy*Math.sin(deg))*S); tly.push(OY+(t1y+wx*Math.sin(deg)+wy*Math.cos(deg))*S);
+    }
+    for(const tr of trisTL){const a=tr[0],b=tr[1],c=tr[2];drawTexturedTri(lctx,texTL,(a%(GW+1))*512/GW,((a/(GW+1))|0)*512/GH,(b%(GW+1))*512/GW,((b/(GW+1))|0)*512/GH,(c%(GW+1))*512/GW,((c/(GW+1))|0)*512/GH,tlx[a],tly[a],tlx[b],tly[b],tlx[c],tly[c]);}
+
+    // 4. Deform & draw Layer 4: Pale Chest Fins
+    const cfx=[],cfy=[];
+    for(let gy=0;gy<=GH;gy++)for(let gx=0;gx<=GW;gx++){
+      const u=gx*512/GW, v=gy*512/GH;
+      const wL=(1-ss(232,248,u))*ss(216,248,v), wR=ss(232,248,u)*ss(216,248,v);
+      const ang=pr+(wL*P.cfL+wR*P.cfR)*Math.PI/180, rx=(u-242)*P.breathX, ry=(v-238)*P.breathY;
+      cfx.push(OX+(scx+rx*Math.cos(ang)-ry*Math.sin(ang))*S); cfy.push(OY+(scy+rx*Math.sin(ang)+ry*Math.cos(ang))*S);
+    }
+    for(const tr of trisCF){const a=tr[0],b=tr[1],c=tr[2];drawTexturedTri(lctx,texCF,(a%(GW+1))*512/GW,((a/(GW+1))|0)*512/GH,(b%(GW+1))*512/GW,((b/(GW+1))|0)*512/GH,(c%(GW+1))*512/GW,((c/(GW+1))|0)*512/GH,cfx[a],cfy[a],cfx[b],cfy[b],cfx[c],cfy[c]);}
+
+    // 5. Deform & draw Layer 5: Head, Face, Crown & Dual Long Hair Ribbons
+    const hfx=[],hfy=[];
+    for(let gy=0;gy<=GH;gy++)for(let gx=0;gx<=GW;gx++){
+      const u=gx*512/GW, v=gy*512/GH;
+      const whl=(1-ss(168,192,u))*ss(186,218,v), whr=ss(276,304,u)*ss(182,216,v), whd=Math.max(0,1-whl-whr);
+      const xh=hwx+(u-238)*ch-(v-168)*sh, yh=hwy+(u-238)*sh+(v-168)*ch;
+      const dl=Math.min(1,Math.hypot(u-148,Math.max(0,v-196))/215), al=hr+(P.hl1*ss(0,0.5,dl)+P.hl2*0.55*ss(0.35,1,dl))*Math.PI/180;
+      const rlx=Math.sin(dl*4.2-P.hrip)*8.5*dl*dl, rly=Math.cos(dl*4.2-P.hrip)*4.5*dl*dl;
+      const xl=hlwx+(u-148+rlx)*Math.cos(al)-(v-196+rly)*Math.sin(al), yl=hlwy+(u-148+rlx)*Math.sin(al)+(v-196+rly)*Math.cos(al);
+      const dr=Math.min(1,Math.hypot(Math.max(0,u-296),Math.max(0,v-188))/195), ar=hr+(P.hbr1*ss(0,0.5,dr)+P.hbr2*0.55*ss(0.35,1,dr))*Math.PI/180;
+      const rrx=Math.sin(dr*4.2-P.hrip+0.9)*8.0*dr*dr, rry=Math.cos(dr*4.2-P.hrip+0.9)*4.5*dr*dr;
+      const xr=hrwx+(u-296+rrx)*Math.cos(ar)-(v-188+rry)*Math.sin(ar), yr=hrwy+(u-296+rrx)*Math.sin(ar)+(v-188+rry)*Math.cos(ar);
+      hfx.push(OX+(whd*xh+whl*xl+whr*xr)*S); hfy.push(OY+(whd*yh+whl*yl+whr*yr)*S);
+    }
+    for(const tr of trisHF){const a=tr[0],b=tr[1],c=tr[2];drawTexturedTri(lctx,texHF,(a%(GW+1))*512/GW,((a/(GW+1))|0)*512/GH,(b%(GW+1))*512/GW,((b/(GW+1))|0)*512/GH,(c%(GW+1))*512/GW,((c/(GW+1))|0)*512/GH,hfx[a],hfy[a],hfx[b],hfy[b],hfx[c],hfy[c]);}
+
+    // 6. Live Eye Gaze Tracking, Natural Blink & Ma Nhan Glow
+    const exS=OX+eyex*S, eyS=OY+eyey*S;
+    if(P.blink<0.85&&(Math.abs(P.pupX)>0.2||Math.abs(P.pupY)>0.2)){
+      lctx.save(); lctx.translate(exS,eyS); lctx.rotate(hr);
+      lctx.fillStyle='#e4ce5c'; lctx.beginPath(); lctx.ellipse(0,0,7.2*S,11.0*S,0,0,6.28); lctx.fill();
+      lctx.fillStyle='#2d3846'; lctx.beginPath(); lctx.ellipse(P.pupX*S,P.pupY*S,3.5*S,7.4*S,0,0,6.28); lctx.fill();
+      lctx.fillStyle='rgba(225,205,105,0.85)'; lctx.beginPath(); lctx.ellipse(P.pupX*S,P.pupY*S,1.4*S,3.6*S,0,0,6.28); lctx.fill();
+      lctx.restore();
+    }
+    if(P.blink>0.05){
+      lctx.save(); lctx.translate(exS,eyS); lctx.rotate(hr);
+      const bl=Math.min(1,P.blink), topY=-22*S, botY=topY+43*S*bl;
+      lctx.fillStyle='#d4e2ec';
+      if(bl>0.75){lctx.beginPath(); lctx.ellipse(0,0,14.5*S,19.5*S,0,0,6.28); lctx.fill();}
+      else{lctx.beginPath(); lctx.ellipse(0,(topY+botY)/2,14.5*S,Math.max(2,(botY-topY)/2),0,0,6.28); lctx.fill();}
+      lctx.strokeStyle='#2b3746'; lctx.lineWidth=2.4; lctx.beginPath(); lctx.arc(0,Math.min(13*S,botY)-5*S,13.5*S,0.2,Math.PI-0.2); lctx.stroke();
+      lctx.restore();
+    }
+    if(document.getElementById('chkVfx').checked){
+      if(P.eyeGlow>0.42&&P.blink<0.5){
+        const ga=Math.min(0.85,(P.eyeGlow-0.38)*0.95);
+        const eg=lctx.createRadialGradient(exS,eyS,2,exS,eyS,22);
+        eg.addColorStop(0,'rgba(254,240,138,'+ga+')'); eg.addColorStop(1,'rgba(250,204,21,0)');
+        lctx.fillStyle=eg; lctx.beginPath(); lctx.arc(exS,eyS,22,0,6.28); lctx.fill();
+      }
+      // Rising spirit bubbles
+      for(let bi=0;bi<4;bi++){
+        const bph=((t*0.38)+bi*0.25)%1.0;
+        const bxb=OX+(hipX+[-88,92,-55,76][bi]+Math.sin(bph*6.28+bi)*10)*S, byb=OY+(385-bph*250)*S;
+        lctx.strokeStyle='rgba(165,243,252,'+Math.sin(bph*Math.PI)*0.55+')'; lctx.lineWidth=1.5;
+        lctx.beginPath(); lctx.arc(bxb,byb,[3.5,4.5,2.8,5][bi],0,6.28); lctx.stroke();
+      }
+      // Spectral Abyssal Whirlpool Crescent Slash during Attack
+      if(P.slash>=0&&P.sAlpha>0.04){
+        lctx.save(); lctx.translate(OX+(hwx-82-P.slash*36)*S,OY+(hwy+96+P.slash*14)*S);
+        lctx.rotate((18-P.slash*22)*Math.PI/180);
+        const rM=96*(0.85+0.3*Math.sin(P.slash*2.4)); lctx.globalAlpha=Math.min(1,P.sAlpha);
+        lctx.beginPath(); lctx.moveTo(12,-rM); lctx.bezierCurveTo(-rM*0.92,-rM*0.55,-rM*0.95,rM*0.55,10,rM);
+        lctx.bezierCurveTo(-44,rM*0.44,-42,-rM*0.44,12,-rM); lctx.closePath();
+        lctx.fillStyle='rgba(20,48,74,0.9)'; lctx.fill();
+        lctx.lineWidth=5; lctx.strokeStyle='rgba(56,189,248,0.85)'; lctx.stroke();
+        lctx.lineWidth=2; lctx.strokeStyle='#e0f2fe'; lctx.stroke(); lctx.restore();
+      }
+    }
+
+    // 7. Optional Mesh Wireframe
+    if(document.getElementById('chkMesh').checked){
+      lctx.strokeStyle='rgba(125,211,252,0.28)'; lctx.lineWidth=0.8;
+      for(const [arrX,arrY,tris] of [[tlx,tly,trisTL],[cfx,cfy,trisCF],[hfx,hfy,trisHF]]){
+        for(const tr of tris){lctx.beginPath();lctx.moveTo(arrX[tr[0]],arrY[tr[0]]);lctx.lineTo(arrX[tr[1]],arrY[tr[1]]);lctx.lineTo(arrX[tr[2]],arrY[tr[2]]);lctx.closePath();lctx.stroke();}
+      }
+    }
+
+    // 8. Optional 18-Bone Spine Overlay
+    if(document.getElementById('chkBones').checked){
+      const B=(x,y)=>[OX+x*S,OY+y*S];
+      const bRoot=B(256,488), bHip=B(hipX,hipY), bSC=B(scx,scy), bNeck=B(nwx,nwy), bHead=B(hwx,hwy), bEye=B(eyex,eyey);
+      const bEL=B(elwx,elwy), elTipA=(172+P.pitch+P.neck+P.head+P.earL)*Math.PI/180, bELT=[bEL[0]+Math.cos(elTipA)*48,bEL[1]+Math.sin(elTipA)*48];
+      const bER=B(erwx,erwy), erTipA=(18+P.pitch+P.neck+P.head+P.earR)*Math.PI/180, bERT=[bER[0]+Math.cos(erTipA)*50,bER[1]+Math.sin(erTipA)*50];
+      const bCFL=[bSC[0]+Math.cos((118+P.pitch+P.cfL)*Math.PI/180)*64, bSC[1]+Math.sin((118+P.pitch+P.cfL)*Math.PI/180)*64];
+      const bCFR=[bSC[0]+Math.cos((54+P.pitch+P.cfR)*Math.PI/180)*64, bSC[1]+Math.sin((54+P.pitch+P.cfR)*Math.PI/180)*64];
+      const bT1=B(t1x,t1y), t1A=(95+P.pitch+P.t1*0.5)*Math.PI/180, bT2=[bT1[0]+Math.cos(t1A)*62,bT1[1]+Math.sin(t1A)*62];
+      const t2A=t1A+(32+P.t2*0.4)*Math.PI/180, bT3=[bT2[0]+Math.cos(t2A)*62,bT2[1]+Math.sin(t2A)*62];
+      const t3A=t2A+(18+P.t3*0.35)*Math.PI/180, bTT=[bT3[0]+Math.cos(t3A)*48,bT3[1]+Math.sin(t3A)*48];
+      const bHL1=B(hlwx,hlwy), hlA=(126+P.pitch+P.head+P.hl1)*Math.PI/180, bHL2=[bHL1[0]+Math.cos(hlA)*78,bHL1[1]+Math.sin(hlA)*78];
+      const hl2A=hlA+(-26+P.hl2*0.5)*Math.PI/180, bHL3=[bHL2[0]+Math.cos(hl2A)*74,bHL2[1]+Math.sin(hl2A)*74];
+      const bHR1=B(hrwx,hrwy), hrA=(54+P.pitch+P.head+P.hbr1)*Math.PI/180, bHR2=[bHR1[0]+Math.cos(hrA)*82,bHR1[1]+Math.sin(hrA)*82];
+      const bOR=B(orwx,orwy), orA=(42+P.pitch+P.head+P.hor1)*Math.PI/180, bORT=[bOR[0]+Math.cos(orA)*92,bOR[1]+Math.sin(orA)*92];
+
+      const segs=[
+        [bRoot,bHip],[bHip,bT1],[bT1,bT2],[bT2,bT3],[bT3,bTT],
+        [bHip,bSC],[bSC,bCFL],[bSC,bCFR],[bSC,bNeck],[bNeck,bHead],[bHead,bEye],
+        [bHead,bEL],[bEL,bELT],[bHead,bER],[bER,bERT],
+        [bHead,bHL1],[bHL1,bHL2],[bHL2,bHL3],[bHead,bHR1],[bHR1,bHR2],[bHead,bOR],[bOR,bORT]
+      ];
+      lctx.lineWidth=2.1;
+      for(const [p1,p2] of segs){
+        lctx.strokeStyle='rgba(56,189,248,0.88)'; lctx.beginPath(); lctx.moveTo(p1[0],p1[1]); lctx.lineTo(p2[0],p2[1]); lctx.stroke();
+        lctx.fillStyle='#fde047'; lctx.beginPath(); lctx.arc(p1[0],p1[1],3.6,0,6.28); lctx.fill();
+        lctx.beginPath(); lctx.arc(p2[0],p2[1],3.0,0,6.28); lctx.fill();
+      }
+    }
+    lctx.restore();
+  }
+  requestAnimationFrame(renderLive60);
+}
+buildGrid();drawExportedFrame();requestAnimationFrame(renderLive60);
+</script>
+</body>
+</html>

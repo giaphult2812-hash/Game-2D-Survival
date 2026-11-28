@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Linh Thú Dex — Project Preview & Animation Studio</title>
+  <style>
+    :root {
+      --bg: #090e17;
+      --panel: #111927;
+      --panel2: #172235;
+      --border: #24344d;
+      --text: #e8eef7;
+      --muted: #8ea0bd;
+      --accent: #2ec4b6;
+      --gold: #ffb703;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      padding: 8px 16px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .brand { font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+    .pill {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      background: #1b2a42;
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+    .app-shell {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      overflow: hidden;
+    }
+    @media (max-width: 980px) {
+      .app-shell { grid-template-columns: 200px 1fr; }
+    }
+    @media (max-width: 680px) {
+      body { height: auto; overflow: auto; }
+      .app-shell { grid-template-columns: 1fr; overflow: visible; }
+    }
+    /* LEFT SIDEBAR: DEX LIST */
+    aside {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .search-box {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0b121e;
+      color: var(--text);
+      font-size: 13px;
+    }
+    .dex-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .dex-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: var(--panel2);
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .dex-item:hover { border-color: #3a547a; }
+    .dex-item.active {
+      border-color: var(--accent);
+      background: #182b3e;
+      box-shadow: 0 0 12px rgba(46, 196, 182, 0.2);
+    }
+    .dex-item.planned { opacity: 0.55; cursor: not-allowed; }
+    .dex-thumb {
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+      background: #0b121e;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      font-size: 18px;
+    }
+    .dex-thumb img { width: 100%; height: 100%; object-fit: contain; }
+    .dex-meta { flex: 1; min-width: 0; }
+    .dex-meta .title { font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dex-meta .sub { font-size: 11px; color: var(--muted); display: flex; gap: 6px; align-items: center; margin-top: 2px; }
+    .el-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #091018;
+    }
+
+    /* MAIN VIEWPORT (SINGLE-SCREEN NO VERTICAL PAGE SCROLL) */
+    main {
+      padding: 10px 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+    .top-info {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .stat-chip {
+      background: #0b121e;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+    .stat-chip b { color: var(--gold); margin-left: 4px; }
+
+    .workspace-grid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(280px, 1.15fr) minmax(260px, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 680px) { .workspace-grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .stage-wrap {
+      flex: 1;
+      min-height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #080d14;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+    .bg-meadow { background: radial-gradient(circle at 50% 60%, #244a38 0%, #0d1c16 80%); }
+    .bg-night { background: radial-gradient(circle at 50% 45%, #182b49 0%, #09101c 80%); }
+    .bg-checker {
+      background-image:
+        linear-gradient(45deg, #1b2233 25%, transparent 25%),
+        linear-gradient(-45deg, #1b2233 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1b2233 75%),
+        linear-gradient(-45deg, transparent 75%, #1b2233 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+      background-color: #121826;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+    }
+    button.btn {
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 11px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12.5px;
+      transition: 0.15s;
+    }
+    button.btn:hover { border-color: var(--accent); }
+    button.btn.active {
+      background: var(--accent);
+      color: #081217;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+    button.btn.sig {
+      border-color: var(--gold);
+      color: #ffe08a;
+    }
+    button.btn.sig.active {
+      background: linear-gradient(135deg, #ffb703, #fb8500);
+      color: #111;
+    }
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin: 12px 0 6px;
+      font-weight: 700;
+    }
+    .section-title:first-child { margin-top: 0; }
+    .skill-btn-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .skill-btn {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-align: left;
+      width: 100%;
+      padding: 9px 12px;
+    }
+    .skill-tag {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      font-weight: 700;
+    }
+    .timeline20 {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .caption-bar {
+      margin-top: 8px;
+      padding: 8px 10px;
+      background: #0b121e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12.5px;
+      color: #ffd166;
+      font-weight: 600;
+    }
+    label.inline {
+      font-size: 12px;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    select {
+      background: #0b121e;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span>🌿 LINH THÚ DEX — PROJECT PREVIEW</span>
+      <span class="pill">Chuẩn 20-Frame Articulated • Thiết kế nguyên bản</span>
+    </div>
+    <div style="font-size:12px; color:var(--muted)">
+      1 Idle + 1~3 Di chuyển (Move/Swim/Fly) + 4 Chiêu thức (Thông dụng & Độc quyền)
+    </div>
+  </header>
+
+  <div class="app-shell">
+    <!-- LEFT: MONSTER LIST -->
+    <aside>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 Tìm tên hoặc mã #001..." />
+      </div>
+      <div class="dex-list" id="dexList"></div>
+    </aside>
+
+    <!-- RIGHT: UNIFIED VIEWPORT -->
+    <main>
+      <div class="top-info">
+        <div>
+          <div style="font-size:18px; font-weight:800" id="mTitle">#001 Mầm Thóc Ngọc</div>
+          <div style="font-size:12.5px; color:var(--muted); margin-top:2px" id="mEvo"></div>
+        </div>
+        <div class="stats-row" id="mStats"></div>
+      </div>
+
+      <div class="workspace-grid">
+        <!-- LEFT PANEL: LIVE CANVAS -->
+        <div class="card" style="overflow:hidden">
+          <div class="stage-wrap bg-meadow" id="stageWrap">
+            <canvas id="stageCanvas" width="520" height="440"></canvas>
+          </div>
+          <div class="caption-bar" id="frameCaption">01. Đang tải...</div>
+          <div class="toolbar">
+            <button class="btn" onclick="togglePause()" id="btnPause">⏸️ Dừng</button>
+            <button class="btn" onclick="toggleFlip()">↔️ Lật</button>
+            <label class="inline"><input type="checkbox" id="chkBones" /> 🦴 Lưới Mềm & Xương</label>
+            <select id="bgSelect" onchange="changeBg(this.value)">
+              <option value="bg-meadow">Nền: Đồng Cỏ</option>
+              <option value="bg-night">Nền: Đêm Trăng</option>
+              <option value="bg-checker">Nền: Caro QA</option>
+            </select>
+            <label class="inline" style="margin-left:auto">
+              FPS: <input type="range" min="4" max="24" value="12" id="fpsSlider" style="width:65px" />
+              <span id="fpsText">12</span>
+            </label>
+            <button class="btn active" onclick="exportSheet()">⬇️ Xuất 20-Frame PNG</button>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL: ANIMATION SELECTOR & 20-FRAME TIMELINE -->
+        <div class="card">
+          <div class="section-title">1. Trạng thái cơ bản (1 Bộ)</div>
+          <button class="btn active" style="width:100%; text-align:left" id="btn-idle" onclick="selectAnim('idle')">
+            🌱 Idle — Đứng thở & Nhún mầm
+          </button>
+
+          <div class="section-title">2. Di chuyển ngoài bản đồ (Theo loài)</div>
+          <div id="locomotionBtns" style="display:flex; gap:8px; flex-wrap:wrap"></div>
+
+          <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
+            <span>3. Kho Chiêu Thức (Học theo Cấp / Tiến hóa / Đĩa TM / Ẩn)</span>
+          </div>
+          <div id="sourceFilterBar" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+            <button class="btn active" style="padding:4px 8px;font-size:11px" onclick="setSourceFilter('all', this)">Tất cả</button>
+            <button class="btn" style="padding:4px 8px;font-size:11px" onclick="setSourceFilter('level', this)">Theo Cấp</button>
+            <button class="btn" style="padding:4px 8px;font-size:11px" onclick="setSourceFilter('evolution', this)">Tiến Hóa</button>
+            <button class="btn" style="padding:4px 8px;font-size:11px" onclick="setSourceFilter('tm', this)">Đĩa (TM)</button>
+            <button class="btn" style="padding:4px 8px;font-size:11px" onclick="setSourceFilter('hidden', this)">Chiêu Ẩn</button>
+          </div>
+          <div class="skill-btn-wrap" id="skillBtns"></div>
+          <div id="skillDesc" style="font-size:12px; color:var(--muted); margin-top:8px; min-height:18px"></div>
+
+          <div class="section-title">4. Thanh 20 Frame Chi Tiết (Bấm từng ô để soi)</div>
+          <div class="timeline20" id="timeline20"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { LINH_THU_REGISTRY } from '/linh-thu/js/registry.js?v=5';
+    import { MOVES_DB, CATEGORY_LABELS, DAMAGE_CLASS_LABELS } from '/linh-thu/js/shared-moves.js?v=5';
+    import { LinhThuRigPlayer, LOCOMOTION_ANIM_TEMPLATES } from '/linh-thu/js/linh-thu-rig-engine.js?v=5';
+
+    const canvas = document.getElementById('stageCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let currentMonster = null;
+    let player = null;
+    let facing = -1;
+    let paused = false;
+    let currentAnimKey = 'idle';
+    let sourceFilter = 'all';
+
+    // Build 20-frame timeline pills
+    const timelineEl = document.getElementById('timeline20');
+    const framePills = [];
+    for (let i = 0; i < 20; i++) {
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.style.padding = '5px 0';
+      b.style.fontSize = '11px';
+      b.textContent = String(i + 1).padStart(2, '0');
+      b.onclick = () => {
+        paused = true;
+        document.getElementById('btnPause').textContent = '▶️ Chạy';
+        if (player) player.frame = i;
+      };
+      timelineEl.appendChild(b);
+      framePills.push(b);
+    }
+
+    function renderDexList(filter = '') {
+      const listEl = document.getElementById('dexList');
+      listEl.innerHTML = '';
+      const q = filter.trim().toLowerCase();
+      for (const m of LINH_THU_REGISTRY) {
+        if (q && !m.name.toLowerCase().includes(q) && !m.dexNumber.toLowerCase().includes(q)) continue;
+        const item = document.createElement('div');
+        item.className = `dex-item ${m.status === 'planned' ? 'planned' : ''} ${currentMonster && currentMonster.id === m.id ? 'active' : ''}`;
+        item.innerHTML = `
+          <div class="dex-thumb">${m.baseImage ? `<img src="${m.baseImage}" alt="${m.name}">` : '⏳'}</div>
+          <div class="dex-meta">
+            <div class="title">${m.dexNumber} ${m.name}</div>
+            <div class="sub">
+              <span class="el-badge" style="background:${m.elementColor}">${m.element}</span>
+              <span>${m.status === 'ready' ? '✅ Hoàn thiện' : '🔒 Sắp ra mắt'}</span>
+            </div>
+          </div>
+        `;
+        if (m.status === 'ready') {
+          item.onclick = () => loadMonster(m.id);
+        } else {
+          item.onclick = () => {
+            document.getElementById('skillDesc').textContent =
+              `⏳ ${m.dexNumber} ${m.name} chưa được tạo hình — hiện mới có #001 Mầm Thóc Ngọc!`;
+          };
+        }
+        listEl.appendChild(item);
+      }
+    }
+
+    function loadMonster(id) {
+      const m = LINH_THU_REGISTRY.find((x) => x.id === id && x.status === 'ready');
+      if (!m) return;
+      currentMonster = m;
+      player = new LinhThuRigPlayer(m);
+      player.customFps = Number(document.getElementById('fpsSlider').value);
+
+      document.getElementById('mTitle').innerHTML =
+        `${m.dexNumber} ${m.name} <span class="el-badge" style="background:${m.elementColor};vertical-align:middle">${m.element}</span>`;
+      document.getElementById('mEvo').textContent = m.evolutionLine;
+      document.getElementById('mStats').innerHTML = `
+        <div class="stat-chip">HP<b>${m.stats.hp}</b></div>
+        <div class="stat-chip">ATK<b>${m.stats.atk}</b></div>
+        <div class="stat-chip">DEF<b>${m.stats.def}</b></div>
+        <div class="stat-chip">SP.ATK<b>${m.stats.spAtk}</b></div>
+        <div class="stat-chip">SP.DEF<b>${m.stats.spDef}</b></div>
+        <div class="stat-chip">SPD<b>${m.stats.spd}</b></div>
+      `;
+
+      // Locomotion buttons (1..3 depending on species)
+      const locoEl = document.getElementById('locomotionBtns');
+      locoEl.innerHTML = '';
+      for (const lKey of m.locomotions) {
+        const cfg = LOCOMOTION_ANIM_TEMPLATES[lKey];
+        const b = document.createElement('button');
+        b.className = 'btn';
+        b.id = `btn-${lKey}`;
+        b.textContent = `🐾 ${cfg.label}`;
+        b.onclick = () => selectAnim(lKey);
+        locoEl.appendChild(b);
+      }
+
+      renderSkills();
+      selectAnim('idle');
+      renderDexList(document.getElementById('searchInput').value);
+    }
+
+    function setSourceFilter(src, btnEl) {
+      sourceFilter = src;
+      document.querySelectorAll('#sourceFilterBar button').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      renderSkills();
+    }
+
+    function renderSkills() {
+      if (!currentMonster) return;
+      const skillEl = document.getElementById('skillBtns');
+      skillEl.innerHTML = '';
+      (currentMonster.learnset || []).forEach((entry, idx) => {
+        if (sourceFilter !== 'all' && entry.source !== sourceFilter) return;
+        const sk = MOVES_DB[entry.moveId];
+        if (!sk) return;
+        const isSpecial = entry.source === 'hidden' || entry.source === 'evolution';
+        const b = document.createElement('button');
+        b.className = `btn skill-btn ${isSpecial ? 'sig' : ''} ${currentAnimKey === sk.id ? 'active' : ''}`;
+        b.id = `btn-${sk.id}`;
+        const clsBadge = sk.damageClass === 'ATK' ? '⚔️ ATK' : sk.damageClass === 'SP_ATK' ? '✨ SP.ATK' : '🌀 STATUS';
+        b.innerHTML = `
+          <span>
+            <strong>${sk.name}</strong>
+            <small style="opacity:.8;margin-left:4px">${clsBadge} • ${CATEGORY_LABELS[sk.category] || ''} ${sk.power ? `(${sk.power})` : ''}</small>
+          </span>
+          <span class="skill-tag">${entry.badge}</span>
+        `;
+        b.onclick = () => {
+          document.getElementById('skillDesc').textContent = sk.desc;
+          selectAnim(sk.id);
+        };
+        skillEl.appendChild(b);
+      });
+    }
+
+    function selectAnim(key) {
+      if (!player) return;
+      currentAnimKey = key;
+      paused = false;
+      document.getElementById('btnPause').textContent = '⏸️ Dừng';
+      player.play(key, () => {
+        selectAnim('idle');
+      });
+      document.querySelectorAll('#btn-idle, #locomotionBtns button, #skillBtns button').forEach((b) => {
+        b.classList.toggle('active', b.id === `btn-${key}`);
+      });
+    }
+
+    function togglePause() {
+      paused = !paused;
+      document.getElementById('btnPause').textContent = paused ? '▶️ Chạy' : '⏸️ Dừng';
+    }
+    function toggleFlip() { facing *= -1; }
+    function changeBg(cls) {
+      document.getElementById('stageWrap').className = `stage-wrap ${cls}`;
+    }
+    function exportSheet() {
+      if (!player) return;
+      const url = player.export20FrameSheet();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentMonster.id}_${currentAnimKey}_20frames.png`;
+      a.click();
+    }
+
+    document.getElementById('fpsSlider').addEventListener('input', (e) => {
+      const v = Number(e.target.value);
+      document.getElementById('fpsText').textContent = v;
+      if (player) player.customFps = v;
+    });
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      renderDexList(e.target.value);
+    });
+
+    Object.assign(window, { selectAnim, setSourceFilter, togglePause, toggleFlip, changeBg, exportSheet });
+
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min(50, now - last);
+      last = now;
+      if (player) {
+        if (!paused) player.update(dt);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const showBones = document.getElementById('chkBones').checked;
+        player.draw(ctx, canvas.width, canvas.height, facing, showBones);
+
+        const animDef = player.getAnimDef();
+        const f = player.frame;
+        document.getElementById('frameCaption').textContent =
+          `${animDef.label} • ${animDef.labels[f] || ''} • Hướng: ${facing < 0 ? 'TRÁI' : 'PHẢI'}`;
+        framePills.forEach((p, idx) => p.classList.toggle('active', idx === f));
+      }
+      requestAnimationFrame(loop);
+    }
+
+    loadMonster('001_hat_lua');
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

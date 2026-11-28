@@ -1,0 +1,48 @@
+
+ma_da_atlas.png
+size: 942,695
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+back_hair
+  rotate: false
+  xy: 4, 4
+  size: 357, 296
+  orig: 357, 296
+  offset: 0, 0
+  index: -1
+ear_fin_left
+  rotate: false
+  xy: 365, 4
+  size: 95, 88
+  orig: 95, 88
+  offset: 0, 0
+  index: -1
+ear_fin_right
+  rotate: false
+  xy: 464, 4
+  size: 102, 92
+  orig: 102, 92
+  offset: 0, 0
+  index: -1
+ghost_tail
+  rotate: false
+  xy: 570, 4
+  size: 188, 243
+  orig: 188, 243
+  offset: 0, 0
+  index: -1
+chest_fins
+  rotate: false
+  xy: 762, 4
+  size: 176, 141
+  orig: 176, 141
+  offset: 0, 0
+  index: -1
+head_hair_front
+  rotate: false
+  xy: 4, 304
+  size: 416, 387
+  orig: 416, 387
+  offset: 0, 0
+  index: -1

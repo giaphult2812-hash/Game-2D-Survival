@@ -1,0 +1,48 @@
+
+u_mam_atlas.png
+size: 800,799
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+back_under
+  rotate: false
+  xy: 4, 4
+  size: 402, 369
+  orig: 402, 369
+  offset: 0, 0
+  index: -1
+slime_core
+  rotate: false
+  xy: 410, 4
+  size: 386, 266
+  orig: 386, 266
+  offset: 0, 0
+  index: -1
+jar_body
+  rotate: false
+  xy: 4, 377
+  size: 310, 261
+  orig: 310, 261
+  offset: 0, 0
+  index: -1
+tail_front_right
+  rotate: false
+  xy: 318, 377
+  size: 145, 100
+  orig: 145, 100
+  offset: 0, 0
+  index: -1
+front_tentacles
+  rotate: false
+  xy: 467, 377
+  size: 268, 186
+  orig: 268, 186
+  offset: 0, 0
+  index: -1
+hat_front
+  rotate: false
+  xy: 4, 642
+  size: 332, 153
+  orig: 332, 153
+  offset: 0, 0
+  index: -1

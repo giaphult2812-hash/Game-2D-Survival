@@ -1,0 +1,48 @@
+
+phao_tet_atlas.png
+size: 1020,785
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+smoke_tail_back
+  rotate: false
+  xy: 4, 4
+  size: 413, 288
+  orig: 413, 288
+  offset: 0, 0
+  index: -1
+dragon_coils
+  rotate: false
+  xy: 421, 4
+  size: 447, 340
+  orig: 447, 340
+  offset: 0, 0
+  index: -1
+dragon_jaw_ruff
+  rotate: false
+  xy: 4, 348
+  size: 153, 110
+  orig: 153, 110
+  offset: 0, 0
+  index: -1
+mouth_flame
+  rotate: false
+  xy: 161, 348
+  size: 116, 80
+  orig: 116, 80
+  offset: 0, 0
+  index: -1
+dragon_head_mane
+  rotate: false
+  xy: 281, 348
+  size: 290, 154
+  orig: 290, 154
+  offset: 0, 0
+  index: -1
+sparks_confetti
+  rotate: false
+  xy: 575, 348
+  size: 441, 433
+  orig: 441, 433
+  offset: 0, 0
+  index: -1
